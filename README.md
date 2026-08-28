@@ -16,13 +16,20 @@ The cheapest architecture is also the strongest privacy story:
 
 This means the static/client-heavy workload scales extremely well on Vercel with almost no backend cost.
 
-
 ## Live deployment
 
 Vercel project: `threadtales`  
 Live URL: `https://threadtales-five.vercel.app`
 
 The first Vercel production build completed successfully with Next.js 16.3.3 and TypeScript checks.
+
+## Product strategy and implementation
+
+- [Product strategy, business model, architecture, monetization and go-to-market](docs/PRODUCT_STRATEGY_2026.md)
+- [Phase-by-phase implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
+- [Multi-product platform architecture](docs/PLATFORM_ARCHITECTURE.md)
+
+Current implementation priority: **ThreadTales reliability -> share/export loop -> premium artifacts -> optional persistence -> MyYear.World -> PetLife.**
 
 ## V1 features
 
