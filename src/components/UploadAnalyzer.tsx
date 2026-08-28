@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { parseChat } from "@/lib/parser";
 import { analyzeChat } from "@/lib/analyze";
 import { makeSampleChat } from "@/lib/sample";
-import type { ChatStats, DateOrder } from "@/lib/types";
+import type { ChatStats, DateOrder, StoryMode } from "@/lib/types";
 import { WrappedStory } from "./WrappedStory";
 
 const MAX_BYTES = 15 * 1024 * 1024;
@@ -16,6 +16,7 @@ export function UploadAnalyzer() {
   const [busy, setBusy] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [dateOrder, setDateOrder] = useState<DateOrder>("auto");
+  const [storyMode, setStoryMode] = useState<StoryMode>("friends");
   const fileRef = useRef<HTMLInputElement>(null);
   const search = useSearchParams();
 
@@ -52,9 +53,13 @@ export function UploadAnalyzer() {
         <input ref={fileRef} className="file-input" type="file" accept=".txt,text/plain" onChange={(e)=>void useFile(e.target.files?.[0])}/>
         <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={busy}>{busy ? "Reading your story…" : "Choose .txt file"}</button>
       </div>
-      <div className="controls"><label>Dates: <select className="select" value={dateOrder} onChange={(e)=>setDateOrder(e.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label><button className="btn btn-soft" onClick={()=>analyzeText(makeSampleChat())} disabled={busy}>Use demo chat</button></div>
+      <div className="controls">
+        <label>Story: <select className="select" value={storyMode} onChange={(e)=>setStoryMode(e.target.value as StoryMode)}><option value="friends">Best friends</option><option value="couple">Couple</option><option value="siblings">Siblings</option><option value="family">Family</option><option value="group">Group chat</option></select></label>
+        <label>Dates: <select className="select" value={dateOrder} onChange={(e)=>setDateOrder(e.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
+        <button className="btn btn-soft" onClick={()=>analyzeText(makeSampleChat())} disabled={busy}>Use demo chat</button>
+      </div>
       {error ? <div className="error">{error}</div> : null}
     </div>
-    {stats ? <section id="results" className="results"><WrappedStory stats={stats}/></section> : null}
+    {stats ? <section id="results" className="results"><WrappedStory stats={stats} mode={storyMode}/></section> : null}
   </>;
 }
