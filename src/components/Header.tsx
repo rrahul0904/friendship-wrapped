@@ -8,6 +8,7 @@ export function Header() {
         <span>ThreadTales</span>
       </Link>
       <nav className="navlinks">
+        <Link href="/products">Products</Link>
         <Link href="/#how">How it works</Link>
         <Link href="/privacy">Privacy</Link>
         <Link className="btn btn-primary" href="/create">Make yours →</Link>
