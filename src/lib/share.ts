@@ -1,10 +1,14 @@
-import type { ChatStats, PublicSnapshot } from "./types";
+import type { ChatStats, PublicSnapshot, StoryMode } from "./types";
 
-export function createSnapshot(stats: ChatStats, options: { includeTopWords?: boolean; includeNames?: boolean } = {}): PublicSnapshot {
-  const { includeTopWords = false, includeNames = false } = options;
+export function createSnapshot(
+  stats: ChatStats,
+  options: { includeTopWords?: boolean; includeNames?: boolean; mode?: StoryMode } = {},
+): PublicSnapshot {
+  const { includeTopWords = false, includeNames = false, mode = "friends" } = options;
   return {
     v: 1,
     generatedAt: Date.now(),
+    mode,
     totalMessages: stats.totalMessages,
     totalWords: stats.totalWords,
     firstTimestamp: stats.firstTimestamp,
@@ -12,13 +16,24 @@ export function createSnapshot(stats: ChatStats, options: { includeTopWords?: bo
     daysTogether: stats.daysTogether,
     activeDays: stats.activeDays,
     longestStreak: stats.longestStreak,
+    longestSilenceDays: stats.longestSilenceDays,
+    medianReplyMinutes: stats.medianReplyMinutes,
+    biggestDay: stats.biggestDay,
     peakHour: stats.peakHour,
     favoriteWeekday: stats.favoriteWeekday,
     lateNightMessages: stats.lateNightMessages,
     questionsAsked: stats.questionsAsked,
     laughSignals: stats.laughSignals,
     heartSignals: stats.heartSignals,
-    participants: stats.participants.slice(0, 8).map(({ name, messages, percentage }, index) => ({ name: includeNames ? name : `Person ${index + 1}`, messages, percentage })),
+    dayparts: stats.dayparts,
+    participants: stats.participants.slice(0, 8).map(({ name, messages, percentage, avgWords, conversationStarts, medianReplyMinutes }, index) => ({
+      name: includeNames ? name : `Person ${index + 1}`,
+      messages,
+      percentage,
+      avgWords,
+      conversationStarts,
+      medianReplyMinutes,
+    })),
     byYear: stats.byYear.slice(-12),
     vibe: stats.vibe,
     ...(includeTopWords ? { topWords: stats.topWords.slice(0, 8) } : {}),
