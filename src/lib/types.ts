@@ -1,4 +1,5 @@
 export type DateOrder = "auto" | "mdy" | "dmy";
+export type StoryMode = "friends" | "couple" | "siblings" | "family" | "group";
 
 export interface ChatMessage {
   sender: string;
@@ -11,7 +12,13 @@ export interface ParticipantStat {
   messages: number;
   percentage: number;
   words: number;
+  avgWords: number;
   questions: number;
+  conversationStarts: number;
+  lateNightMessages: number;
+  laughSignals: number;
+  heartSignals: number;
+  medianReplyMinutes: number | null;
 }
 
 export interface YearStat {
@@ -24,6 +31,18 @@ export interface WordStat {
   count: number;
 }
 
+export interface BigDayStat {
+  timestamp: number;
+  messages: number;
+}
+
+export interface DaypartStats {
+  morning: number;
+  afternoon: number;
+  evening: number;
+  night: number;
+}
+
 export interface ChatStats {
   participants: ParticipantStat[];
   totalMessages: number;
@@ -33,6 +52,9 @@ export interface ChatStats {
   daysTogether: number;
   activeDays: number;
   longestStreak: number;
+  longestSilenceDays: number;
+  medianReplyMinutes: number | null;
+  biggestDay: BigDayStat;
   peakHour: number;
   peakHourMessages: number;
   favoriteWeekday: string;
@@ -41,6 +63,7 @@ export interface ChatStats {
   laughSignals: number;
   heartSignals: number;
   mediaSignals: number;
+  dayparts: DaypartStats;
   topWords: WordStat[];
   byYear: YearStat[];
   vibe: {
@@ -54,6 +77,7 @@ export interface ChatStats {
 export interface PublicSnapshot {
   v: 1;
   generatedAt: number;
+  mode?: StoryMode;
   totalMessages: number;
   totalWords: number;
   firstTimestamp: number;
@@ -61,13 +85,17 @@ export interface PublicSnapshot {
   daysTogether: number;
   activeDays: number;
   longestStreak: number;
+  longestSilenceDays?: number;
+  medianReplyMinutes?: number | null;
+  biggestDay?: BigDayStat;
   peakHour: number;
   favoriteWeekday: string;
   lateNightMessages: number;
   questionsAsked: number;
   laughSignals: number;
   heartSignals: number;
-  participants: Array<Pick<ParticipantStat, "name" | "messages" | "percentage">>;
+  dayparts?: DaypartStats;
+  participants: Array<Pick<ParticipantStat, "name" | "messages" | "percentage"> & Partial<Pick<ParticipantStat, "avgWords" | "conversationStarts" | "medianReplyMinutes">>>;
   byYear: YearStat[];
   vibe: ChatStats["vibe"];
   topWords?: WordStat[];
