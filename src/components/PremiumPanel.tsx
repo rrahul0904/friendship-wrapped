@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ChatStats, StoryMode } from "@/lib/types";
 import { composeThreadTale } from "@/platform/story/compose";
 import { downloadStoryCard } from "@/platform/export/story-card";
+import { KeepsakePanel } from "./KeepsakePanel";
 
 const STORAGE_KEY = "threadtales:premium-entitlement";
 
@@ -49,11 +50,14 @@ export function PremiumPanel({ stats, mode }: { stats: ChatStats; mode: StoryMod
     }
   }
 
-  return <section className="story premium-panel">
-    <div><span className="story-summary-kicker">ThreadTales Premium</span><h3>{unlocked ? "Premium export unlocked" : "Keep the full story"}</h3><p>{unlocked ? "Your signed purchase entitlement is valid on this browser. Clean exports and print/PDF mode are available." : "The free analysis stays complete. Premium adds branding-free high-resolution exports and the storybook/print experience."}</p></div>
-    <div className="premium-actions">{unlocked ? <><button className="btn btn-primary" onClick={() => void cleanExport()} disabled={busy}>Download clean 9:16 cover</button><button className="btn btn-soft" onClick={() => window.print()}>Print / Save PDF</button></> : <button className="btn btn-primary" onClick={() => void startCheckout()} disabled={busy}>{busy ? "Opening secure checkout…" : "Unlock premium"}</button>}</div>
-    {message ? <div className="notice" role="status">{message}</div> : null}
-  </section>;
+  return <>
+    <section className="story premium-panel">
+      <div><span className="story-summary-kicker">ThreadTales Premium</span><h3>{unlocked ? "Premium export unlocked" : "Keep the full story"}</h3><p>{unlocked ? "Your signed purchase entitlement is valid on this browser. Clean exports and print/PDF mode are available." : "The free analysis stays complete. Premium adds branding-free high-resolution exports and the storybook/print experience."}</p></div>
+      <div className="premium-actions">{unlocked ? <button className="btn btn-primary" onClick={() => void cleanExport()} disabled={busy}>Download clean 9:16 cover</button> : <button className="btn btn-primary" onClick={() => void startCheckout()} disabled={busy}>{busy ? "Opening secure checkout…" : "Unlock premium"}</button>}</div>
+      {message ? <div className="notice" role="status">{message}</div> : null}
+    </section>
+    {unlocked ? <KeepsakePanel stats={stats} mode={mode}/> : null}
+  </>;
 }
 
 export const premiumEntitlementStorageKey = STORAGE_KEY;
