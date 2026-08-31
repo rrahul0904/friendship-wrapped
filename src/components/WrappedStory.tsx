@@ -3,14 +3,9 @@
 import { useMemo, useState } from "react";
 import type { ChatStats, PublicSnapshot, StoryMode } from "@/lib/types";
 import { createSnapshot, encodeSnapshot } from "@/lib/share";
-
-const MODE_COPY: Record<StoryMode, { eyebrow: string; ending: string; noun: string }> = {
-  friends: { eyebrow: "Your friendship story", ending: "Still talking.", noun: "friendship" },
-  couple: { eyebrow: "Your relationship story", ending: "Still choosing each other.", noun: "relationship" },
-  siblings: { eyebrow: "Your sibling lore", ending: "A lifetime of side quests.", noun: "sibling story" },
-  family: { eyebrow: "Your family story", ending: "The family chat has receipts.", noun: "family story" },
-  group: { eyebrow: "Your group-chat history", ending: "The lore is extensive.", noun: "group chat" },
-};
+import { getStoryModeConfig } from "@/platform/story/modes";
+import { trackProductEvent } from "@/platform/telemetry/client";
+import { StoryChapterDeck } from "./StoryChapterDeck";
 
 function formatHour(hour: number) {
   const suffix = hour >= 12 ? "pm" : "am";
@@ -52,7 +47,7 @@ function StoryBody({ stats, mode, publicMode = false }: { stats: ChatStats | Pub
   const topWords = "topWords" in stats ? stats.topWords : undefined;
   const lead = stats.participants[0]?.name ?? "You";
   const second = stats.participants[1]?.name;
-  const copy = MODE_COPY[mode];
+  const copy = getStoryModeConfig(mode);
   const activeRate = Math.min(100, Math.round((stats.activeDays / Math.max(1, stats.daysTogether)) * 100));
   const totalStarts = stats.participants.reduce((sum, p) => sum + (p.conversationStarts ?? 0), 0);
   const dayparts = stats.dayparts;
@@ -111,6 +106,7 @@ export function WrappedStory({ stats, mode = "friends" }: { stats: ChatStats; mo
   const [includeTopWords, setIncludeTopWords] = useState(false);
   const [includeNames, setIncludeNames] = useState(false);
   const [copied, setCopied] = useState(false);
+  const copy = getStoryModeConfig(mode);
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";
     const payload = encodeSnapshot(createSnapshot(stats, { includeTopWords, includeNames, mode }));
@@ -119,18 +115,25 @@ export function WrappedStory({ stats, mode = "friends" }: { stats: ChatStats; mo
 
   async function copyShare() {
     await navigator.clipboard.writeText(shareUrl);
+    trackProductEvent("share_created", "threadtales", mode);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
+  async function nativeShare() {
+    trackProductEvent("share_created", "threadtales", mode);
+    await navigator.share({ title: "Our ThreadTale", text: `Our ${copy.noun} in numbers.`, url: shareUrl });
+  }
+
   return <>
     <StoryBody stats={stats} mode={mode} />
+    <StoryChapterDeck stats={stats} mode={mode} />
     <div className="story share-panel">
       <h3>Turn this into something you can send</h3>
       <p>The link contains only the derived stats shown above. Raw messages are never embedded. Names and top words stay private unless you explicitly include them.</p>
       <label className="toggle"><input type="checkbox" checked={includeNames} onChange={(e)=>setIncludeNames(e.target.checked)}/> Show participant names in the public link</label>
       <label className="toggle"><input type="checkbox" checked={includeTopWords} onChange={(e)=>setIncludeTopWords(e.target.checked)}/> Include top words in the public link</label>
-      <div className="share-actions"><input className="share-input" readOnly value={shareUrl}/><button className="btn btn-primary" onClick={copyShare}>{copied ? "Copied ✓" : "Copy share link"}</button>{typeof navigator !== "undefined" && "share" in navigator ? <button className="btn btn-soft" onClick={()=>navigator.share({title:"Our ThreadTale",text:`Our ${MODE_COPY[mode].noun} in numbers.`,url:shareUrl})}>Share…</button> : null}</div>
+      <div className="share-actions"><input className="share-input" readOnly value={shareUrl}/><button className="btn btn-primary" onClick={() => void copyShare()}>{copied ? "Copied ✓" : "Copy share link"}</button>{typeof navigator !== "undefined" && "share" in navigator ? <button className="btn btn-soft" onClick={() => void nativeShare()}>Share…</button> : null}</div>
     </div>
   </>;
 }

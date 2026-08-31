@@ -1,10 +1,10 @@
-name: Phase 0 CI
+name: Production CI
 
 on:
   push:
     branches:
       - main
-      - production-phase-0
+      - production-all-phases
   pull_request:
 
 permissions:
@@ -40,6 +40,15 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Verify client bundles contain no server secret identifiers
+        shell: bash
+        run: |
+          if grep -R -n -E 'STRIPE_SECRET_KEY|STRIPE_WEBHOOK_SECRET|ENTITLEMENT_SIGNING_SECRET|SUPABASE_SECRET_KEY|OPENAI_API_KEY' .next/static; then
+            echo "Server-only secret identifier found in a client bundle."
+            exit 1
+          fi
+          echo "Client bundle secret scan passed."
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium

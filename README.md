@@ -1,72 +1,129 @@
-# ThreadTales (friendship-wrapped)
+# ThreadTales / Story Platform
 
-**Your chats, turned into a story.**
+**Turn private digital history into stories worth sharing and keeping.**
 
-ThreadTales turns a WhatsApp text export into a visual relationship story while keeping raw chat content in the browser during the free flow.
+This repository is one simple Next.js application containing three implemented product experiences:
+
+- **ThreadTales** — a privacy-first WhatsApp story/analyzer;
+- **MyYear.World** — a deterministic year-in-review builder;
+- **PetLife** — a repeat-use pet memory timeline and annual recap.
+
+The platform deliberately keeps optional infrastructure behind configuration gates so the free/local experiences remain deployable without accounts, a database, payments, AI, queues, or a separate backend.
+
+## ThreadTales privacy promise
+
+The free ThreadTales flow is local-first:
+
+```text
+WhatsApp .txt
+ -> browser File API
+ -> Web Worker when available
+ -> parser + deterministic analytics
+ -> derived story
+ -> optional privacy-safe share/export
+```
+
+Raw imported chat is not silently uploaded to Vercel functions, Supabase, Stripe, telemetry, or an AI provider. Public share links use a separate derived snapshot; participant names and top words are excluded by default.
+
+See [Privacy architecture](docs/PRIVACY_ARCHITECTURE.md) for every implemented boundary.
+
+## Product surface
+
+### ThreadTales
+
+- Android/iOS WhatsApp text parsing
+- MM/DD and DD/MM modes
+- 12/24-hour timestamps and multiline messages
+- Web Worker processing with fallback/error/timeout behavior
+- message/word/participant analytics
+- streaks, silence, reply speed, conversation starts
+- busiest day, peak hour, weekday/dayparts
+- laughter/heart/media/question signals
+- monthly/yearly timeline and deterministic vibe scores
+- ten story modes including birthday and anniversary experiences
+- rendering-neutral chapter composer
+- 1080×1920 and 1080×1080 browser PNG exports
+- privacy-safe public share payloads
+- optional one-time Stripe premium architecture
+- optional derived-story Supabase save
+- vendor-neutral keepsake/print model
+- optional derived-data AI enrichment
+- content-blind product telemetry
+
+### MyYear.World
+
+- manual dated highlights
+- locally selected photo metadata
+- optional caption/location
+- deterministic monthly counts and consecutive-month eras
+- story chapters and vertical export
+- privacy-safe share manifest excluding captions/locations/photo bytes
+- optional derived cloud save
+
+### PetLife
+
+- local pet profile
+- memory/milestone timeline
+- intentionally namespaced browser persistence
+- local delete control
+- annual recap and story export
+- privacy-safe recap manifest
+- optional Supabase household model
+- owner/member roles and `can_add_memories`
+- hashed one-time seven-day invitations
+- permitted shared-memory contribution path
 
 ## Architecture
 
-The free product is intentionally client-heavy:
+Keep the stack boring:
 
-1. The `.txt` export is opened with the browser File API.
-2. Parsing and deterministic analytics run locally.
-3. Raw chat content is not uploaded, persisted, logged, or sent to an AI model.
-4. Optional share links contain a separate derived-stat snapshot only.
-5. No account, database, payment provider, or backend secret is required for the free flow.
+```text
+Next.js App Router
+React
+TypeScript strict mode
+plain CSS
+Browser APIs / Web Worker
+Vitest
+Playwright
+GitHub Actions
+Vercel
 
-See [Phase 0 privacy architecture](docs/PRIVACY_ARCHITECTURE.md) for the implemented data boundary.
+optional only:
+Stripe
+Supabase
+OpenAI
+HTTPS telemetry endpoint
+```
 
-## Live deployment
+Not present/required:
 
-Vercel project: `threadtales`  
-Current production URL: `https://threadtales-five.vercel.app`
+- Redis
+- Kafka
+- Docker/Kubernetes
+- microservices
+- Python backend
+- queue infrastructure
+- vector database
 
-Production currently predates the Phase 0 branch. See [Phase 0 status](docs/PHASE_0_STATUS.md) for verification and deployment synchronization state.
+See [Platform architecture](docs/PLATFORM_ARCHITECTURE.md).
 
-## Product and implementation docs
+## External integrations
 
-- [Product strategy](docs/PRODUCT_STRATEGY_2026.md)
-- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
-- [Multi-product platform architecture](docs/PLATFORM_ARCHITECTURE.md)
-- [Phase 0 status](docs/PHASE_0_STATUS.md)
-- [Phase 0 privacy architecture](docs/PRIVACY_ARCHITECTURE.md)
-- [Codex Phase 0 implementation prompt](docs/CODEX_PHASE_0_IMPLEMENTATION_PROMPT.md)
+Optional integrations are intentionally distinguished as:
 
-## Current features
+```text
+implemented
+configured
+verified
+```
 
-- WhatsApp Android and iOS text export parsing
-- US (`MM/DD`) and international (`DD/MM`) date modes
-- 12-hour and 24-hour timestamps
-- multiline message support
-- message and word counts
-- participant message split
-- first/last date and active-day span
-- longest streak and quiet period
-- busiest day, peak hour, favorite weekday, and daypart activity
-- reply-speed and conversation-start metrics
-- question, laughter, heart, and media signals
-- top words and year-by-year timeline
-- deterministic vibe scores
-- privacy-safe derived-stat share links
-- participant names and top words excluded from public links by default
-- built-in sample chat/demo
-- mobile-responsive UI
-- automated parser, analytics, privacy, and browser smoke coverage
+Code being implemented does not imply a live service is configured. See [External integrations](docs/EXTERNAL_INTEGRATIONS.md).
 
-## Tech stack
+The free/local product needs no secret.
 
-- Next.js App Router
-- React + TypeScript (`strict`)
-- plain CSS
-- browser File APIs
-- Vitest
-- Playwright
-- GitHub Actions
-- Vercel deployment target
+Copy `.env.example` only when enabling optional capabilities.
 
 ## Local development
-
-Use the committed lockfile:
 
 ```bash
 npm ci
@@ -77,47 +134,60 @@ Open `http://localhost:3000`.
 
 ## Verification
 
-Fast pre-commit verification:
+Fast verification:
 
 ```bash
 npm run verify
 ```
 
-This runs lint, strict TypeScript checking, and unit tests.
-
-Production and browser checks:
+Full production gate:
 
 ```bash
+npm ci
+npm run lint
+npm run typecheck
+npm run test
 npm run build
 npx playwright install chromium
 npm run test:e2e
 ```
 
-On Linux/CI, Playwright browser dependencies can be installed with:
+GitHub Actions runs the clean-checkout equivalent for pull requests.
 
-```bash
-npx playwright install --with-deps chromium
-```
+## Deployment
 
-GitHub Actions runs the complete clean-checkout sequence:
+Vercel project: `threadtales`.
+
+The intended lifecycle is:
 
 ```text
-npm ci
--> lint
--> typecheck
--> unit tests
--> production build
--> Chromium smoke tests
+feature/production branch
+ -> pull request
+ -> GitHub Actions
+ -> Vercel preview
+ -> smoke/privacy verification
+ -> explicit merge
+ -> production from main
 ```
 
-## Vercel deployment model
+Do not promote an unverified feature branch over production. See [Deployment readiness](docs/DEPLOYMENT_READINESS.md).
 
-The intended production model is Vercel Git integration with `main` as the production branch and pull-request/feature branches as previews. Phase 0 itself requires no server secret.
+## Product roadmap status
 
-`NEXT_PUBLIC_SITE_URL` can be set to the canonical deployed URL for metadata/robots/sitemap behavior. It does not contain imported data.
+- [All phases status](docs/ALL_PHASES_STATUS.md)
+- [Product strategy](docs/PRODUCT_STRATEGY_2026.md)
+- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
+- [Platform architecture](docs/PLATFORM_ARCHITECTURE.md)
+- [Privacy architecture](docs/PRIVACY_ARCHITECTURE.md)
+- [External integrations](docs/EXTERNAL_INTEGRATIONS.md)
+- [Deployment readiness](docs/DEPLOYMENT_READINESS.md)
+- [Product decision framework](docs/PRODUCT_DECISION_FRAMEWORK.md)
+- [Phase 0 historical status](docs/PHASE_0_STATUS.md)
 
-Do not promote an unverified branch to production. Merge only after Phase 0 CI is green, then deploy the exact merged commit through the existing `threadtales` Vercel project.
+## Decision discipline
 
-## Privacy principle
+ThreadTales, MyYear and PetLife are the proving products. Relationship Universe, LifeMap, BabyStory, FamilyTree Live, FounderWorld and CreatorWorld remain evidence-gated ideas. Do not build them merely because they exist in the product registry; use the measurable gates in [Product decision framework](docs/PRODUCT_DECISION_FRAMEWORK.md).
 
-Do not convert the raw-chat local-only pipeline into a silent server upload. Future persistence, payment, telemetry, or AI features must preserve the default free-flow boundary or introduce a separate explicit consent model.
+## Core principle
+
+Do not weaken the anonymous local ThreadTales pipeline for convenience. Any persistence, payment, telemetry, or AI feature must remain separate, minimized, explicit where content is involved, and accurately documented.

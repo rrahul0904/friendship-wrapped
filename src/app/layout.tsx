@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./v2.css";
+import "./platform.css";
 
 export const metadata: Metadata = {
   title: "ThreadTales — Your chats, turned into a story",

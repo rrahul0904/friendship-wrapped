@@ -1,5 +1,15 @@
 export type DateOrder = "auto" | "mdy" | "dmy";
-export type StoryMode = "friends" | "couple" | "siblings" | "family" | "group";
+export type StoryMode =
+  | "friends"
+  | "couple"
+  | "siblings"
+  | "family"
+  | "group"
+  | "birthday"
+  | "anniversary"
+  | "long-distance"
+  | "graduation"
+  | "year-together";
 
 export interface ChatMessage {
   sender: string;
@@ -26,6 +36,11 @@ export interface YearStat {
   messages: number;
 }
 
+export interface MonthStat {
+  month: string;
+  messages: number;
+}
+
 export interface WordStat {
   word: string;
   count: number;
@@ -41,6 +56,14 @@ export interface DaypartStats {
   afternoon: number;
   evening: number;
   night: number;
+}
+
+export interface ResponseGapStats {
+  under5Minutes: number;
+  under30Minutes: number;
+  under2Hours: number;
+  under12Hours: number;
+  over12Hours: number;
 }
 
 export interface ChatStats {
@@ -66,6 +89,9 @@ export interface ChatStats {
   dayparts: DaypartStats;
   topWords: WordStat[];
   byYear: YearStat[];
+  byMonth: MonthStat[];
+  responseGaps: ResponseGapStats;
+  conversationBalance: number;
   vibe: {
     nightOwl: number;
     curiosity: number;
