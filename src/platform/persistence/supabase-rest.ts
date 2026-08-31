@@ -1,4 +1,4 @@
-import { requireSupabasePublicConfig } from "./config";
+import { requireSupabasePublicConfig, requireSupabaseSecretConfig } from "./config";
 
 interface SupabaseSessionResponse {
   access_token: string;
@@ -64,6 +64,26 @@ export async function supabaseRest<T>(tableAndQuery: string, accessToken: string
   if (!response.ok) {
     const error = data as { message?: string; details?: string } | null;
     throw new Error(error?.message ?? error?.details ?? "Supabase Data API request failed.");
+  }
+  return data as T;
+}
+
+export async function supabaseAdminRest<T>(tableAndQuery: string, init: RequestInit = {}) {
+  const { url, secretKey } = requireSupabaseSecretConfig();
+  const response = await fetch(`${url}/rest/v1/${tableAndQuery}`, {
+    ...init,
+    headers: {
+      apikey: secretKey,
+      "Content-Type": "application/json",
+      ...(init.headers ?? {}),
+    },
+    cache: "no-store",
+  });
+  if (response.status === 204) return null as T;
+  const data = await response.json().catch(() => null) as T | { message?: string; details?: string } | null;
+  if (!response.ok) {
+    const error = data as { message?: string; details?: string } | null;
+    throw new Error(error?.message ?? error?.details ?? "Supabase admin request failed.");
   }
   return data as T;
 }
