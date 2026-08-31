@@ -2,17 +2,17 @@
 
 ## Scope
 
-Phase 1 implements the large-history browser engine described by the Phase 1 Codex contract while preserving the Phase 0 privacy and reliability baseline.
+Production Phase 1 implements the large-history browser engine while preserving the Phase 0 privacy and reliability baseline.
 
 Implementation branch: `production-phase-1`
 
-Phase 1 is based directly on verified Phase 0 SHA `724f640ca317c6dd4fcb2e790c5484fa73533600` because Phase 0 PR #2 was still open when Phase 1 began. Phase 0 must merge before this PR is finally rebased/merged to `main`.
+Phase 0 is now landed on `main` at `724f640ca317c6dd4fcb2e790c5484fa73533600`. Phase 1 was created from that exact SHA, so the branch is already correctly based on the current `main`; no history rewrite or code rebase is required.
 
 No database, authentication, Stripe, AI, server-side chat parsing, raw file upload, object storage, queue, Redis, Docker, new importer, or new consumer product is part of this phase.
 
 ## Baseline audit
 
-### Before Phase 1
+Before Phase 1:
 
 ```text
 File.text()
@@ -25,19 +25,9 @@ File.text()
   -> optional PublicSnapshot V1
 ```
 
-The Phase 0 parser/analyzer was deterministic and tested, but a complete large export was decoded, parsed, sorted/analyzed and tokenized on the browser main thread. `UploadAnalyzer` yielded once so the busy state could paint, but the subsequent CPU work could still block interaction.
+The Phase 0 parser/analyzer was deterministic and tested, but a complete large export was decoded, parsed and analyzed on the browser main thread. The 15 MB guard reduced worst-case exposure but did not eliminate responsiveness risk.
 
-The 15 MB guard reduced worst-case exposure but did not eliminate main-thread responsiveness risk.
-
-### Memory/computation risks identified
-
-- `File.text()` created the full decoded raw string on the UI thread;
-- parser normalization created a normalized string and split-line array;
-- analyzer always copied/sorted the parsed message array even though parser output is normally chronological;
-- streak and quiet-period helpers created complete timestamp arrays and additional normalized day arrays;
-- busiest-day selection sorted all day-map entries;
-- `ChatStats` had no explicit schema version, making future migrations harder to reason about;
-- public-share V1 and private analytics needed to remain separate contracts.
+Identified costs included full decoded text on the UI thread, redundant sorting/copying, additional timestamp/day arrays for streak calculations, sorting all day-map entries for busiest-day selection, and an unversioned private analytics result.
 
 ## Phase 1 architecture
 
@@ -60,94 +50,64 @@ The Web Worker is a browser performance boundary, not a cloud boundary.
 
 ## ThreadTaleResultV2
 
-Phase 1 introduces an explicit serializable result contract with `schemaVersion: 2`.
-
-It contains:
-
-- source provider, detected format, resolved date order and confidence;
-- range and active-day span;
-- totals for messages, words, participants, media, questions, laughs, hearts and late-night messages;
-- derived participant metrics;
-- streak, silence, busiest-day, peak-hour, weekday and daypart activity;
-- yearly and monthly activity;
-- median reply time and top derived words;
-- the existing deterministic presentation vibe values.
+Phase 1 introduces an explicit serializable private result contract with `schemaVersion: 2` containing source/detection metadata, date range, totals, participant metrics, streak/silence/busiest-day/peak-hour/daypart activity, yearly and monthly activity, reply metrics, top derived words and deterministic presentation values.
 
 It does **not** contain raw message bodies or the full `ChatMessage[]`.
 
-`resultToChatStats()` is a temporary compatibility adapter so the existing `WrappedStory` and PublicSnapshot V1 path can remain stable during this phase. Calculations still have one source of truth: `analyzeChat()` / `analyzeThreadTale()`.
+`resultToChatStats()` is a temporary compatibility adapter so the existing `WrappedStory` and PublicSnapshot V1 path remain stable. Calculations still have one source of truth.
 
-## Worker protocol
+## Worker protocol and lifecycle
 
 Typed request messages:
 
-- `ANALYZE_CHAT` — request ID, text/buffer content, date-order option;
-- `CANCEL` — request ID.
+- `ANALYZE_CHAT`
+- `CANCEL`
 
 Typed responses:
 
-- `PROGRESS` — validating, parsing, analyzing or finalizing;
-- `SUCCESS` — `ThreadTaleResultV2`;
-- `ERROR` — serialized recoverable error;
-- `CANCELLED`.
+- `PROGRESS`
+- `SUCCESS`
+- `ERROR`
+- `CANCELLED`
 
-Each task has a unique request ID. The UI also keeps an operation generation number. A superseded task cannot overwrite a newer result even if a stale message arrives.
+Progress stages are validating, parsing, analyzing and finalizing.
 
-Cancellation terminates the Worker immediately and rejects the local task promise with `AbortError`. Completed, failed and cancelled workers are terminated.
+Each task has a unique request ID and the UI also tracks an operation generation number. Superseded work cannot overwrite a newer result. Cancellation terminates the Worker and rejects the local task promise with `AbortError`. Completed, failed and cancelled workers are terminated.
 
 ## Date-order detection
 
-`auto` now scans valid WhatsApp records for explainable evidence:
+`auto` scans valid WhatsApp records for explainable evidence:
 
 - first field > 12 and second field <= 12 -> DMY evidence;
 - second field > 12 and first field <= 12 -> MDY evidence;
 - evidence from only one order -> high-confidence detection;
 - no evidence or conflicting evidence -> ambiguous.
 
-Ambiguous input retains the Phase 0 US-first MDY fallback. The explicit MM/DD or DD/MM selector always overrides detection.
+Ambiguous input retains the Phase 0 US-first MDY fallback. Explicit MM/DD or DD/MM selection always overrides detection.
 
 ## Parser hardening
 
-Phase 1 adds coverage for:
+Phase 1 adds coverage for UTF-8 BOM, CRLF/LF, no final newline, timestamps with seconds, Unicode spacing, participant names containing emoji, leap-day validation, year boundaries, empty message bodies, multiline text, mixed Android/iOS records and large generated histories. Existing impossible-date, invalid-time, Unicode, multiline and malformed-timestamp protections remain.
 
-- UTF-8 BOM;
-- CRLF/LF;
-- no final newline;
-- timestamps containing seconds;
-- non-breaking/narrow spaces through existing normalization;
-- participant names containing emoji;
-- leap-day validation;
-- year boundaries;
-- empty message bodies;
-- multiline text containing time-like content;
-- mixed Android/iOS records;
-- large generated histories.
+## Large-history behavior and memory strategy
 
-Existing impossible-date, invalid-time, Unicode, multiline and malformed-timestamp protections remain in place.
+Synthetic generation is deterministic and does not commit massive fixtures.
 
-## Large-history behavior
+Real uploads use `File.arrayBuffer()` and transfer ownership to the Worker rather than creating a second cloned file buffer on the UI thread. Raw text is decoded only inside the Worker for real uploads. Chronological parser output avoids a redundant sort/copy unless disorder is detected; active-day state is reused for streak/silence calculations; busiest-day selection is linear; only derived Result V2 returns to the main page.
 
-Synthetic generation is deterministic and does not commit massive fixtures. The generator supports configurable message/participant counts and adds questions, emoji, media markers, multiline records and conversation gaps.
-
-The final code-complete CI run executed 11 unit-test files / 46 unit tests, three performance cases, the Next.js 16.3.3 production build, and 12 Chromium journeys successfully.
-
-CPU baselines are recorded in `docs/PERFORMANCE_BASELINE.md`.
-
-The 15 MB file guard remains intentionally unchanged. Web Worker migration fixes main-thread responsiveness; it does not remove all browser-memory constraints.
+The 15 MB file guard remains intentionally unchanged. Worker migration improves responsiveness but does not remove browser-memory limits.
 
 ## Privacy
 
-Real uploaded files use a transferable `ArrayBuffer`. The browser moves buffer ownership to the Worker instead of cloning the file data into a second main-thread copy. The Worker decodes/parses/analyzes locally and returns only the derived V2 result.
+The Worker execution path has no `fetch`, `XMLHttpRequest`, `sendBeacon` or WebSocket transport. Raw chat content is not sent to a server, persisted, logged, placed in browser storage, or added to the public share schema.
 
-The Worker execution path has no `fetch`, `XMLHttpRequest`, `sendBeacon` or WebSocket transport. Raw chat content is not sent to a server, persisted, logged, placed into browser storage, or added to the share schema.
-
-PublicSnapshot remains V1 because Phase 1 does not require changing its public fields. Names and top words remain opt-in.
+PublicSnapshot remains V1 and separate from the private Result V2 contract. Names and top words remain opt-in. Base64url is encoding, not encryption.
 
 See `docs/PRIVACY_ARCHITECTURE.md`.
 
-## CI validation
+## Verified test and performance baseline
 
-Code-complete commit `465fa6e7db1059e93f452693107841527bff1e83` passed:
+The code-complete Phase 1 head before this status-only update passed:
 
 ```text
 npm ci                    PASS
@@ -160,6 +120,20 @@ Playwright Chromium       PASS
 npm run test:e2e          PASS — 12/12
 ```
 
+Measured GitHub Actions CPU baseline, Node 24.19.0, deterministic 4-person synthetic history:
+
+| Messages | Parse | Analyze | Total |
+| ---: | ---: | ---: | ---: |
+| 10,000 | 47.6 ms | 42.1 ms | 89.6 ms |
+| 50,000 | 115.0 ms | 124.3 ms | 239.3 ms |
+| 100,000 | 214.8 ms | 232.5 ms | 447.2 ms |
+
+These are CPU regression baselines, not browser/device latency promises.
+
+Browser coverage includes the Phase 0 journeys plus worker-backed demo/upload, real processing status, 30k-message completion, 75k supersession, 75k cancellation/reset/reuse, and auto DMY detection through the Worker pipeline.
+
+This documentation update intentionally creates a new Phase 1 head so the same full CI gate can run again against the actual post-Phase-0 `main`.
+
 ## Vercel deployment audit
 
 Existing Vercel project:
@@ -167,24 +141,13 @@ Existing Vercel project:
 - name: `threadtales`
 - project ID: `prj_nkUfVeRw1fEQaROoAOOi4SI6GwVh`
 - team ID: `team_zmEezpOKGZy2sH5nqTfO44LD`
-- production deployment: `dpl_H8hYU4P6jQUeANKF6H8ZdXThNVQn`
-- production state: `READY`
+- current production deployment: `dpl_H8hYU4P6jQUeANKF6H8ZdXThNVQn`
+- current production state: `READY`
 - production alias: `threadtales-five.vercel.app`
 
-Deployment listing still contains only the original production deployment. No `production-phase-1` preview was created automatically, which confirms the existing Vercel project is not currently producing Git-based preview deployments for this repository.
+At the last audit, Vercel still listed only the original production deployment. No Phase 1 preview had been created automatically. Production was not changed.
 
-The connected Vercel surface available during this implementation exposes project/deployment inspection but no project Git-repository linking mutation. Creating a second project, inventing credentials, or replacing the existing production deployment would violate the Phase 1 deployment boundary, so none of those were done.
-
-A production runtime-log check for the previous 24 hours found no error/fatal entries. That check applies to the existing production deployment, not to Phase 1, which has not been deployed.
-
-Therefore:
-
-- Phase 1 preview URL: **not available**;
-- Phase 1 deployment ID: **not available**;
-- Phase 1 Vercel runtime errors: **not measurable because no preview exists**;
-- production changed: **NO**.
-
-The missing preview is an external Git-integration limitation, not a claim that Phase 1 is deployed. After repository/Vercel Git integration is enabled, the exact Phase 1 commit should receive a preview before production promotion.
+The next deployment step is to connect the existing `threadtales` Vercel project to `rrahul0904/friendship-wrapped` with `main` as the production branch, then obtain and verify a preview for `production-phase-1`. A second Vercel project must not be created for this purpose.
 
 ## Known limitations
 
@@ -194,12 +157,19 @@ The missing preview is an external Git-integration limitation, not a claim that 
 - E2E coverage is Chromium-focused;
 - tokenization/stop words are primarily English-oriented;
 - WhatsApp remains the only implemented import provider;
-- ambiguous all-<=12 dates remain US-first unless the user overrides the selector;
-- public share fragments remain base64url-encoded, not encrypted or revocable;
+- ambiguous all-<=12 dates remain US-first unless explicitly overridden;
+- public share fragments are base64url-encoded, not encrypted or revocable;
 - the story UI still consumes a temporary `ChatStats` compatibility adapter;
 - no server persistence exists;
-- Phase 1 has no Vercel preview until Git integration is enabled.
+- Phase 1 still requires a Vercel preview before production promotion.
 
 ## Merge readiness
 
-The Phase 1 code is green and internally merge-ready, but PR #5 should **not** be merged into the old `main` before Phase 0 PR #2 lands. Phase 1 intentionally includes the verified Phase 0 head as its base dependency. After #2 merges, rebase/update PR #5 onto the new `main` and rerun the same CI gate; then a Vercel preview should be produced once Git integration is enabled.
+Phase 0 dependency: **RESOLVED**.
+
+`production-phase-1` is based on the exact Phase 0 SHA now on `main`, so it is expected to be ahead-only with no rebase required. Merge readiness now depends on two remaining gates:
+
+1. the new Phase 1 head must pass the complete CI suite against current `main`;
+2. the exact Phase 1 head must receive and pass verification on a Vercel preview of the existing `threadtales` project.
+
+Phase 2 remains intentionally unstarted.
