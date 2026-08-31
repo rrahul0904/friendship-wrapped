@@ -24,6 +24,7 @@ describe("parseChat", () => {
     expect(messages[0].sender).toBe("Maya Rose");
     expect(messages[1].text).toBe("Morning: coffee?");
     expect(messages[2].text).toBe("yes\nthis continues on a second line");
+    expect(messages[3].text).toBe("<Media omitted>");
     expect(parts(messages[0].timestamp)).toEqual({ year: 2026, month: 2, day: 3, hour: 9, minute: 10 });
     expect(parts(messages[3].timestamp).hour).toBe(23);
     expect(parts(messages[4].timestamp).hour).toBe(0);
@@ -48,11 +49,17 @@ describe("parseChat", () => {
     expect(parts(messages[0].timestamp).year).toBe(2026);
   });
 
-  it("parses iOS bracketed timestamps and multiline bodies", () => {
+  it("parses iOS DD/MM bracketed timestamps and multiline bodies", () => {
     const messages = parseChat(fixture("ios-dmy.txt"), "dmy");
     expect(messages).toHaveLength(5);
     expect(messages[1].text).toBe("Coffee: now?");
     expect(messages[2].text).toBe("Dinner later\ncontinued thought");
+  });
+
+  it("parses iOS MM/DD bracketed timestamps", () => {
+    const messages = parseChat(fixture("ios-mdy.txt"), "mdy");
+    expect(messages).toHaveLength(5);
+    expect(parts(messages[0].timestamp)).toEqual({ year: 2026, month: 2, day: 13, hour: 9, minute: 10 });
   });
 
   it("accepts harmless Unicode direction and spacing characters", () => {
@@ -60,6 +67,17 @@ describe("parseChat", () => {
     const messages = parseChat(raw, "mdy");
     expect(messages).toHaveLength(2);
     expect(messages[0].text).toBe("hello");
+  });
+
+  it("ignores blank lines without changing adjacent messages", () => {
+    const raw = [
+      "2/3/2026, 9:10 AM - Maya Rose: first",
+      "",
+      "2/3/2026, 9:11 AM - Jordan Lee: second",
+    ].join("\n");
+    const messages = parseChat(raw, "mdy");
+    expect(messages).toHaveLength(2);
+    expect(messages[0].text).toBe("first");
   });
 
   it("rejects impossible calendar dates instead of allowing Date normalization", () => {

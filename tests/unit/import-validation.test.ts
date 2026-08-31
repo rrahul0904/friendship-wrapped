@@ -11,6 +11,10 @@ describe("chat import validation", () => {
     expect(validateChatFileMetadata({ name: "chat.TXT", size: 1000 })).toBeNull();
   });
 
+  it("accepts a file exactly at the configured client-side limit", () => {
+    expect(validateChatFileMetadata({ name: "chat.txt", size: MAX_CHAT_BYTES })).toBeNull();
+  });
+
   it("rejects unsupported extensions", () => {
     expect(validateChatFileMetadata({ name: "chat.zip", size: 1000 })).toContain(".txt");
   });
