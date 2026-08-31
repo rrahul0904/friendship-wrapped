@@ -1,119 +1,227 @@
-# ThreadTales Phase 0 Privacy Architecture
+# ThreadTales / Story Platform Privacy Architecture
 
 ## Scope
 
-This document describes the implemented free ThreadTales / Friendship Wrapped flow on the `production-phase-0` branch. It is intentionally limited to what the code currently does. It does not describe future account, payment, AI, persistence, or import-provider features.
+This document describes the implemented architecture on `production-all-phases` for ThreadTales, MyYear.World, and PetLife. The central rule is unchanged: **the free ThreadTales analyzer does not upload the imported WhatsApp chat**. Optional payment, cloud persistence, AI enrichment, and telemetry are separate boundaries with narrow schemas and graceful disabled states.
 
-## Implemented data flow
+## Data-boundary summary
+
+| Path | Feature | Data crossing boundary | User initiated? | Raw content possible? | Persistence | Protection |
+| --- | --- | --- | --- | --- | --- | --- |
+| Browser → Web Worker | ThreadTales free analysis | Raw `.txt` and parsed messages | Yes, file selection/demo | Yes, inside browser only | Ephemeral browser memory | Worker/local processing; no server call |
+| Browser URL fragment | ThreadTales public share | Derived `PublicSnapshot` | Yes | No raw messages; names/top words opt-in | No server copy | Fragment is client-decoded; base64url is encoding, not encryption |
+| Browser → `/api/checkout` → Stripe | Premium checkout | Story mode, product/price/session metadata | Yes | No | Stripe payment/session records | Server-only Stripe key; no chat/result payload |
+| Browser → `/api/entitlements` | Premium recovery | Checkout Session ID or signed entitlement | Yes | No | Signed token may be stored locally | Stripe session is verified server-side; HMAC entitlement |
+| Browser → `/api/stories` → Supabase | Optional story save | Explicit derived story/result | Yes | Raw ThreadTales messages rejected | Optional private cloud records | Auth + RLS + server sanitizer |
+| Browser → `/api/ai/enrich` → OpenAI | Optional AI enrichment | Allowlisted derived metrics + share-safe chapters; optional consented snippet | Yes | Only an explicitly pasted ≤600-char snippet | Provider request configured with `store: false` | Server-only API key, allowlist, consent validation |
+| Browser → `/api/telemetry` | Product telemetry | Event name, product, recognized mode | Best-effort after user action | No content fields exist | Optional external endpoint | Allowlist/sanitizer; 202 no-op when endpoint absent |
+| Browser memory | MyYear selected photos | Selected `File` objects / metadata | Yes | Personal media remains local | No photo-byte persistence in MVP | Share/cloud result excludes photo bytes |
+| Browser → `/api/stories` | MyYear optional save | Derived year summary | Yes | Captions/locations may exist in private derived summary; photo bytes do not | Optional Supabase | Auth + RLS + explicit save |
+| `localStorage` | PetLife local timeline | Pet profile + memory/milestone text + photo counts | Yes | Yes, PetLife memory text by design | Local browser only | Namespaced key + visible delete-local-data control |
+| Browser → PetLife APIs → Supabase | PetLife households | Profile, memories, membership/invite metadata | Yes | PetLife memory text may be private cloud data | Optional Supabase | Auth, owner/member permissions, RLS, one-time invite token |
+
+## 1. ThreadTales free local path
 
 ```text
-local WhatsApp .txt file
-  -> browser File API (`File.text()`)
-  -> ephemeral raw string in browser memory
-  -> `parseChat()`
-  -> in-memory `ChatMessage[]`
-  -> `analyzeChat()`
-  -> derived `ChatStats`
-  -> ThreadTales story UI
-  -> optional `createSnapshot()`
-  -> derived JSON snapshot
-  -> base64url encoding
-  -> `/share#<derived-payload>`
-  -> recipient browser decodes the fragment locally
+local WhatsApp .txt
+  -> File.text()
+  -> browser memory
+  -> Web Worker when available
+  -> parser
+  -> ChatMessage[] in worker/browser memory
+  -> deterministic analytics
+  -> derived ChatStats / Result V2
+  -> story UI
 ```
 
-The raw imported chat is used only to produce in-memory parsed messages and derived statistics. The React application does not persist the raw text in component state, local storage, session storage, cookies, a database, or a server request.
+The raw imported chat is not intentionally written to:
 
-## What stays on the device
-
-During the free flow, the following remains in the user's browser process:
-
-- the selected local `.txt` file;
-- the raw file text returned by `File.text()`;
-- parsed message bodies in the temporary `ChatMessage[]` used by the analyzer;
-- participant names before the user chooses whether to include them in a public share snapshot;
-- top words before the user chooses whether to include them in a public share snapshot.
-
-The raw text is held in local JavaScript memory only while the import/analyze operation is executing. The application does not intentionally retain the raw string after analysis. Selecting another file or resetting the result replaces/clears application analysis state and resets the file input. Browser/runtime memory reclamation itself is controlled by the browser.
-
-## What can leave the device in the free flow
-
-Ordinary application assets and page requests are served by Vercel, but the application does not attach imported chat content to those requests.
-
-The one user-controlled outbound artifact is the optional share URL. It contains a **derived** snapshot in the URL fragment (`#...`). URL fragments are handled by the browser and are not part of the HTTP request sent to the `/share` server route. The `/share` client code reads and decodes the fragment after the page loads.
-
-The derived snapshot can contain:
-
-- total messages and words;
-- date range and active-day statistics;
-- streak/silence/reply metrics;
-- busiest day, peak hour, weekday and daypart aggregates;
-- question/laughter/heart counts;
-- participant message percentages and other derived participant aggregates;
-- yearly counts;
-- deterministic vibe values;
-- selected story mode.
-
-By default participant names are replaced with `Person 1`, `Person 2`, etc. Top words are omitted by default. Names and top words are included only when the user explicitly enables the corresponding share options.
-
-## What is not transmitted or persisted
-
-A Phase 0 source-tree audit found no application path that sends or persists raw imported chat content through:
-
-- `fetch()` or other application API calls;
-- Next.js API route handlers;
-- Server Actions (`"use server"`);
 - `localStorage`;
 - `sessionStorage`;
-- application cookies;
-- `console.log` logging;
-- an analytics SDK;
-- a database or object store;
-- an AI/model API;
-- a query-string parameter containing raw messages.
+- cookies;
+- a URL or query string;
+- Supabase;
+- Stripe;
+- telemetry;
+- the AI endpoint;
+- application logs.
 
-There is no database, authentication provider, payment provider, AI SDK, queue, Redis instance, or raw-file storage service required by the Phase 0 free flow.
+If Worker support is unavailable, the same parser runs in the browser main thread. That fallback does not move the raw chat to the server.
 
-## Share payload privacy boundary
+## 2. ThreadTales public sharing
 
-`src/lib/share.ts` creates a separate `PublicSnapshot` rather than serializing `ChatMessage[]` or `ChatStats` wholesale. Unit tests verify that a known secret message sentence is absent from the public snapshot and that default snapshots also exclude participant names and top words.
+The legacy/public share flow creates a separate derived `PublicSnapshot`. It does not serialize `ChatMessage[]` or the raw import. By default:
 
-The public payload is **base64url encoded, not encrypted**. Anyone who receives the complete share URL can decode the derived snapshot. Users should therefore treat a public share link as public information and should enable names or top words only when they are comfortable sharing them.
+- participant names are replaced with anonymous labels;
+- top words are omitted;
+- the raw chat is absent.
 
-The complete link matters because ThreadTales Phase 0 does not keep a server-side copy of the share payload.
+Names and top words require separate explicit toggles.
 
-## Clipboard and native sharing
+The story-engine share manifest also filters `privacyLevel: "sensitive"` chapters by default. A prior regression allowed participant names to appear in a cover chapter marked share-safe; the cover is now anonymous and regression tests use unmistakable secret fixture strings to protect that boundary.
 
-The share UI can copy the derived share URL to the clipboard or pass that URL to the browser's Web Share API. Those mechanisms receive the derived URL only, not the raw chat text.
+Share data is base64url encoded, **not encrypted**. Anyone with the complete share URL can decode the derived payload. The URL fragment is read client-side and is not sent as the HTTP path/query to the `/share` route.
 
-## Error and retry behavior
+## 3. Stripe boundary
 
-Unsupported file types, files over the configured 15 MB limit, empty files, unreadable files, and exports with fewer than five parseable messages produce recoverable UI errors. A failed new import clears prior result state so the application does not display a stale successful analysis.
+`/api/checkout` accepts the story mode and creates a Stripe-hosted Checkout Session. The Stripe request contains purchase configuration and mode metadata only.
 
-The file input is reset after each import attempt so the same file can be selected again. The user can also choose `Analyze another chat` to clear the current derived result.
+It must never contain:
 
-## Verification
+- imported chat text;
+- participant names;
+- top words;
+- `ChatStats` / Result V2;
+- story chapters;
+- MyYear/PetLife private content.
 
-Automated privacy checks live in:
+A browser redirect or `?success=true` is not trusted as proof of payment. Entitlement recovery calls the server with a Checkout Session ID; the server retrieves the Session from Stripe and issues a signed entitlement only for an accepted paid state. Webhook verification uses the raw request body and Stripe signature HMAC.
 
-- `tests/unit/share.test.ts` — validates the public share schema and raw-text exclusion;
-- `tests/e2e/threadtales.spec.ts` — validates the anonymous derived-share flow in Chromium;
-- parser and import-validation tests — ensure malformed input remains a recoverable local failure.
+The signed premium entitlement is stored in browser `localStorage` under `threadtales:premium-entitlement`. That token is purchase metadata, not chat content.
 
-The Phase 0 CI pipeline runs lint, strict TypeScript checking, unit tests, the production build, and Playwright browser smoke tests from a clean checkout.
+## 4. Optional Supabase persistence
 
-## Current limitations
+Cloud save is opt-in and appears after the local product already has value. The Story Platform uses publishable credentials for user-scoped requests and a server-only secret only for narrowly elevated operations such as one-time PetLife invitation acceptance.
 
-This architecture reduces exposure but is not a claim that the user's device is a trusted execution environment. Browser extensions, compromised devices, developer tools, or future third-party scripts could change the threat model.
+The repository contains `supabase/schema.sql` as an activation reference. It enables RLS on all exposed Story Platform tables. It has **not** been automatically applied to any connected Supabase project.
 
-Other deliberate Phase 0 limitations:
+### ThreadTales cloud save
 
-- parsing/analysis is synchronous on the main thread; Web Worker migration is Phase 1;
-- only the current WhatsApp text formats are supported;
-- ambiguous dates are US-first in `auto` mode and can be overridden with the explicit MM/DD or DD/MM selector;
-- the 15 MB file guard protects the current main-thread implementation but is not a claim of universal device capacity;
-- the share hash can become longer as derived data grows;
-- no server-side revocation exists for a copied share URL because no server-side share record exists;
-- no telemetry has been added in Phase 0.
+Only the versioned derived Result V2 is accepted. The server recursively rejects raw-content container keys including normalized forms of:
 
-Any later feature that sends raw or selected message content off-device must be separately disclosed, explicitly opted into, minimized, and documented. It must not silently weaken this default free-flow boundary.
+- `raw`;
+- `rawText`;
+- `rawChat`;
+- `messages`;
+- `chatMessages`;
+- `messageText`;
+- `sender`;
+- `transcript`;
+- `conversation`;
+- `text`.
+
+Derived counters such as `totalMessages` and `lateNightMessages` remain valid because the sanitizer matches forbidden raw-content keys exactly after normalization rather than substring-matching `messages` everywhere.
+
+### MyYear cloud save
+
+The MVP can save the derived year summary after sign-in. Selected browser photo bytes are not included in that payload. Captions and locations are private story fields and are not part of the public MyYear share manifest.
+
+### PetLife cloud save
+
+PetLife is intentionally different from ThreadTales: it is a repeat-use memory product, so private pet profile/memory text may be persisted locally and, when explicitly synced, in the private household database.
+
+Cloud authorization is enforced by RLS and API checks:
+
+- owner manages the household and pet;
+- member access derives from household membership;
+- `can_add_memories` controls member contribution;
+- unrelated users cannot select household pets/memories under the reference policies;
+- owner/member creation metadata is checked against the authenticated user.
+
+Invitation tokens are random, one-time, seven-day values. Only their SHA-256 hash is stored. Acceptance requires the signed-in account email to match the invited email. The raw invitation token is returned only in the invitation link.
+
+## 5. Optional AI boundary
+
+AI enrichment is not part of deterministic analytics. Without `OPENAI_API_KEY`, the API reports disabled state and the product continues normally.
+
+Default ThreadTales AI input is constructed from an allowlist of aggregate fields such as message counts, active days, streaks, timing aggregates, and year count. Participant names and top words are not part of that allowlist. Only deterministic chapters marked share-safe are automatically sent.
+
+A user may paste a selected snippet of up to 600 characters. If a non-empty snippet is present, an explicit consent boolean is required before the server accepts the request.
+
+The current OpenAI provider uses the Responses API with `store: false`. Provider failures are surfaced as optional-enrichment errors and do not invalidate the deterministic story.
+
+## 6. Telemetry boundary
+
+Telemetry accepts only a fixed event allowlist and these dimensions:
+
+```text
+event
+product
+recognized story mode (optional)
+```
+
+The schema has no output fields for:
+
+- chat text;
+- participant names;
+- top words;
+- captions;
+- locations;
+- pet notes;
+- file names;
+- photo contents;
+- AI snippets.
+
+Client delivery is best effort and non-blocking. If `TELEMETRY_ENDPOINT` is absent, the server returns HTTP 202 without making an external request. If configured, the endpoint must use HTTPS and receives only the sanitized event plus a server-created timestamp.
+
+## 7. Local storage inventory
+
+### ThreadTales raw import
+
+No intentional local/session storage of the raw WhatsApp import.
+
+### Premium entitlement
+
+`threadtales:premium-entitlement` stores only a signed purchase entitlement.
+
+### PetLife
+
+`story-platform:petlife:v1` intentionally stores the local PetLife profile and memory timeline so PetLife works across browser sessions. Selected photo bytes are not stored there; each memory stores only `photoCount` for media selection in this MVP.
+
+PetLife exposes **Delete local PetLife data**, which removes the namespaced key and resets the local product state.
+
+### MyYear
+
+The current MyYear draft lives in React/browser memory only. Selected `File` objects are not persisted by the MVP.
+
+## 8. Server secret boundary
+
+These values are server-only and must never be prefixed with `NEXT_PUBLIC_`:
+
+```text
+STRIPE_SECRET_KEY
+STRIPE_WEBHOOK_SECRET
+ENTITLEMENT_SIGNING_SECRET
+SUPABASE_SECRET_KEY
+OPENAI_API_KEY
+TELEMETRY_API_KEY
+```
+
+Only Supabase URL/publishable key and the optional canonical site URL are browser-safe public configuration.
+
+## 9. Security-sensitive route inventory
+
+| Route | Purpose | Primary controls |
+| --- | --- | --- |
+| `/api/checkout` | Stripe Checkout | narrow request body, server secret, no content payload |
+| `/api/entitlements` | paid-session verification / token validation | Stripe retrieval + HMAC token verification |
+| `/api/stripe/webhook` | Stripe events | raw-body signature verification |
+| `/api/auth/*` | optional magic-link session | Supabase publishable auth flow; HTTP-only session cookie |
+| `/api/stories` | optional derived story persistence | authenticated session, RLS, raw-content sanitizer |
+| `/api/petlife` | private household/pet sync | authenticated session + RLS |
+| `/api/petlife/invites` | invitations | owner check; hashed token; email/expiry/one-use verification |
+| `/api/petlife/members` | membership removal | owner authorization + RLS |
+| `/api/petlife/memories` | permitted shared memory contribution | authenticated user, accessible pet, membership permission + RLS |
+| `/api/ai/enrich` | optional AI copy | provider gate, allowlisted facts, safe chapters, consented snippet |
+| `/api/telemetry` | content-blind product events | strict allowlist, HTTPS destination, no-op when disabled |
+
+## 10. Verification
+
+Privacy regression coverage includes:
+
+- raw chat exclusion from ThreadTales share payloads;
+- anonymous default story manifests;
+- Result V2 derived-only checks;
+- cloud persistence raw-key rejection;
+- Stripe payload/signature tests;
+- AI allowlist/consent/`store:false` tests;
+- telemetry schema stripping;
+- MyYear caption/location/media exclusion from public manifests;
+- PetLife note/media exclusion from public manifests;
+- browser flows for disabled optional integrations.
+
+The final merge-readiness gate additionally requires lint, strict TypeScript, unit tests, production build, Playwright, GitHub Actions, and Vercel preview verification on the final head.
+
+## Limitations and threat model
+
+This design reduces server-side exposure but does not make the browser a trusted enclave. A compromised device, malicious browser extension, or future third-party client script can change the threat model. Optional cloud persistence necessarily creates a different data boundary from the anonymous local analyzer, which is why it remains explicit and configuration-gated.
