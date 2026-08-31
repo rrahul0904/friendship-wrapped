@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { ChatStats, StoryMode } from "@/lib/types";
-import { composeThreadTale } from "@/platform/story/compose";
 import { downloadStoryCard } from "@/platform/export/story-card";
+import { composeThreadTale } from "@/platform/story/compose";
+import { trackProductEvent } from "@/platform/telemetry/client";
 import { KeepsakePanel } from "./KeepsakePanel";
 
 const STORAGE_KEY = "threadtales:premium-entitlement";
@@ -28,6 +29,7 @@ export function PremiumPanel({ stats, mode }: { stats: ChatStats; mode: StoryMod
   async function startCheckout() {
     setBusy(true);
     setMessage("");
+    trackProductEvent("checkout_started", "threadtales", mode);
     try {
       const response = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mode }) });
       const data = await response.json() as { url?: string; error?: string };
@@ -45,6 +47,7 @@ export function PremiumPanel({ stats, mode }: { stats: ChatStats; mode: StoryMod
     setBusy(true);
     try {
       await downloadStoryCard(first, "vertical", false);
+      trackProductEvent("story_exported", "threadtales", mode);
     } finally {
       setBusy(false);
     }
