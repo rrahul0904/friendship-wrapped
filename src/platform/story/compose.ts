@@ -17,7 +17,6 @@ function hour(value: number) {
 
 function makeChapter(type: StoryChapter["type"], stats: ChatStats, mode: StoryMode): StoryChapter | null {
   const config = getStoryModeConfig(mode);
-  const people = stats.participants.slice(0, 2).map((participant) => participant.name).join(" + ");
 
   switch (type) {
     case "cover":
@@ -25,7 +24,7 @@ function makeChapter(type: StoryChapter["type"], stats: ChatStats, mode: StoryMo
         id: "cover",
         type,
         title: config.eyebrow,
-        subtitle: people || "A ThreadTale",
+        subtitle: "A ThreadTale",
         supportingText: `${number(stats.daysTogether)} days of conversation`,
         privacyLevel: "safe",
         renderVariant: "hero",
