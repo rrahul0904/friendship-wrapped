@@ -10,8 +10,9 @@ import {
 } from "@/lib/import-validation";
 import { makeSampleChat } from "@/lib/sample";
 import type { ChatStats, DateOrder, StoryMode } from "@/lib/types";
-import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { isStoryMode, STORY_MODES } from "@/platform/story/modes";
+import { trackProductEvent } from "@/platform/telemetry/client";
+import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { WrappedStory } from "./WrappedStory";
 
 export function UploadAnalyzer() {
@@ -30,6 +31,7 @@ export function UploadAnalyzer() {
     setError("");
     setWarning("");
     setStats(null);
+    trackProductEvent("analysis_started", "threadtales");
 
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 
@@ -38,6 +40,7 @@ export function UploadAnalyzer() {
       if (parsed.messages.length < MIN_CHAT_MESSAGES) throw new Error(tooFewMessagesError(parsed.messages.length));
       setStats(parsed.stats);
       setWarning(parsed.warnings[0] ?? "");
+      trackProductEvent("analysis_completed", "threadtales");
       window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }), 50);
     } catch (cause) {
       setStats(null);
