@@ -25,7 +25,7 @@ File.text()
   -> optional PublicSnapshot V1
 ```
 
-The Phase 0 parser/analyzer was deterministic and tested, but a complete large export was decoded, parsed, sorted/analyzed and tokenized on the browser main thread. `UploadAnalyzer` yielded once with `setTimeout(0)` so the busy state could paint, but the subsequent CPU work could still block interaction.
+The Phase 0 parser/analyzer was deterministic and tested, but a complete large export was decoded, parsed, sorted/analyzed and tokenized on the browser main thread. `UploadAnalyzer` yielded once so the busy state could paint, but the subsequent CPU work could still block interaction.
 
 The 15 MB guard reduced worst-case exposure but did not eliminate main-thread responsiveness risk.
 
@@ -129,28 +129,11 @@ Existing impossible-date, invalid-time, Unicode, multiline and malformed-timesta
 
 Synthetic generation is deterministic and does not commit massive fixtures. The generator supports configurable message/participant counts and adds questions, emoji, media markers, multiline records and conversation gaps.
 
+The final code-complete CI run executed 11 unit-test files / 46 unit tests, three performance cases, the Next.js 16.3.3 production build, and 12 Chromium journeys successfully.
+
 CPU baselines are recorded in `docs/PERFORMANCE_BASELINE.md`.
 
 The 15 MB file guard remains intentionally unchanged. Web Worker migration fixes main-thread responsiveness; it does not remove all browser-memory constraints.
-
-## Automated validation
-
-Phase 1 extends the Phase 0 suite with tests for:
-
-- date detection and explicit override;
-- V2 determinism/serialization/raw-text exclusion;
-- V2-to-legacy adapter parity;
-- worker stages and structured errors;
-- worker client cancellation/stale response behavior;
-- worker source privacy boundary;
-- 10,000-message unit analysis;
-- 10k/50k/100k performance baselines;
-- parser edge cases;
-- worker-backed demo/upload/error paths;
-- large-history processing status;
-- superseding in-flight work;
-- reset/cancel/reuse;
-- auto DMY through the browser Worker.
 
 ## Privacy
 
@@ -161,6 +144,47 @@ The Worker execution path has no `fetch`, `XMLHttpRequest`, `sendBeacon` or WebS
 PublicSnapshot remains V1 because Phase 1 does not require changing its public fields. Names and top words remain opt-in.
 
 See `docs/PRIVACY_ARCHITECTURE.md`.
+
+## CI validation
+
+Code-complete commit `465fa6e7db1059e93f452693107841527bff1e83` passed:
+
+```text
+npm ci                    PASS
+npm run lint              PASS
+npm run typecheck         PASS
+npm run test              PASS — 46/46
+npm run test:performance  PASS — 10k/50k/100k
+npm run build             PASS — Next.js 16.3.3
+Playwright Chromium       PASS
+npm run test:e2e          PASS — 12/12
+```
+
+## Vercel deployment audit
+
+Existing Vercel project:
+
+- name: `threadtales`
+- project ID: `prj_nkUfVeRw1fEQaROoAOOi4SI6GwVh`
+- team ID: `team_zmEezpOKGZy2sH5nqTfO44LD`
+- production deployment: `dpl_H8hYU4P6jQUeANKF6H8ZdXThNVQn`
+- production state: `READY`
+- production alias: `threadtales-five.vercel.app`
+
+Deployment listing still contains only the original production deployment. No `production-phase-1` preview was created automatically, which confirms the existing Vercel project is not currently producing Git-based preview deployments for this repository.
+
+The connected Vercel surface available during this implementation exposes project/deployment inspection but no project Git-repository linking mutation. Creating a second project, inventing credentials, or replacing the existing production deployment would violate the Phase 1 deployment boundary, so none of those were done.
+
+A production runtime-log check for the previous 24 hours found no error/fatal entries. That check applies to the existing production deployment, not to Phase 1, which has not been deployed.
+
+Therefore:
+
+- Phase 1 preview URL: **not available**;
+- Phase 1 deployment ID: **not available**;
+- Phase 1 Vercel runtime errors: **not measurable because no preview exists**;
+- production changed: **NO**.
+
+The missing preview is an external Git-integration limitation, not a claim that Phase 1 is deployed. After repository/Vercel Git integration is enabled, the exact Phase 1 commit should receive a preview before production promotion.
 
 ## Known limitations
 
@@ -173,8 +197,9 @@ See `docs/PRIVACY_ARCHITECTURE.md`.
 - ambiguous all-<=12 dates remain US-first unless the user overrides the selector;
 - public share fragments remain base64url-encoded, not encrypted or revocable;
 - the story UI still consumes a temporary `ChatStats` compatibility adapter;
-- no server persistence exists.
+- no server persistence exists;
+- Phase 1 has no Vercel preview until Git integration is enabled.
 
-## Deployment state
+## Merge readiness
 
-Production is intentionally not changed by Phase 1. A Vercel preview must be verified against the existing `threadtales` project before this status is considered final.
+The Phase 1 code is green and internally merge-ready, but PR #5 should **not** be merged into the old `main` before Phase 0 PR #2 lands. Phase 1 intentionally includes the verified Phase 0 head as its base dependency. After #2 merges, rebase/update PR #5 onto the new `main` and rerun the same CI gate; then a Vercel preview should be produced once Git integration is enabled.

@@ -6,7 +6,7 @@ Phase 1 moves parsing and analytics from the browser main thread into a dedicate
 
 ## GitHub Actions baseline
 
-Environment for the recorded run:
+Environment for the final code-complete measurement:
 
 - Ubuntu 24.04 GitHub-hosted runner
 - Node.js 24.19.0
@@ -15,13 +15,13 @@ Environment for the recorded run:
 - four participants
 - parse and analyze measured separately with `performance.now()`
 
-Measured run from Phase 1 CI:
+Measured run for commit `465fa6e7db1059e93f452693107841527bff1e83`:
 
 | Messages | Parse | Analyze | Parse + analyze |
 | ---: | ---: | ---: | ---: |
-| 10,000 | 53.5 ms | 46.7 ms | 100.3 ms |
-| 50,000 | 149.6 ms | 172.7 ms | 322.3 ms |
-| 100,000 | 230.1 ms | 280.9 ms | 511.0 ms |
+| 10,000 | 47.6 ms | 42.1 ms | 89.6 ms |
+| 50,000 | 115.0 ms | 124.3 ms | 239.3 ms |
+| 100,000 | 214.8 ms | 232.5 ms | 447.2 ms |
 
 The numbers above exclude file reading, Worker startup/bundling overhead, browser scheduling, rendering, and device-specific costs. They are useful for regression tracking, not for guaranteeing wall-clock latency to users.
 
