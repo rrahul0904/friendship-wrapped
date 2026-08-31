@@ -1,5 +1,7 @@
 export type DateOrder = "auto" | "mdy" | "dmy";
+export type ResolvedDateOrder = Exclude<DateOrder, "auto">;
 export type StoryMode = "friends" | "couple" | "siblings" | "family" | "group";
+export type ChatSourceFormat = "android" | "ios" | "mixed" | "unknown";
 
 export interface ChatMessage {
   sender: string;
@@ -23,6 +25,12 @@ export interface ParticipantStat {
 
 export interface YearStat {
   year: number;
+  messages: number;
+}
+
+export interface MonthStat {
+  year: number;
+  month: number;
   messages: number;
 }
 
@@ -71,6 +79,64 @@ export interface ChatStats {
     curiosity: number;
     chaos: number;
     affection: number;
+  };
+}
+
+export interface DateOrderDetection {
+  detected: ResolvedDateOrder | null;
+  confidence: "high" | "ambiguous";
+  evidenceCount: number;
+}
+
+export interface ParsedChat {
+  messages: ChatMessage[];
+  format: ChatSourceFormat;
+  dateOrder: ResolvedDateOrder;
+  detection: DateOrderDetection;
+}
+
+export interface ThreadTaleResultV2 {
+  schemaVersion: 2;
+  source: {
+    provider: "whatsapp";
+    format: ChatSourceFormat;
+    dateOrder: ResolvedDateOrder;
+    dateOrderConfidence: DateOrderDetection["confidence"];
+  };
+  range: {
+    start: number;
+    end: number;
+    days: number;
+    activeDays: number;
+  };
+  totals: {
+    messages: number;
+    words: number;
+    participants: number;
+    media: number;
+    questions: number;
+    laughs: number;
+    hearts: number;
+    lateNightMessages: number;
+  };
+  participants: ParticipantStat[];
+  activity: {
+    longestStreak: number;
+    longestSilenceDays: number;
+    busiestDay: BigDayStat;
+    peakHour: number;
+    peakHourMessages: number;
+    favoriteWeekday: string;
+    dayparts: DaypartStats;
+    byYear: YearStat[];
+    byMonth: MonthStat[];
+  };
+  conversation: {
+    medianReplyMinutes: number | null;
+    topWords: WordStat[];
+  };
+  presentation: {
+    vibe: ChatStats["vibe"];
   };
 }
 

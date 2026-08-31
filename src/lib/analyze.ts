@@ -1,4 +1,12 @@
-import type { ChatMessage, ChatStats, ParticipantStat, WordStat } from "./types";
+import type {
+  ChatMessage,
+  ChatStats,
+  MonthStat,
+  ParsedChat,
+  ParticipantStat,
+  ThreadTaleResultV2,
+  WordStat,
+} from "./types";
 
 const STOP_WORDS = new Set([
   "the","and","that","this","with","you","your","for","are","was","were","have","has","had","but","not","from","they","them","their","what","when","where","who","why","how","can","could","would","should","will","just","like","really","very","then","than","there","here","been","being","because","about","into","onto","over","under","again","also","too","its","it's","im","i'm","ive","i've","dont","don't","didnt","didn't","cant","can't","wont","won't","yes","yeah","yep","nope","okay","ok","lol","haha","hahaha","https","http","www","com","image","omitted","video","audio","sticker","gif"
@@ -12,9 +20,8 @@ function clamp(score: number) {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
-function dayKey(timestamp: number) {
-  const d = new Date(timestamp);
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+function dayKeyFromDate(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
 }
 
 function median(values: number[]) {
@@ -24,25 +31,30 @@ function median(values: number[]) {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 }
 
-function longestStreak(timestamps: number[]) {
-  const days = [...new Set(timestamps.map(dayKey))].sort((a, b) => a - b);
-  let best = days.length ? 1 : 0;
-  let run = best;
-  for (let i = 1; i < days.length; i++) {
-    if (Math.round((days[i] - days[i - 1]) / DAY) === 1) run += 1;
-    else run = 1;
-    best = Math.max(best, run);
+function ensureChronological(messages: ChatMessage[]) {
+  for (let index = 1; index < messages.length; index++) {
+    if (messages[index].timestamp < messages[index - 1].timestamp) {
+      return [...messages].sort((a, b) => a.timestamp - b.timestamp);
+    }
   }
-  return best;
+  return messages;
 }
 
-function longestSilence(timestamps: number[]) {
-  const days = [...new Set(timestamps.map(dayKey))].sort((a, b) => a - b);
-  let best = 0;
-  for (let i = 1; i < days.length; i++) {
-    best = Math.max(best, Math.max(0, Math.round((days[i] - days[i - 1]) / DAY) - 1));
+function streakMetrics(sortedDays: number[]) {
+  if (!sortedDays.length) return { longestStreak: 0, longestSilenceDays: 0 };
+  let longestStreak = 1;
+  let run = 1;
+  let longestSilenceDays = 0;
+
+  for (let index = 1; index < sortedDays.length; index++) {
+    const difference = Math.round((sortedDays[index] - sortedDays[index - 1]) / DAY);
+    if (difference === 1) run += 1;
+    else run = 1;
+    longestStreak = Math.max(longestStreak, run);
+    longestSilenceDays = Math.max(longestSilenceDays, Math.max(0, difference - 1));
   }
-  return best;
+
+  return { longestStreak, longestSilenceDays };
 }
 
 function tokenize(text: string) {
@@ -57,7 +69,7 @@ function tokenize(text: string) {
 
 export function analyzeChat(messages: ChatMessage[]): ChatStats {
   if (!messages.length) throw new Error("No supported chat messages found.");
-  const sorted = [...messages].sort((a, b) => a.timestamp - b.timestamp);
+  const sorted = ensureChronological(messages);
   const participantMap = new Map<string, ParticipantStat>();
   const replyGaps = new Map<string, number[]>();
   const globalReplyGaps: number[] = [];
@@ -94,7 +106,7 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     heartSignals += heartCount;
     if (isMedia) mediaSignals += 1;
 
-    const p = participantMap.get(message.sender) ?? {
+    const participant = participantMap.get(message.sender) ?? {
       name: message.sender,
       messages: 0,
       percentage: 0,
@@ -107,14 +119,14 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
       heartSignals: 0,
       medianReplyMinutes: null,
     };
-    p.messages += 1;
-    p.words += words.length;
-    p.questions += questionCount;
-    p.laughSignals += laughCount;
-    p.heartSignals += heartCount;
-    if (startsConversation) p.conversationStarts += 1;
-    if (hour >= 0 && hour < 5) p.lateNightMessages += 1;
-    participantMap.set(message.sender, p);
+    participant.messages += 1;
+    participant.words += words.length;
+    participant.questions += questionCount;
+    participant.laughSignals += laughCount;
+    participant.heartSignals += heartCount;
+    if (startsConversation) participant.conversationStarts += 1;
+    if (hour >= 0 && hour < 5) participant.lateNightMessages += 1;
+    participantMap.set(message.sender, participant);
 
     if (previous && previous.sender !== message.sender && gap !== null && gap > 0 && gap <= 12 * HOUR) {
       const minutes = gap / 60_000;
@@ -128,10 +140,12 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
 
     hourCounts[hour] += 1;
     weekdayCounts[date.getDay()] += 1;
-    yearMap.set(date.getFullYear(), (yearMap.get(date.getFullYear()) ?? 0) + 1);
-    const day = dayKey(message.timestamp);
+    const year = date.getFullYear();
+    yearMap.set(year, (yearMap.get(year) ?? 0) + 1);
+    const day = dayKeyFromDate(date);
     activeDaySet.add(day);
     dayCounts.set(day, (dayCounts.get(day) ?? 0) + 1);
+
     if (hour >= 0 && hour < 5) {
       lateNightMessages += 1;
       dayparts.night += 1;
@@ -141,11 +155,11 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
   }
 
   const participants = [...participantMap.values()]
-    .map((p) => ({
-      ...p,
-      percentage: Number(((p.messages / sorted.length) * 100).toFixed(1)),
-      avgWords: Number((p.words / Math.max(1, p.messages)).toFixed(1)),
-      medianReplyMinutes: median(replyGaps.get(p.name) ?? []),
+    .map((participant) => ({
+      ...participant,
+      percentage: Number(((participant.messages / sorted.length) * 100).toFixed(1)),
+      avgWords: Number((participant.words / Math.max(1, participant.messages)).toFixed(1)),
+      medianReplyMinutes: median(replyGaps.get(participant.name) ?? []),
     }))
     .sort((a, b) => b.messages - a.messages);
 
@@ -164,7 +178,17 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
   const questionRate = questionsAsked / sorted.length;
   const nightRate = lateNightMessages / sorted.length;
   const balance = participants.length >= 2 ? 100 - Math.abs(participants[0].percentage - participants[1].percentage) : 30;
-  const [biggestDayTimestamp, biggestDayMessages] = [...dayCounts.entries()].sort((a, b) => b[1] - a[1])[0] ?? [firstTimestamp, 1];
+  const sortedDays = [...activeDaySet].sort((a, b) => a - b);
+  const { longestStreak, longestSilenceDays } = streakMetrics(sortedDays);
+
+  let biggestDayTimestamp = firstTimestamp;
+  let biggestDayMessages = 0;
+  for (const [timestamp, count] of dayCounts) {
+    if (count > biggestDayMessages) {
+      biggestDayTimestamp = timestamp;
+      biggestDayMessages = count;
+    }
+  }
 
   return {
     participants,
@@ -174,8 +198,8 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     lastTimestamp,
     daysTogether,
     activeDays: activeDaySet.size,
-    longestStreak: longestStreak(sorted.map((m) => m.timestamp)),
-    longestSilenceDays: longestSilence(sorted.map((m) => m.timestamp)),
+    longestStreak,
+    longestSilenceDays,
     medianReplyMinutes: median(globalReplyGaps),
     biggestDay: { timestamp: biggestDayTimestamp, messages: biggestDayMessages },
     peakHour,
@@ -194,6 +218,71 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
       curiosity: clamp(questionRate * 320 + 22),
       chaos: clamp(laughRate * 500 + mediaSignals / Math.max(1, sorted.length) * 180 + 18),
       affection: clamp(heartRate * 850 + balance * 0.45 + 12),
+    },
+  };
+}
+
+function monthStats(messages: ChatMessage[]): MonthStat[] {
+  const counts = new Map<string, number>();
+  for (const message of messages) {
+    const date = new Date(message.timestamp);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const key = `${year}-${String(month).padStart(2, "0")}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, messages]) => {
+      const [year, month] = key.split("-").map(Number);
+      return { year, month, messages };
+    });
+}
+
+export function analyzeThreadTale(parsed: ParsedChat): ThreadTaleResultV2 {
+  const stats = analyzeChat(parsed.messages);
+  return {
+    schemaVersion: 2,
+    source: {
+      provider: "whatsapp",
+      format: parsed.format,
+      dateOrder: parsed.dateOrder,
+      dateOrderConfidence: parsed.detection.confidence,
+    },
+    range: {
+      start: stats.firstTimestamp,
+      end: stats.lastTimestamp,
+      days: stats.daysTogether,
+      activeDays: stats.activeDays,
+    },
+    totals: {
+      messages: stats.totalMessages,
+      words: stats.totalWords,
+      participants: stats.participants.length,
+      media: stats.mediaSignals,
+      questions: stats.questionsAsked,
+      laughs: stats.laughSignals,
+      hearts: stats.heartSignals,
+      lateNightMessages: stats.lateNightMessages,
+    },
+    participants: stats.participants,
+    activity: {
+      longestStreak: stats.longestStreak,
+      longestSilenceDays: stats.longestSilenceDays,
+      busiestDay: stats.biggestDay,
+      peakHour: stats.peakHour,
+      peakHourMessages: stats.peakHourMessages,
+      favoriteWeekday: stats.favoriteWeekday,
+      dayparts: stats.dayparts,
+      byYear: stats.byYear,
+      byMonth: monthStats(parsed.messages),
+    },
+    conversation: {
+      medianReplyMinutes: stats.medianReplyMinutes,
+      topWords: stats.topWords,
+    },
+    presentation: {
+      vibe: stats.vibe,
     },
   };
 }

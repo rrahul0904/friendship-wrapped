@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "test:performance": "vitest run --config vitest.performance.config.ts",
     "verify": "npm run lint && npm run typecheck && npm run test"
   },
   "dependencies": {

@@ -1,10 +1,11 @@
-name: Phase 0 CI
+name: ThreadTales CI
 
 on:
   push:
     branches:
       - main
       - production-phase-0
+      - production-phase-1
   pull_request:
 
 permissions:
@@ -13,7 +14,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
@@ -37,6 +38,9 @@ jobs:
 
       - name: Unit tests
         run: npm run test
+
+      - name: Performance baseline
+        run: npm run test:performance
 
       - name: Production build
         run: npm run build

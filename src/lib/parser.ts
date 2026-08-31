@@ -1,18 +1,27 @@
-import type { ChatMessage, DateOrder } from "./types";
+import type {
+  ChatMessage,
+  ChatSourceFormat,
+  DateOrder,
+  DateOrderDetection,
+  ParsedChat,
+  ResolvedDateOrder,
+} from "./types";
 
 const ANDROID = /^(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}),\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\s+-\s+([^:]+):\s?(.*)$/;
 const IOS = /^\[(\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4}),\s+(\d{1,2}:\d{2}(?::\d{2})?\s*(?:AM|PM|am|pm)?)\]\s+([^:]+):\s?(.*)$/;
 const TIMESTAMPED_LINE = /^\[?\d{1,2}[\/.\-]\d{1,2}[\/.\-]\d{2,4},\s+\d{1,2}:\d{2}/;
 const DIRECTION_MARKS = /[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g;
 const UNICODE_SPACES = /[\u00a0\u2007\u2009\u202f]/g;
+const BOM = /^\uFEFF/;
 
 function normalizeYear(year: number) {
   if (year < 100) return year >= 70 ? 1900 + year : 2000 + year;
   return year;
 }
 
-function normalizeExport(raw: string) {
+export function normalizeChatExport(raw: string) {
   return raw
+    .replace(BOM, "")
     .replace(DIRECTION_MARKS, "")
     .replace(UNICODE_SPACES, " ")
     .replace(/\r\n?/g, "\n");
@@ -40,33 +49,52 @@ function parseTime(timeRaw: string) {
   return { hour, minute, second };
 }
 
-function parseDate(dateRaw: string, timeRaw: string, order: DateOrder) {
+function dateParts(dateRaw: string) {
   const parts = dateRaw.split(/[\/.\-]/).map(Number);
   if (parts.length !== 3 || parts.some((part) => !Number.isInteger(part))) return null;
+  return { a: parts[0], b: parts[1], year: normalizeYear(parts[2]) };
+}
 
-  const [a, b, rawYear] = parts;
-  const year = normalizeYear(rawYear);
-  let month: number;
-  let day: number;
+export function detectDateOrder(raw: string): DateOrderDetection {
+  const normalized = normalizeChatExport(raw);
+  let mdyEvidence = 0;
+  let dmyEvidence = 0;
 
-  // "auto" is intentionally US-first for ambiguous dates, while dates whose
-  // first field cannot be a month are treated as DD/MM.
-  if (order === "dmy" || (order === "auto" && a > 12)) {
-    day = a;
-    month = b;
-  } else {
-    month = a;
-    day = b;
+  for (const line of normalized.split("\n")) {
+    const match = line.match(ANDROID) ?? line.match(IOS);
+    if (!match) continue;
+    const parts = dateParts(match[1]);
+    if (!parts) continue;
+
+    if (parts.a > 12 && parts.b >= 1 && parts.b <= 12) dmyEvidence += 1;
+    else if (parts.b > 12 && parts.a >= 1 && parts.a <= 12) mdyEvidence += 1;
   }
 
+  const evidenceCount = mdyEvidence + dmyEvidence;
+  if (dmyEvidence > 0 && mdyEvidence === 0) return { detected: "dmy", confidence: "high", evidenceCount };
+  if (mdyEvidence > 0 && dmyEvidence === 0) return { detected: "mdy", confidence: "high", evidenceCount };
+  return { detected: null, confidence: "ambiguous", evidenceCount };
+}
+
+function resolveDateOrder(raw: string, order: DateOrder) {
+  const detection = detectDateOrder(raw);
+  if (order === "mdy" || order === "dmy") return { dateOrder: order, detection } as const;
+  return { dateOrder: detection.detected ?? "mdy", detection } as const;
+}
+
+function parseDate(dateRaw: string, timeRaw: string, order: ResolvedDateOrder) {
+  const parts = dateParts(dateRaw);
+  if (!parts) return null;
+
+  const { a, b, year } = parts;
+  const month = order === "dmy" ? b : a;
+  const day = order === "dmy" ? a : b;
   const time = parseTime(timeRaw);
   if (!time || month < 1 || month > 12 || day < 1 || day > 31) return null;
 
   const date = new Date(year, month - 1, day, time.hour, time.minute, time.second);
   if (Number.isNaN(date.getTime())) return null;
 
-  // Date normalizes impossible dates (for example Feb 31 -> Mar 3). Require
-  // every requested component to round-trip unchanged before accepting it.
   if (
     date.getFullYear() !== year ||
     date.getMonth() !== month - 1 ||
@@ -81,25 +109,36 @@ function parseDate(dateRaw: string, timeRaw: string, order: DateOrder) {
   return date.getTime();
 }
 
-export function parseChat(raw: string, order: DateOrder = "auto"): ChatMessage[] {
-  const lines = normalizeExport(raw).split("\n");
+function mergeFormat(current: ChatSourceFormat, next: Exclude<ChatSourceFormat, "mixed" | "unknown">): ChatSourceFormat {
+  if (current === "unknown") return next;
+  if (current === next) return current;
+  return "mixed";
+}
+
+export function parseChatDetailed(raw: string, order: DateOrder = "auto"): ParsedChat {
+  const normalized = normalizeChatExport(raw);
+  const { dateOrder, detection } = resolveDateOrder(normalized, order);
+  const lines = normalized.split("\n");
   const messages: ChatMessage[] = [];
+  let format: ChatSourceFormat = "unknown";
 
   for (const line of lines) {
-    const match = line.match(ANDROID) ?? line.match(IOS);
+    const androidMatch = line.match(ANDROID);
+    const iosMatch = androidMatch ? null : line.match(IOS);
+    const match = androidMatch ?? iosMatch;
+
     if (match) {
-      const timestamp = parseDate(match[1], match[2], order);
+      const timestamp = parseDate(match[1], match[2], dateOrder);
       if (!timestamp) continue;
 
       const sender = match[3].trim();
       if (!sender || /messages and calls are end-to-end encrypted/i.test(sender)) continue;
 
+      format = mergeFormat(format, androidMatch ? "android" : "ios");
       messages.push({ sender, timestamp, text: match[4] ?? "" });
       continue;
     }
 
-    // Timestamped system/malformed lines must never become part of the prior
-    // user's message. Ordinary non-timestamped continuation lines are allowed.
     if (TIMESTAMPED_LINE.test(line)) continue;
 
     if (messages.length && line.trim()) {
@@ -107,5 +146,9 @@ export function parseChat(raw: string, order: DateOrder = "auto"): ChatMessage[]
     }
   }
 
-  return messages;
+  return { messages, format, dateOrder, detection };
+}
+
+export function parseChat(raw: string, order: DateOrder = "auto"): ChatMessage[] {
+  return parseChatDetailed(raw, order).messages;
 }
