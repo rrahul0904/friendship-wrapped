@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { trackProductEvent } from "@/platform/telemetry/client";
 import { premiumEntitlementStorageKey } from "./PremiumPanel";
 
 export function PremiumRecovery({ sessionId }: { sessionId: string }) {
@@ -16,6 +17,7 @@ export function PremiumRecovery({ sessionId }: { sessionId: string }) {
         if (!response.ok || !data.token) throw new Error(data.error ?? "Could not verify this purchase.");
         if (cancelled) return;
         window.localStorage.setItem(premiumEntitlementStorageKey, data.token);
+        trackProductEvent("purchase_verified", "threadtales");
         setState("ready");
         setMessage("Premium is unlocked on this browser. Your chat content was not involved in payment verification.");
       })
