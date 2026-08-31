@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackProductEvent } from "@/platform/telemetry/client";
 
 export interface ProductCloudSavePanelProps {
   product: "threadtales" | "myyear" | "petlife";
@@ -60,6 +61,7 @@ export function ProductCloudSavePanel({ product, title, result, mode, descriptio
       });
       const data = await response.json() as { error?: string };
       if (!response.ok) throw new Error(data.error ?? "Could not save this story.");
+      trackProductEvent("story_saved", product, mode);
       setMessage("Saved privately. This cloud action stores only the explicit derived story payload.");
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "Could not save this story.");
