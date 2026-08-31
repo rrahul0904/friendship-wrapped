@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PetLifeHouseholdPanel } from "@/components/PetLifeHouseholdPanel";
 import { ProductCloudSavePanel } from "@/components/ProductCloudSavePanel";
 import { downloadStoryCard } from "@/platform/export/story-card";
 import { buildPetLifeRecap, composePetLifeChapters, createPetLifeShareManifest, type PetMemory, type PetMemoryType, type PetProfile } from "@/products/petlife/model";
@@ -130,6 +131,8 @@ export function PetLifeBuilder() {
       {message ? <div className="notice" role="status">{message}</div> : null}
       {profile ? <div className="timeline-list" aria-label="PetLife timeline">{memories.length ? [...memories].sort((a,b)=>b.date.localeCompare(a.date)).map((memory)=><article key={memory.id}><div><small>{memory.date} · {memory.type}</small><h3>{memory.title}</h3><p>{memory.note || `${memory.photoCount} selected photo${memory.photoCount===1?"":"s"}`}</p></div><button className="btn btn-soft" onClick={()=>removeMemory(memory.id)}>Delete</button></article>) : <div className="notice">The timeline is empty. Add a memory or milestone above.</div>}</div> : null}
     </section>
+
+    {profile ? <PetLifeHouseholdPanel profile={profile} memories={memories}/> : null}
 
     {profile && recap && memories.length ? <>
       <section className="story chapter-deck" aria-label="PetLife annual recap">
