@@ -31,20 +31,20 @@ describe("PetLife household RLS contract", () => {
   it("allows members to see household pets but gates memory inserts on explicit permission", () => {
     expect(sql).toContain('create policy "pets_select_household"');
     expect(sql).toContain('from public.household_memberships hm');
-    expect(sql).toContain('create policy "pet_memories_insert_household"');
+    expect(sql).toContain('create policy "pet_memories_insert_allowed"');
     expect(sql).toContain('hm.can_add_memories');
-    expect(sql).toContain('m.created_by = (select auth.uid())');
+    expect(sql).toContain('(select auth.uid()) = created_by');
   });
 
   it("prevents arbitrary members from deleting memories they did not create", () => {
     expect(sql).toContain('create policy "pet_memories_delete_creator_or_owner"');
-    expect(sql).toContain('m.created_by = (select auth.uid())');
+    expect(sql).toContain('(select auth.uid()) = created_by');
     expect(sql).toContain('h.owner_id = (select auth.uid())');
   });
 
-  it("keeps invitation creation and deletion owner-only", () => {
-    expect(sql).toContain('create policy "household_invites_insert_owner"');
-    expect(sql).toContain('create policy "household_invites_delete_owner"');
+  it("keeps invitation mutations owner-only", () => {
+    expect(sql).toContain('create policy "household_invites_owner_all"');
+    expect(sql).toContain('(select auth.uid()) = created_by');
     expect(sql).toContain('h.owner_id = (select auth.uid())');
   });
 });
@@ -60,8 +60,14 @@ describe("PetLife invitation and contribution routes", () => {
   it("requires unused, unexpired invitations and email match before membership acceptance", () => {
     expect(inviteRoute).toContain("accepted_at=is.null");
     expect(inviteRoute).toContain("expires_at=gt.");
-    expect(inviteRoute).toContain("invite.email.toLowerCase() !== user.email?.toLowerCase()");
+    expect(inviteRoute).toContain("user.email.toLowerCase() !== invite.email.toLowerCase()");
     expect(inviteRoute).toContain("accepted_at: new Date().toISOString()");
+  });
+
+  it("guards invitation reuse when marking an accepted token", () => {
+    expect(inviteRoute).toContain("household_invites?id=eq.${encodeURIComponent(invite.id)}&accepted_at=is.null");
+    expect(inviteRoute).toContain('Prefer: "return=representation"');
+    expect(inviteRoute).toContain("if (!claimed[0])");
   });
 
   it("rechecks signed-in member permission before inserting a shared memory", () => {
