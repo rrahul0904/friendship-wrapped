@@ -11,6 +11,13 @@ export function requireSupabasePublicConfig() {
   return config;
 }
 
+export function requireSupabaseSecretConfig() {
+  const publicConfig = requireSupabasePublicConfig();
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+  if (!secretKey) throw new Error("Supabase server persistence is not configured.");
+  return { ...publicConfig, secretKey };
+}
+
 export function isSupabaseConfigured() {
   return Boolean(getSupabasePublicConfig());
 }
