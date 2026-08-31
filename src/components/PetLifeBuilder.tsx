@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { PetLifeHouseholdPanel } from "@/components/PetLifeHouseholdPanel";
 import { ProductCloudSavePanel } from "@/components/ProductCloudSavePanel";
 import { downloadStoryCard } from "@/platform/export/story-card";
+import { trackProductEvent } from "@/platform/telemetry/client";
 import { buildPetLifeRecap, composePetLifeChapters, createPetLifeShareManifest, type PetMemory, type PetMemoryType, type PetProfile } from "@/products/petlife/model";
 
 const LOCAL_KEY = "story-platform:petlife:v1";
@@ -68,10 +69,14 @@ export function PetLifeBuilder() {
 
   function saveProfile() {
     if (!name.trim() || !species.trim()) { setMessage("Add a pet name and species first."); return; }
+    const creating = !profile;
     const next: PetProfile = profile ? { ...profile, name: name.trim(), species: species.trim(), birthday: birthday || undefined, adoptionDate: adoptionDate || undefined } : { id: crypto.randomUUID(), name: name.trim(), species: species.trim(), birthday: birthday || undefined, adoptionDate: adoptionDate || undefined };
     setProfile(next);
     persistLocal({ profile: next, memories: profile ? memories : [] });
-    if (!profile) setMemories([]);
+    if (creating) {
+      setMemories([]);
+      trackProductEvent("pet_created", "petlife");
+    }
     setMessage(`${next.name}'s profile is saved on this device.`);
   }
 
@@ -79,9 +84,12 @@ export function PetLifeBuilder() {
     if (!profile) { setMessage("Create the pet profile before adding memories."); return; }
     if (!memoryTitle.trim() || !memoryDate) { setMessage("Add a memory title and date."); return; }
     const memory: PetMemory = { id: crypto.randomUUID(), petId: profile.id, type: memoryType, date: memoryDate, title: memoryTitle.trim(), note: memoryNote.trim() || undefined, photoCount };
+    const hasRecapMemory = memories.some((item) => item.date.startsWith(`${recapYear}-`));
     const next = [...memories, memory];
     setMemories(next);
     persistLocal({ profile, memories: next });
+    trackProductEvent("pet_memory_added", "petlife");
+    if (!hasRecapMemory && memory.date.startsWith(`${recapYear}-`)) trackProductEvent("annual_recap_created", "petlife");
     setMemoryTitle("");
     setMemoryNote("");
     setPhotoCount(0);
@@ -107,12 +115,15 @@ export function PetLifeBuilder() {
   }
 
   async function exportChapter() {
-    if (chapter) await downloadStoryCard(chapter, "vertical", true);
+    if (!chapter) return;
+    await downloadStoryCard(chapter, "vertical", true);
+    trackProductEvent("story_exported", "petlife");
   }
 
   async function copyShareSummary() {
     if (!recap) return;
     await navigator.clipboard.writeText(JSON.stringify(createPetLifeShareManifest(recap, includePetName)));
+    trackProductEvent("share_created", "petlife");
     setMessage(`Copied a privacy-safe recap manifest${includePetName ? " with the pet name" : " without the pet name"}. Notes and photo files are excluded.`);
   }
 
