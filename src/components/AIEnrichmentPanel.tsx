@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChatStats, StoryMode } from "@/lib/types";
 import { composeThreadTale } from "@/platform/story/compose";
+import { trackProductEvent } from "@/platform/telemetry/client";
 
 export function AIEnrichmentPanel({ stats, mode }: { stats: ChatStats; mode: StoryMode }) {
   const [enabled, setEnabled] = useState<boolean | null>(null);
@@ -28,6 +29,7 @@ export function AIEnrichmentPanel({ stats, mode }: { stats: ChatStats; mode: Sto
   async function enrich() {
     setBusy(true);
     setMessage("");
+    trackProductEvent("ai_enrichment_started", "threadtales", mode);
     try {
       const input = {
         product: "threadtales" as const,
@@ -57,6 +59,7 @@ export function AIEnrichmentPanel({ stats, mode }: { stats: ChatStats; mode: Sto
       const data = await response.json() as { text?: string; error?: string; model?: string };
       if (!response.ok || !data.text) throw new Error(data.error ?? "AI enrichment failed.");
       setOutput(data.text);
+      trackProductEvent("ai_enrichment_completed", "threadtales", mode);
       setMessage(`Optional AI enrichment generated${data.model ? ` with ${data.model}` : ""}. Edit it freely before using it.`);
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : "AI enrichment failed.");
