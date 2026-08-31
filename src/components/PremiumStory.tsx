@@ -52,7 +52,7 @@ export function PremiumStory({ stats, mode }: { stats: ChatStats; mode: StoryMod
     if (!sessionId) return;
 
     let active = true;
-    setVerifying(true);
+    queueMicrotask(() => { if (active) setVerifying(true); });
     fetch(`/api/entitlements/verify?session_id=${encodeURIComponent(sessionId)}`, { cache: "no-store" })
       .then(async (response) => {
         const body = await response.json() as VerifyResponse;
