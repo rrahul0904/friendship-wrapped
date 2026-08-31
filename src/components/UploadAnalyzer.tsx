@@ -63,22 +63,27 @@ export function UploadAnalyzer() {
   useEffect(() => {
     const checkoutState = search.get("checkout");
     if (!checkoutState || stats) return;
-    const stored = restoreCheckoutAnalysis();
-    if (stored) {
-      setStats(stored.stats);
-      setStoryMode(stored.mode);
-      setRestoredPurchaseFlow(true);
-      window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }), 50);
-    } else if (checkoutState === "success") {
-      setError("Your purchase can still be verified, but this tab no longer has the derived story state. Re-upload the same chat export to render the unlocked story; the raw chat is never stored by ThreadTales.");
-    }
+    const timeout = window.setTimeout(() => {
+      const stored = restoreCheckoutAnalysis();
+      if (stored) {
+        setStats(stored.stats);
+        setStoryMode(stored.mode);
+        setRestoredPurchaseFlow(true);
+        window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }), 50);
+      } else if (checkoutState === "success") {
+        setError("Your purchase can still be verified, but this tab no longer has the derived story state. Re-upload the same chat export to render the unlocked story; the raw chat is never stored by ThreadTales.");
+      }
+    }, 0);
+    return () => window.clearTimeout(timeout);
   }, [search, stats]);
 
   useEffect(() => {
     if (stats) return;
     if (search.get("checkout")) return;
-    if (search.get("demo") === "1" && !busy) analyzeText(makeSampleChat());
-    // Intentionally only run when demo query appears.
+    if (search.get("demo") !== "1" || busy) return;
+    const timeout = window.setTimeout(() => analyzeText(makeSampleChat()), 0);
+    return () => window.clearTimeout(timeout);
+    // Intentionally only react to URL/demo state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
@@ -88,7 +93,7 @@ export function UploadAnalyzer() {
     sessionStorage.setItem(CHECKOUT_ANALYSIS_KEY, JSON.stringify(stored));
   }, [stats, storyMode]);
 
-  async function useFile(file?: File) {
+  async function handleFile(file?: File) {
     if (!file) return;
     if (file.size > MAX_BYTES) { setError("That file is over 15 MB. For V1, please export a smaller text-only chat."); return; }
     if (!file.name.toLowerCase().endsWith(".txt")) { setError("Please use the .txt file from a chat export."); return; }
@@ -97,9 +102,9 @@ export function UploadAnalyzer() {
 
   return <>
     <div className="uploader">
-      <div className={`drop ${dragging ? "active" : ""}`} onDragOver={(e)=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)} onDrop={(e)=>{e.preventDefault();setDragging(false);void useFile(e.dataTransfer.files[0])}}>
+      <div className={`drop ${dragging ? "active" : ""}`} onDragOver={(e)=>{e.preventDefault();setDragging(true)}} onDragLeave={()=>setDragging(false)} onDrop={(e)=>{e.preventDefault();setDragging(false);void handleFile(e.dataTransfer.files[0])}}>
         <div className="drop-icon">💬</div><h2>Drop your chat export here</h2><p>Text-only WhatsApp exports work best. The file is read locally by your browser—it is not uploaded to ThreadTales.</p>
-        <input ref={fileRef} className="file-input" type="file" accept=".txt,text/plain" onChange={(e)=>void useFile(e.target.files?.[0])}/>
+        <input ref={fileRef} className="file-input" type="file" accept=".txt,text/plain" onChange={(e)=>void handleFile(e.target.files?.[0])}/>
         <button className="btn btn-primary" onClick={()=>fileRef.current?.click()} disabled={busy}>{busy ? "Reading your story…" : "Choose .txt file"}</button>
       </div>
       <div className="controls">
