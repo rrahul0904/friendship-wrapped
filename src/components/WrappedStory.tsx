@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import type { ChatStats, PublicSnapshot, StoryMode } from "@/lib/types";
 import { createSnapshot, encodeSnapshot } from "@/lib/share";
-import { StoryChapterDeck } from "./StoryChapterDeck";
 import { getStoryModeConfig } from "@/platform/story/modes";
+import { trackProductEvent } from "@/platform/telemetry/client";
+import { StoryChapterDeck } from "./StoryChapterDeck";
 
 function formatHour(hour: number) {
   const suffix = hour >= 12 ? "pm" : "am";
@@ -114,8 +115,14 @@ export function WrappedStory({ stats, mode = "friends" }: { stats: ChatStats; mo
 
   async function copyShare() {
     await navigator.clipboard.writeText(shareUrl);
+    trackProductEvent("share_created", "threadtales", mode);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1800);
+  }
+
+  async function nativeShare() {
+    trackProductEvent("share_created", "threadtales", mode);
+    await navigator.share({ title: "Our ThreadTale", text: `Our ${copy.noun} in numbers.`, url: shareUrl });
   }
 
   return <>
@@ -126,7 +133,7 @@ export function WrappedStory({ stats, mode = "friends" }: { stats: ChatStats; mo
       <p>The link contains only the derived stats shown above. Raw messages are never embedded. Names and top words stay private unless you explicitly include them.</p>
       <label className="toggle"><input type="checkbox" checked={includeNames} onChange={(e)=>setIncludeNames(e.target.checked)}/> Show participant names in the public link</label>
       <label className="toggle"><input type="checkbox" checked={includeTopWords} onChange={(e)=>setIncludeTopWords(e.target.checked)}/> Include top words in the public link</label>
-      <div className="share-actions"><input className="share-input" readOnly value={shareUrl}/><button className="btn btn-primary" onClick={copyShare}>{copied ? "Copied ✓" : "Copy share link"}</button>{typeof navigator !== "undefined" && "share" in navigator ? <button className="btn btn-soft" onClick={()=>navigator.share({title:"Our ThreadTale",text:`Our ${copy.noun} in numbers.`,url:shareUrl})}>Share…</button> : null}</div>
+      <div className="share-actions"><input className="share-input" readOnly value={shareUrl}/><button className="btn btn-primary" onClick={() => void copyShare()}>{copied ? "Copied ✓" : "Copy share link"}</button>{typeof navigator !== "undefined" && "share" in navigator ? <button className="btn btn-soft" onClick={() => void nativeShare()}>Share…</button> : null}</div>
     </div>
   </>;
 }
