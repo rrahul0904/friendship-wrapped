@@ -9,7 +9,7 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.head.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -27,12 +29,16 @@ jobs:
       - name: Install dependencies
         run: npm install --ignore-scripts
 
-      - name: Capture generated lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-lock
-          path: package-lock.json
-          retention-days: 1
+      - name: Commit generated lockfile on Wave 3 branch
+        if: github.event_name == 'push' && github.ref_name == 'codex/wave-3-monetization-worldcore'
+        run: |
+          if [ -n "$(git status --porcelain package-lock.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json
+            git commit -m "chore: lock npm dependencies"
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
 
       - name: Lint
         run: npm run lint
