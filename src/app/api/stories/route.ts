@@ -1,25 +1,13 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { assertDerivedStoryPayload, getSupabaseUser, supabaseRest } from "@/platform/persistence/supabase-rest";
+import { requireStorySession } from "@/platform/identity/session";
+import { assertDerivedStoryPayload, supabaseRest } from "@/platform/persistence/supabase-rest";
 import { isThreadTaleResultV2 } from "@/platform/threadtales/result-v2";
 
 export const runtime = "nodejs";
 
-async function sessionToken() {
-  const store = await cookies();
-  return store.get("story_access_token")?.value ?? null;
-}
-
-async function requireUser() {
-  const token = await sessionToken();
-  if (!token) throw new Error("AUTH_REQUIRED");
-  const user = await getSupabaseUser(token);
-  return { token, user };
-}
-
 export async function GET() {
   try {
-    const { token } = await requireUser();
+    const { token } = await requireStorySession();
     const rows = await supabaseRest<Array<{ id: string; product: string; mode?: string; title: string; result: unknown; created_at: string }>>(
       "story_runs?select=id,product,mode,title,result,created_at&order=created_at.desc&limit=25",
       token,
@@ -33,7 +21,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { token, user } = await requireUser();
+    const { token, user } = await requireStorySession();
     const body = await request.json() as { product?: string; mode?: string; title?: string; result?: unknown };
     if (!body.product || !["threadtales", "myyear", "petlife"].includes(body.product)) throw new Error("Unsupported story product.");
     if (!body.title || body.title.trim().length > 160) throw new Error("Give this story a title under 160 characters.");
@@ -64,7 +52,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { token } = await requireUser();
+    const { token } = await requireStorySession();
     const id = new URL(request.url).searchParams.get("id");
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid story id.");
     await supabaseRest<null>(`story_runs?id=eq.${encodeURIComponent(id)}`, token, { method: "DELETE" });
