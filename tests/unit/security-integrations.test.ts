@@ -84,7 +84,10 @@ describe("Stripe boundary", () => {
   it("sends purchase metadata only and uses verified checkout URLs", async () => {
     process.env.STRIPE_SECRET_KEY = "sk_test_fake";
     process.env.STRIPE_PRICE_THREADTALES_PREMIUM = "price_test_123";
-    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => new Response(JSON.stringify({ id: "cs_test_abc", url: "https://checkout.stripe.test/session" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const fetchSpy = vi.fn(async (...args: Parameters<typeof fetch>): Promise<Response> => {
+      void args;
+      return new Response(JSON.stringify({ id: "cs_test_abc", url: "https://checkout.stripe.test/session" }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
     vi.stubGlobal("fetch", fetchSpy);
 
     await createPremiumCheckout("https://threadtales.example", "anniversary");
@@ -145,7 +148,10 @@ describe("AI enrichment privacy", () => {
   });
 
   it("uses Responses API with store=false and never sends unprovided identities", async () => {
-    const fetchSpy = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit): Promise<Response> => new Response(JSON.stringify({ model: "test-model", output: [{ content: [{ type: "output_text", text: "Enriched copy" }] }] }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const fetchSpy = vi.fn(async (...args: Parameters<typeof fetch>): Promise<Response> => {
+      void args;
+      return new Response(JSON.stringify({ model: "test-model", output: [{ content: [{ type: "output_text", text: "Enriched copy" }] }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+    });
     vi.stubGlobal("fetch", fetchSpy);
     const provider = new OpenAIStoryEnrichmentProvider("test-key", "test-model");
     const result = await provider.enrich(SAFE_AI_INPUT);
