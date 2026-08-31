@@ -1,4 +1,4 @@
-import type { ChatMessage, ChatStats, ParticipantStat, WordStat } from "./types";
+import type { ChatMessage, ChatStats, ParticipantStat, ResponseGapStats, WordStat } from "./types";
 
 const STOP_WORDS = new Set([
   "the","and","that","this","with","you","your","for","are","was","were","have","has","had","but","not","from","they","them","their","what","when","where","who","why","how","can","could","would","should","will","just","like","really","very","then","than","there","here","been","being","because","about","into","onto","over","under","again","also","too","its","it's","im","i'm","ive","i've","dont","don't","didnt","didn't","cant","can't","wont","won't","yes","yeah","yep","nope","okay","ok","lol","haha","hahaha","https","http","www","com","image","omitted","video","audio","sticker","gif"
@@ -15,6 +15,11 @@ function clamp(score: number) {
 function dayKey(timestamp: number) {
   const d = new Date(timestamp);
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
+
+function monthKey(timestamp: number) {
+  const date = new Date(timestamp);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
 function median(values: number[]) {
@@ -55,16 +60,30 @@ function tokenize(text: string) {
     .filter((word) => word.length >= 3 && !STOP_WORDS.has(word) && !/^\d+$/.test(word));
 }
 
+function responseGapBuckets(values: number[]): ResponseGapStats {
+  const buckets: ResponseGapStats = { under5Minutes: 0, under30Minutes: 0, under2Hours: 0, under12Hours: 0, over12Hours: 0 };
+  for (const minutes of values) {
+    if (minutes < 5) buckets.under5Minutes += 1;
+    else if (minutes < 30) buckets.under30Minutes += 1;
+    else if (minutes < 120) buckets.under2Hours += 1;
+    else if (minutes < 720) buckets.under12Hours += 1;
+    else buckets.over12Hours += 1;
+  }
+  return buckets;
+}
+
 export function analyzeChat(messages: ChatMessage[]): ChatStats {
   if (!messages.length) throw new Error("No supported chat messages found.");
   const sorted = [...messages].sort((a, b) => a.timestamp - b.timestamp);
   const participantMap = new Map<string, ParticipantStat>();
   const replyGaps = new Map<string, number[]>();
-  const globalReplyGaps: number[] = [];
+  const allSenderChangeGaps: number[] = [];
+  const boundedReplyGaps: number[] = [];
   const wordMap = new Map<string, number>();
   const hourCounts = Array(24).fill(0) as number[];
   const weekdayCounts = Array(7).fill(0) as number[];
   const yearMap = new Map<number, number>();
+  const monthMap = new Map<string, number>();
   const dayCounts = new Map<number, number>();
   const activeDaySet = new Set<number>();
   const dayparts = { morning: 0, afternoon: 0, evening: 0, night: 0 };
@@ -116,12 +135,15 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     if (hour >= 0 && hour < 5) p.lateNightMessages += 1;
     participantMap.set(message.sender, p);
 
-    if (previous && previous.sender !== message.sender && gap !== null && gap > 0 && gap <= 12 * HOUR) {
+    if (previous && previous.sender !== message.sender && gap !== null && gap > 0) {
       const minutes = gap / 60_000;
-      globalReplyGaps.push(minutes);
-      const senderReplies = replyGaps.get(message.sender) ?? [];
-      senderReplies.push(minutes);
-      replyGaps.set(message.sender, senderReplies);
+      allSenderChangeGaps.push(minutes);
+      if (gap <= 12 * HOUR) {
+        boundedReplyGaps.push(minutes);
+        const senderReplies = replyGaps.get(message.sender) ?? [];
+        senderReplies.push(minutes);
+        replyGaps.set(message.sender, senderReplies);
+      }
     }
 
     for (const word of words) wordMap.set(word, (wordMap.get(word) ?? 0) + 1);
@@ -129,6 +151,8 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     hourCounts[hour] += 1;
     weekdayCounts[date.getDay()] += 1;
     yearMap.set(date.getFullYear(), (yearMap.get(date.getFullYear()) ?? 0) + 1);
+    const month = monthKey(message.timestamp);
+    monthMap.set(month, (monthMap.get(month) ?? 0) + 1);
     const day = dayKey(message.timestamp);
     activeDaySet.add(day);
     dayCounts.set(day, (dayCounts.get(day) ?? 0) + 1);
@@ -176,7 +200,7 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     activeDays: activeDaySet.size,
     longestStreak: longestStreak(sorted.map((m) => m.timestamp)),
     longestSilenceDays: longestSilence(sorted.map((m) => m.timestamp)),
-    medianReplyMinutes: median(globalReplyGaps),
+    medianReplyMinutes: median(boundedReplyGaps),
     biggestDay: { timestamp: biggestDayTimestamp, messages: biggestDayMessages },
     peakHour,
     peakHourMessages: hourCounts[peakHour],
@@ -189,6 +213,9 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     dayparts,
     topWords,
     byYear: [...yearMap.entries()].sort((a, b) => a[0] - b[0]).map(([year, count]) => ({ year, messages: count })),
+    byMonth: [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([month, count]) => ({ month, messages: count })),
+    responseGaps: responseGapBuckets(allSenderChangeGaps),
+    conversationBalance: Number(balance.toFixed(1)),
     vibe: {
       nightOwl: clamp(nightRate * 900 + 18),
       curiosity: clamp(questionRate * 320 + 22),
