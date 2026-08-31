@@ -6,6 +6,7 @@ const STOP_WORDS = new Set([
 const WEEKDAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 const DAY = 86_400_000;
 const HOUR = 3_600_000;
+const HEART_SIGNAL = /(?:❤\uFE0F?|🩷|💙|💚|💛|💜|💕|💞|💓|💗|💖|💘|💝|💟)/gu;
 
 function clamp(score: number) {
   return Math.max(0, Math.min(100, Math.round(score)));
@@ -79,7 +80,7 @@ export function analyzeChat(messages: ChatMessage[]): ChatStats {
     const words = tokenize(message.text);
     const questionCount = (message.text.match(/\?/g) ?? []).length;
     const laughCount = (message.text.match(/\b(?:ha){2,}|\blol+\b|😂|🤣/gi) ?? []).length;
-    const heartCount = (message.text.match(/[❤️💙💚💛💜🩷💕💞💓💗💖💘💝💟]/gu) ?? []).length;
+    const heartCount = (message.text.match(HEART_SIGNAL) ?? []).length;
     const isMedia = /<media omitted>|image omitted|video omitted|audio omitted|sticker omitted/gi.test(message.text);
     const date = new Date(message.timestamp);
     const hour = date.getHours();

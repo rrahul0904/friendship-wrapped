@@ -53,7 +53,15 @@ describe("analyzeChat", () => {
     expect(bob?.conversationStarts).toBe(0);
     expect(alice?.medianReplyMinutes).toBeNull();
     expect(bob?.medianReplyMinutes).toBe(15);
-    expect(alice?.avgWords).toBe(2);
+    expect(alice?.avgWords).toBe(1.7);
+  });
+
+  it("counts one visible heart glyph as one signal", () => {
+    const stats = analyzeChat([
+      { sender: "Alice", timestamp: at(1, 9, 0), text: "❤️ ❤ 🩷" },
+    ]);
+    expect(stats.heartSignals).toBe(3);
+    expect(stats.participants[0].heartSignals).toBe(3);
   });
 
   it("sorts unsorted input without mutating the caller array", () => {
