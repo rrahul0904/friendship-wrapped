@@ -28,8 +28,9 @@ test("demo mode produces a results story", async ({ page }) => {
 
 test("synthetic WhatsApp fixture upload produces results", async ({ page }) => {
   await uploadFixture(page);
-  await expect(page.locator(".story-hero")).toContainText("5 messages");
-  await expect(page.getByText("Maya Rose + Jordan Lee")).toBeVisible();
+  const hero = page.locator(".story-hero");
+  await expect(hero).toContainText("5 messages");
+  await expect(hero.getByText(/Maya Rose \+ Jordan Lee/)).toBeVisible();
 });
 
 test("invalid file type shows an actionable recoverable error", async ({ page }) => {
