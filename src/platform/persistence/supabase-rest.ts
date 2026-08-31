@@ -88,8 +88,20 @@ export async function supabaseAdminRest<T>(tableAndQuery: string, init: RequestI
   return data as T;
 }
 
+const RAW_CONTENT_KEYS = new Set([
+  "raw",
+  "rawtext",
+  "rawchat",
+  "messages",
+  "chatmessages",
+  "messagetext",
+  "sender",
+  "transcript",
+  "conversation",
+  "text",
+]);
+
 export function assertDerivedStoryPayload(value: unknown) {
-  const forbidden = new Set(["raw", "rawText", "rawChat", "chatMessages", "messageText", "text"]);
   const visit = (node: unknown, depth: number) => {
     if (depth > 20) throw new Error("Story payload is too deeply nested.");
     if (!node || typeof node !== "object") return;
@@ -101,7 +113,8 @@ export function assertDerivedStoryPayload(value: unknown) {
     const record = node as Record<string, unknown>;
     if ("sender" in record && "timestamp" in record && "text" in record) throw new Error("Raw chat messages cannot be saved to cloud persistence.");
     for (const [key, child] of Object.entries(record)) {
-      if (forbidden.has(key)) throw new Error(`Cloud save rejected a raw-content field: ${key}`);
+      const normalizedKey = key.replace(/[_\-\s]/g, "").toLowerCase();
+      if (RAW_CONTENT_KEYS.has(normalizedKey)) throw new Error(`Cloud save rejected a raw-content field: ${key}`);
       visit(child, depth + 1);
     }
   };
