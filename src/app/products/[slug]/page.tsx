@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MyYearBuilder } from "@/components/MyYearBuilder";
 import { PetLifeBuilder } from "@/components/PetLifeBuilder";
+import { PetLifeSharedMemoryPanel } from "@/components/PetLifeSharedMemoryPanel";
 import { getProduct, products } from "@/lib/products";
 
 export function generateStaticParams() {
@@ -27,7 +28,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </section>
 
       {product.slug === "myyear" ? <section id="myyear-builder" className="shell section" style={{ paddingTop: 20 }}><MyYearBuilder /></section> : null}
-      {product.slug === "petlife" ? <section id="petlife-builder" className="shell section" style={{ paddingTop: 20 }}><PetLifeBuilder /></section> : null}
+      {product.slug === "petlife" ? <section id="petlife-builder" className="shell section" style={{ paddingTop: 20 }}><PetLifeBuilder /><PetLifeSharedMemoryPanel /></section> : null}
 
       <section className="shell section" style={{ paddingTop: 20 }}>
         <div className="grid3">
