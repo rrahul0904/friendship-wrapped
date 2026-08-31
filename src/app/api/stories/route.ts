@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server";
 import { requireStorySession } from "@/platform/identity/session";
+import { isSupabaseConfigured } from "@/platform/persistence/config";
 import { assertDerivedStoryPayload, supabaseRest } from "@/platform/persistence/supabase-rest";
 import { isThreadTaleResultV2 } from "@/platform/threadtales/result-v2";
 
 export const runtime = "nodejs";
 
+function requireCloudPersistence() {
+  if (!isSupabaseConfigured()) throw new Error("Supabase persistence is not configured.");
+}
+
 export async function GET() {
   try {
+    requireCloudPersistence();
     const { token } = await requireStorySession();
     const rows = await supabaseRest<Array<{ id: string; product: string; mode?: string; title: string; result: unknown; created_at: string }>>(
       "story_runs?select=id,product,mode,title,result,created_at&order=created_at.desc&limit=25",
@@ -21,6 +27,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    requireCloudPersistence();
     const { token, user } = await requireStorySession();
     const body = await request.json() as { product?: string; mode?: string; title?: string; result?: unknown };
     if (!body.product || !["threadtales", "myyear", "petlife"].includes(body.product)) throw new Error("Unsupported story product.");
@@ -52,6 +59,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    requireCloudPersistence();
     const { token } = await requireStorySession();
     const id = new URL(request.url).searchParams.get("id");
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) throw new Error("Invalid story id.");
