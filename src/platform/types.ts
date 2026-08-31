@@ -49,7 +49,7 @@ export interface ThreadTaleResultV2 {
   source: "whatsapp" | "telegram" | "other";
   range: { start: string; end: string };
   participants: ChatStats["participants"];
-  metrics: Omit<ChatStats, "participants" | "byYear" | "topWords"> & {
+  metrics: Omit<ChatStats, "participants" | "byYear" | "byMonth" | "topWords"> & {
     topWords: ChatStats["topWords"];
   };
   timeline: ThreadTaleTimelinePoint[];
