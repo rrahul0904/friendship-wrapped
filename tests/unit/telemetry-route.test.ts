@@ -67,12 +67,13 @@ describe("telemetry route", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("rejects a non-HTTPS telemetry destination", async () => {
+  it("fails closed on a non-HTTPS telemetry destination without networking", async () => {
     process.env.TELEMETRY_ENDPOINT = "http://telemetry.example/events";
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);
     const response = await POST(request({ event: "analysis_started", product: "threadtales" }));
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(502);
+    expect(await response.json()).toEqual({ error: "Telemetry endpoint must use HTTPS." });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
