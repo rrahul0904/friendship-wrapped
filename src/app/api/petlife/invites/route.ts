@@ -49,8 +49,9 @@ export async function PUT(request: Request) {
     const body = await request.json() as { token?: string };
     if (!body.token || !/^[A-Za-z0-9_-]{32,128}$/.test(body.token)) throw new Error("Invalid household invitation token.");
     const tokenHash = hashToken(body.token);
-    const invite = (await supabaseAdminRest<InviteRow[]>(`household_invites?select=id,household_id,email,token_hash,can_add_memories,expires_at,accepted_at&token_hash=eq.${encodeURIComponent(tokenHash)}&limit=1`))[0];
-    if (!invite || invite.accepted_at) throw new Error("This household invitation is invalid or has already been used.");
+    const now = new Date().toISOString();
+    const invite = (await supabaseAdminRest<InviteRow[]>(`household_invites?select=id,household_id,email,token_hash,can_add_memories,expires_at,accepted_at&token_hash=eq.${encodeURIComponent(tokenHash)}&accepted_at=is.null&expires_at=gt.${encodeURIComponent(now)}&limit=1`))[0];
+    if (!invite || invite.accepted_at) throw new Error("This household invitation is invalid, expired, or has already been used.");
     if (new Date(invite.expires_at).getTime() <= Date.now()) throw new Error("This household invitation has expired.");
     if (!user.email || user.email.toLowerCase() !== invite.email.toLowerCase()) throw new Error("Sign in with the email address that received this invitation.");
 
@@ -59,11 +60,12 @@ export async function PUT(request: Request) {
       headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
       body: JSON.stringify({ household_id: invite.household_id, user_id: user.id, role: "member", can_add_memories: invite.can_add_memories }),
     });
-    await supabaseAdminRest(`household_invites?id=eq.${encodeURIComponent(invite.id)}`, {
+    const claimed = await supabaseAdminRest<InviteRow[]>(`household_invites?id=eq.${encodeURIComponent(invite.id)}&accepted_at=is.null&select=id,household_id,email,token_hash,can_add_memories,expires_at,accepted_at`, {
       method: "PATCH",
-      headers: { Prefer: "return=minimal" },
+      headers: { Prefer: "return=representation" },
       body: JSON.stringify({ accepted_at: new Date().toISOString() }),
     });
+    if (!claimed[0]) throw new Error("This household invitation has already been used.");
     return NextResponse.json({ accepted: true, householdId: invite.household_id });
   } catch (cause) {
     return apiError(cause, "Could not accept household invitation.");
