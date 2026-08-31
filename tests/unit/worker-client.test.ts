@@ -3,8 +3,8 @@ import { createAnalysisTask } from "../../src/lib/worker-client";
 import type { WorkerRequest } from "../../src/lib/worker-protocol";
 
 class FakeWorker {
-  onmessage: Worker["onmessage"] = null;
-  onerror: Worker["onerror"] = null;
+  onmessage: ((event: MessageEvent<unknown>) => void) | null = null;
+  onerror: ((event: ErrorEvent) => void) | null = null;
   readonly messages: unknown[] = [];
   terminated = false;
 
