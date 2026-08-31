@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ChatStats, StoryMode } from "@/lib/types";
 import { composeThreadTale } from "@/platform/story/compose";
 import { downloadStoryCard, type StoryCardPreset } from "@/platform/export/story-card";
 import { getStoryModeConfig } from "@/platform/story/modes";
+import { trackProductEvent } from "@/platform/telemetry/client";
 import { AIEnrichmentPanel } from "./AIEnrichmentPanel";
 import { CloudSavePanel } from "./CloudSavePanel";
 import { PremiumPanel } from "./PremiumPanel";
@@ -17,12 +18,17 @@ export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: Stor
   const chapter = chapters[Math.min(active, Math.max(0, chapters.length - 1))];
   const config = getStoryModeConfig(mode);
 
+  useEffect(() => {
+    trackProductEvent("story_viewed", "threadtales", mode);
+  }, [stats, mode]);
+
   if (!chapter) return null;
 
   async function exportCurrent() {
     setExporting(true);
     try {
       await downloadStoryCard(chapter, preset, true);
+      trackProductEvent("story_exported", "threadtales", mode);
     } finally {
       setExporting(false);
     }
