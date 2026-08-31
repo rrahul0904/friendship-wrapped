@@ -84,7 +84,7 @@ test("privacy page states the implemented local-only free flow", async ({ page }
 test("share flow uses a derived-stat payload and renders an anonymous public story", async ({ page }) => {
   await uploadFixture(page);
 
-  const shareUrl = await page.locator(".share-input").inputValue();
+  const shareUrl = await page.locator(".share-panel .share-input[readonly]").inputValue();
   expect(shareUrl).toContain("/share#");
   expect(shareUrl).not.toContain("Maya Rose");
   expect(shareUrl).not.toContain("Morning");
