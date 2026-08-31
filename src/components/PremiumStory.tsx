@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ChatStats, StoryMode } from "@/lib/types";
 import { generatePremiumStory } from "@/products/friendship/premium-story";
-import { FRIENDSHIP_PREMIUM_PRODUCT } from "@/platform/entitlements/catalog";
 
+const PREMIUM_PRODUCT = "friendship-premium-v1" as const;
 const SESSION_KEY = "threadtales:premium-session-id";
 const ANALYSIS_KEY = "threadtales:checkout-analysis";
 
@@ -79,7 +79,7 @@ export function PremiumStory({ stats, mode }: { stats: ChatStats; mode: StoryMod
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product: FRIENDSHIP_PREMIUM_PRODUCT, returnPath: "/create" }),
+        body: JSON.stringify({ product: PREMIUM_PRODUCT, returnPath: "/create" }),
       });
       const body = await response.json() as CheckoutResponse;
       if (!response.ok || !body.url) throw new Error(body.error ?? "Unable to start checkout.");
@@ -145,5 +145,3 @@ export function PremiumStory({ stats, mode }: { stats: ChatStats; mode: StoryMod
     </section>
   );
 }
-
-export { ANALYSIS_KEY };
