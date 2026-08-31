@@ -2,113 +2,122 @@
 
 **Your chats, turned into a story.**
 
-V1 turns a WhatsApp text export into a visual friendship story while keeping the raw chat entirely in the browser.
+ThreadTales turns a WhatsApp text export into a visual relationship story while keeping raw chat content in the browser during the free flow.
 
-## Why this architecture
+## Architecture
 
-The cheapest architecture is also the strongest privacy story:
+The free product is intentionally client-heavy:
 
 1. The `.txt` export is opened with the browser File API.
-2. Parsing and analytics happen client-side.
-3. No raw chat is uploaded, persisted, logged, or sent to an AI model.
-4. Share links contain a compact base64url-encoded JSON snapshot of derived statistics only.
-5. A database is not required for the free V1.
+2. Parsing and deterministic analytics run locally.
+3. Raw chat content is not uploaded, persisted, logged, or sent to an AI model.
+4. Optional share links contain a separate derived-stat snapshot only.
+5. No account, database, payment provider, or backend secret is required for the free flow.
 
-This means the static/client-heavy workload scales extremely well on Vercel with almost no backend cost.
+See [Phase 0 privacy architecture](docs/PRIVACY_ARCHITECTURE.md) for the implemented data boundary.
 
 ## Live deployment
 
 Vercel project: `threadtales`  
-Live URL: `https://threadtales-five.vercel.app`
+Current production URL: `https://threadtales-five.vercel.app`
 
-The first Vercel production build completed successfully with Next.js 16.3.3 and TypeScript checks.
+Production currently predates the Phase 0 branch. See [Phase 0 status](docs/PHASE_0_STATUS.md) for verification and deployment synchronization state.
 
-## Product strategy and implementation
+## Product and implementation docs
 
-- [Product strategy, business model, architecture, monetization and go-to-market](docs/PRODUCT_STRATEGY_2026.md)
-- [Phase-by-phase implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
+- [Product strategy](docs/PRODUCT_STRATEGY_2026.md)
+- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
 - [Multi-product platform architecture](docs/PLATFORM_ARCHITECTURE.md)
+- [Phase 0 status](docs/PHASE_0_STATUS.md)
+- [Phase 0 privacy architecture](docs/PRIVACY_ARCHITECTURE.md)
+- [Codex Phase 0 implementation prompt](docs/CODEX_PHASE_0_IMPLEMENTATION_PROMPT.md)
 
-Current implementation priority: **ThreadTales reliability -> share/export loop -> premium artifacts -> optional persistence -> MyYear.World -> PetLife.**
-
-## V1 features
+## Current features
 
 - WhatsApp Android and iOS text export parsing
 - US (`MM/DD`) and international (`DD/MM`) date modes
-- Multiline message support
-- Message and word counts
-- Participant message split
-- First/last date and active-day span
-- Longest daily messaging streak
-- Peak hour and favorite weekday
-- Late-night message count
-- Question, laughter, heart, and media signals
-- Top words (local result)
-- Year-by-year timeline
-- Deterministic vibe scores
-- Privacy-safe share links
-- Participant names and top words excluded from public links by default
-- Built-in sample chat/demo
-- Mobile responsive UI
-- SEO basics, sitemap, robots
+- 12-hour and 24-hour timestamps
+- multiline message support
+- message and word counts
+- participant message split
+- first/last date and active-day span
+- longest streak and quiet period
+- busiest day, peak hour, favorite weekday, and daypart activity
+- reply-speed and conversation-start metrics
+- question, laughter, heart, and media signals
+- top words and year-by-year timeline
+- deterministic vibe scores
+- privacy-safe derived-stat share links
+- participant names and top words excluded from public links by default
+- built-in sample chat/demo
+- mobile-responsive UI
+- automated parser, analytics, privacy, and browser smoke coverage
 
 ## Tech stack
 
 - Next.js App Router
-- React + TypeScript
-- Plain CSS (zero UI framework dependency)
+- React + TypeScript (`strict`)
+- plain CSS
+- browser File APIs
+- Vitest
+- Playwright
+- GitHub Actions
 - Vercel deployment target
-- No database for V1
-- No raw file storage
-- No AI dependency for the free analyzer
 
-## Run locally
+## Local development
+
+Use the committed lockfile:
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
 Open `http://localhost:3000`.
 
-## Deploy to Vercel
+## Verification
 
-Import the GitHub repository into Vercel or run:
-
-```bash
-vercel
-```
-
-Set:
+Fast pre-commit verification:
 
 ```bash
-NEXT_PUBLIC_SITE_URL=https://your-domain.example
+npm run verify
 ```
 
-## Product roadmap
+This runs lint, strict TypeScript checking, and unit tests.
 
-### V1.1
-- More export formats (Telegram, iMessage via normalized import, Instagram data export)
-- Client-side Web Worker for very large chats
-- Better language-aware stop words
-- Downloadable social cards
-- Custom themes
+Production and browser checks:
 
-### V1.2 paid
-- One-time premium themes
-- Video recap export
-- Password-protected saved stories
-- Optional cloud persistence of derived stats
-- Stripe checkout
+```bash
+npm run build
+npx playwright install chromium
+npm run test:e2e
+```
 
-### V2 opt-in AI
-- Story chapters and relationship eras
-- Inside-joke clustering
-- Topic evolution
-- Emotional highlights
+On Linux/CI, Playwright browser dependencies can be installed with:
 
-AI enrichment must be explicit opt-in because message content would need to leave the browser unless an on-device model is used.
+```bash
+npx playwright install --with-deps chromium
+```
+
+GitHub Actions runs the complete clean-checkout sequence:
+
+```text
+npm ci
+-> lint
+-> typecheck
+-> unit tests
+-> production build
+-> Chromium smoke tests
+```
+
+## Vercel deployment model
+
+The intended production model is Vercel Git integration with `main` as the production branch and pull-request/feature branches as previews. Phase 0 itself requires no server secret.
+
+`NEXT_PUBLIC_SITE_URL` can be set to the canonical deployed URL for metadata/robots/sitemap behavior. It does not contain imported data.
+
+Do not promote an unverified branch to production. Merge only after Phase 0 CI is green, then deploy the exact merged commit through the existing `threadtales` Vercel project.
 
 ## Privacy principle
 
-Do not convert the raw-chat local-only pipeline into a silent server upload. Any future cloud or AI feature must be separately disclosed and opt-in.
+Do not convert the raw-chat local-only pipeline into a silent server upload. Future persistence, payment, telemetry, or AI features must preserve the default free-flow boundary or introduce a separate explicit consent model.
