@@ -9,6 +9,8 @@ const input: ThreadTalesAnalysisInput = {
     "2/3/2026, 9:10 AM - Maya: hello",
     "2/3/2026, 9:11 AM - Jordan: hi",
     "2/3/2026, 9:12 AM - Maya: how are you?",
+    "2/3/2026, 9:13 AM - Jordan: doing well",
+    "2/3/2026, 9:14 AM - Maya: great",
   ].join("\n"),
 };
 
@@ -42,8 +44,8 @@ describe("ThreadTales worker client", () => {
   it("falls back to the importer when Worker is unavailable", async () => {
     vi.stubGlobal("Worker", undefined);
     const result = await analyzeThreadTaleInput(input, "mdy");
-    expect(result.messages).toHaveLength(3);
-    expect(result.stats.totalMessages).toBe(3);
+    expect(result.messages).toHaveLength(5);
+    expect(result.stats.totalMessages).toBe(5);
   });
 
   it("correlates a successful worker response and terminates the worker", async () => {
@@ -83,9 +85,10 @@ describe("ThreadTales worker client", () => {
     vi.useFakeTimers();
     installWorker();
     const promise = analyzeThreadTaleInput(input, "mdy");
+    const rejection = expect(promise).rejects.toThrow(/taking unusually long/i);
     const worker = FakeWorker.instances[0];
     await vi.advanceTimersByTimeAsync(60_000);
-    await expect(promise).rejects.toThrow(/taking unusually long/i);
+    await rejection;
     expect(worker.terminate).toHaveBeenCalledTimes(1);
   });
 });
