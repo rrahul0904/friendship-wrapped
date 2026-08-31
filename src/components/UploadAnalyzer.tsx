@@ -7,6 +7,7 @@ import { analyzeChat } from "@/lib/analyze";
 import { makeSampleChat } from "@/lib/sample";
 import type { ChatStats, DateOrder, StoryMode } from "@/lib/types";
 import { WrappedStory } from "./WrappedStory";
+import { PremiumStory } from "./PremiumStory";
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const CHECKOUT_ANALYSIS_KEY = "threadtales:checkout-analysis";
@@ -109,6 +110,6 @@ export function UploadAnalyzer() {
       {restoredPurchaseFlow ? <div className="restore-note">✓ Your derived story was restored locally after checkout. Raw messages were never saved.</div> : null}
       {error ? <div className="error">{error}</div> : null}
     </div>
-    {stats ? <section id="results" className="results"><WrappedStory stats={stats} mode={storyMode}/></section> : null}
+    {stats ? <section id="results" className="results"><WrappedStory stats={stats} mode={storyMode}/><PremiumStory stats={stats} mode={storyMode}/></section> : null}
   </>;
 }
