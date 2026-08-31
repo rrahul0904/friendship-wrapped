@@ -15,22 +15,25 @@ export function SavedStoriesPanel() {
   const [state, setState] = useState<"loading" | "signed-out" | "disabled" | "ready" | "error">("loading");
   const [message, setMessage] = useState("");
 
-  async function load() {
-    try {
-      const response = await fetch("/api/stories", { cache: "no-store" });
-      const data = await response.json() as { stories?: SavedStory[]; error?: string };
-      if (response.status === 503) { setState("disabled"); return; }
-      if (response.status === 401) { setState("signed-out"); return; }
-      if (!response.ok) throw new Error(data.error ?? "Could not load saved stories.");
-      setStories(data.stories ?? []);
-      setState("ready");
-    } catch (cause) {
-      setMessage(cause instanceof Error ? cause.message : "Could not load saved stories.");
-      setState("error");
-    }
-  }
-
-  useEffect(() => { void load(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/stories", { cache: "no-store" })
+      .then(async (response) => ({ response, data: await response.json() as { stories?: SavedStory[]; error?: string } }))
+      .then(({ response, data }) => {
+        if (cancelled) return;
+        if (response.status === 503) { setState("disabled"); return; }
+        if (response.status === 401) { setState("signed-out"); return; }
+        if (!response.ok) throw new Error(data.error ?? "Could not load saved stories.");
+        setStories(data.stories ?? []);
+        setState("ready");
+      })
+      .catch((cause: unknown) => {
+        if (cancelled) return;
+        setMessage(cause instanceof Error ? cause.message : "Could not load saved stories.");
+        setState("error");
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   async function remove(id: string) {
     const response = await fetch(`/api/stories?id=${encodeURIComponent(id)}`, { method: "DELETE" });
