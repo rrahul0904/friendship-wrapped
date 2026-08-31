@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireStorySession } from "@/platform/identity/session";
+import { isSupabaseConfigured } from "@/platform/persistence/config";
 import { supabaseRest } from "@/platform/persistence/supabase-rest";
 import type { PetMemory, PetProfile } from "@/products/petlife/model";
 
@@ -14,6 +15,10 @@ function apiError(cause: unknown, fallback: string) {
   const message = cause instanceof Error ? cause.message : fallback;
   const status = message === "AUTH_REQUIRED" ? 401 : /not configured/i.test(message) ? 503 : 400;
   return NextResponse.json({ error: message === "AUTH_REQUIRED" ? "Sign in to use PetLife cloud features." : message }, { status });
+}
+
+function requirePetLifeCloud() {
+  if (!isSupabaseConfigured()) throw new Error("Supabase persistence is not configured for PetLife.");
 }
 
 function assertUuid(value: string) {
@@ -40,6 +45,7 @@ function validateMemory(memory: PetMemory, petId: string) {
 
 export async function GET() {
   try {
+    requirePetLifeCloud();
     const { token, user } = await requireStorySession();
     const [households, memberships, pets, memories] = await Promise.all([
       supabaseRest<HouseholdRow[]>("households?select=id,name,owner_id&order=created_at.asc", token),
@@ -55,6 +61,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    requirePetLifeCloud();
     const { token, user } = await requireStorySession();
     const body = await request.json() as { profile?: PetProfile; memories?: PetMemory[] };
     if (!body.profile) throw new Error("Pet profile is required.");
@@ -101,6 +108,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    requirePetLifeCloud();
     const { token } = await requireStorySession();
     const id = new URL(request.url).searchParams.get("id");
     if (!id) throw new Error("Pet id is required.");
