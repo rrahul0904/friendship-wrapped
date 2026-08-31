@@ -48,8 +48,7 @@ export function UploadAnalyzer() {
     setMessageCount(null);
     setStage("validating");
 
-    let task: AnalysisTask;
-    task = createAnalysisTask(content, dateOrder, (progress) => {
+    const task = createAnalysisTask(content, dateOrder, (progress) => {
       if (operation !== operationRef.current || activeTaskRef.current?.requestId !== task.requestId) return;
       setStage(progress.stage);
       if (progress.messageCount != null) setMessageCount(progress.messageCount);
