@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-export async function POST(request: Request) {
+export async function POST() {
   const response = NextResponse.json({ signedOut: true });
   response.cookies.set("story_access_token", "", {
     httpOnly: true,
