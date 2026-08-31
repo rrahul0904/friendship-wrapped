@@ -31,10 +31,12 @@ export function toThreadTaleResultV2(stats: ChatStats, source: ThreadTaleResultV
       heartSignals: stats.heartSignals,
       mediaSignals: stats.mediaSignals,
       dayparts: stats.dayparts,
+      responseGaps: stats.responseGaps,
+      conversationBalance: stats.conversationBalance,
       vibe: stats.vibe,
       topWords: stats.topWords,
     },
-    timeline: stats.byYear.map((point) => ({ key: String(point.year), label: String(point.year), messages: point.messages })),
+    timeline: stats.byMonth.map((point) => ({ key: point.month, label: point.month, messages: point.messages })),
   };
 }
 
