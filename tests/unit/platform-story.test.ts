@@ -69,7 +69,10 @@ describe("deterministic story modes and privacy", () => {
     const safe = createStoryShareManifest(stats, "friends");
     const optedIn = createStoryShareManifest(stats, "friends", { includeSensitive: true });
     expect(optedIn.cards.length).toBeGreaterThan(safe.cards.length);
-    expect(JSON.stringify(optedIn)).toContain("SECRET_PERSON_ALPHA");
+    expect(optedIn.cards.some((card) => card.id === "balance")).toBe(true);
+    expect(optedIn.cards.some((card) => card.id === "language")).toBe(true);
+    expect(JSON.stringify(optedIn)).toContain("private");
+    expect(JSON.stringify(optedIn)).not.toContain("SECRET_PERSON_ALPHA");
   });
 });
 
