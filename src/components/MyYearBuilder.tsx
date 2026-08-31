@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { ProductCloudSavePanel } from "@/components/ProductCloudSavePanel";
 import { downloadStoryCard } from "@/platform/export/story-card";
+import { trackProductEvent } from "@/platform/telemetry/client";
 import { buildMyYearSummary, composeMyYearChapters, createMyYearShareManifest, type MyYearMoment } from "@/products/myyear/model";
 
 interface PhotoMeta {
@@ -66,6 +67,7 @@ export function MyYearBuilder() {
       location: draftLocation.trim() || undefined,
       photoCount: photos.length,
     };
+    if (moments.length === 0) trackProductEvent("myyear_created", "myyear");
     setMoments((current) => [...current, moment]);
     setDraftTitle("");
     setDraftCaption("");
@@ -76,11 +78,13 @@ export function MyYearBuilder() {
   async function exportChapter() {
     if (!chapter) return;
     await downloadStoryCard(chapter, "vertical", true);
+    trackProductEvent("story_exported", "myyear");
   }
 
   async function copyShareSummary() {
     if (!summary) return;
     await navigator.clipboard.writeText(JSON.stringify(createMyYearShareManifest(summary)));
+    trackProductEvent("share_created", "myyear");
     setMessage("Copied a privacy-safe MyYear share manifest. Photo files, captions and locations are excluded by default.");
   }
 
