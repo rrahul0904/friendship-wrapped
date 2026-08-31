@@ -1,227 +1,247 @@
-# Multi-Product Platform Architecture
-
-ThreadTales is the first product in a broader platform for turning personal or business data into interactive stories, timelines, worlds, and shareable artifacts.
+# ThreadTales Story Platform Architecture
 
 ## Product model
 
-One codebase, shared platform services, independent product experiences.
+The platform is one Next.js application with shared primitives and independent product experiences. Three products now prove the architecture:
 
-| Product | Primary input | Core output | Persistence | Monetization |
-| --- | --- | --- | --- | --- |
-| LifeMap | Photos, travel, Spotify, calendar | Living personal map | Required | Archive, print, yearly recap |
-| Friendship Wrapped | Chat exports | Friendship story | Optional | One-time premium story/video/book |
-| Relationship Universe | Photos, trips, songs, milestones | Couple world | Required | Subscription |
-| PetLife | Photos, dates, walks, memories | Pet world/timeline | Required | Storage, AI, memorial products |
-| BabyStory | Photos, milestones, recordings | Growing-up timeline | Required | Family plan, books, storage |
-| HomeStory | Photos, documents, renovations | Home memory capsule | Required | Archive, transfer, print |
-| MyYear.World | Photos, music, travel, workouts, journal | Live year-in-review | Required | Annual premium recap |
-| FounderWorld | Stripe, analytics, GitHub, socials | Startup city | Required | SaaS subscription |
-| CreatorWorld | YouTube, TikTok, Instagram, Spotify | Creator world | Required | Analytics subscription |
-| FamilyTree Live | People, photos, voice, stories, documents | Interactive family graph/world | Required | Family plan, archive, AI interviews |
+| Product | Current input | Current output | Persistence model |
+| --- | --- | --- | --- |
+| ThreadTales | WhatsApp text export | deterministic relationship story, share link, PNG/keepsake | raw chat local; optional derived cloud save |
+| MyYear.World | manual dated moments + locally selected photos | year timeline, eras, story cards, safe share summary | browser-memory MVP; optional derived cloud save |
+| PetLife | pet profile, memories, milestones, local photo selections | reusable timeline + annual recap | intentional localStorage; optional private household cloud |
 
-## Shared platform layers
+The remaining registry products are decision candidates, not implementation commitments.
 
-### 1. Identity and households
-- Users
-- Households / families / teams
-- Roles and invitations
-- Private/public sharing controls
+## Runtime
 
-### 2. Universal event model
-Every product turns source data into the same normalized event shape:
+```text
+GitHub
+  -> Vercel preview / production
+  -> Next.js App Router
+       ├ browser-local product engines
+       ├ browser Web Worker for ThreadTales analysis
+       └ optional route handlers
+            ├ Stripe
+            ├ Supabase
+            ├ OpenAI
+            └ telemetry endpoint
+```
+
+The free application requires no database, login, payment provider, AI key, queue, or separate backend service.
+
+## Shared platform modules
+
+```text
+src/platform/
+  ai/             replaceable optional story enrichment
+  billing/        Stripe REST boundary
+  entitlements/   signed premium entitlement
+  export/         rendering-neutral story card export
+  identity/       optional authenticated story session
+  importers/      source importer contracts + WhatsApp adapter
+  persistence/    Supabase REST/config + derived-content guard
+  print/          vendor-neutral keepsake specification
+  story/          deterministic modes/composition
+  telemetry/      content-blind product event schema
+  threadtales/    result V2 + worker client
+  types.ts        shared story/event/export contracts
+
+src/products/
+  myyear/         MyYear-specific event, era and share logic
+  petlife/        PetLife-specific timeline, recap and share logic
+```
+
+ThreadTales' legacy parser/analytics remains under `src/lib` because it is mature working code. Platform extraction is incremental rather than a destructive folder rewrite.
+
+## Shared contracts
+
+### Story events
 
 ```ts
 interface StoryEvent {
   id: string;
-  worldId: string;
-  type: string;
+  product: "threadtales" | "myyear" | "petlife";
   occurredAt: string;
+  type: string;
   title: string;
   description?: string;
-  people?: string[];
-  places?: string[];
-  media?: string[];
-  source?: string;
-  metadata?: Record<string, unknown>;
+  location?: string;
+  media?: Array<{
+    id: string;
+    name: string;
+    url?: string;
+    mimeType?: string;
+  }>;
+  metadata?: Record<string, string | number | boolean | null>;
 }
 ```
 
-Examples:
-- Friendship: message milestone, longest streak, first message
-- PetLife: adoption, vet visit, birthday, favorite walk
-- BabyStory: first word, first step, school day
-- FounderWorld: new customer, churn, deployment, revenue milestone
+The event contract stays intentionally small. Product-specific fields remain in product modules until more than one real product needs them.
 
-The UI engines render events differently by product, but the storage and timeline system stay shared.
+### Story chapters
 
-### 3. Media layer
-- Photos
-- Video
-- Audio
-- PDFs/documents
-- Generated images
-- Thumbnails and metadata
+Story composition outputs rendering-neutral chapters with:
 
-Raw personal content remains private by default. Public pages use explicit share manifests.
+- stable ID/type;
+- title/subtitle/metric/supporting copy;
+- privacy level;
+- rendering variant.
 
-### 4. Connector layer
-Adapters convert external sources into normalized events.
+ThreadTales, MyYear and PetLife can therefore reuse the browser export renderer without sharing their business logic.
 
-Examples:
-- WhatsApp export adapter
-- Apple/Google calendar adapter
-- Spotify adapter
-- Google Photos / photo import adapter
-- Stripe adapter
-- GitHub adapter
-- YouTube adapter
-- Instagram/TikTok adapter when API access permits
+### Print model
 
-### 5. Story intelligence layer
-Deterministic analysis first; AI enrichment second.
+ThreadTales keepsakes use a vendor-neutral `PrintBookSpec` with cover, trim size, bleed and pages. No print vendor is coupled to the product runtime.
 
-Deterministic:
-- counts
-- streaks
-- timelines
-- geography
-- milestones
-- recurrence
-- comparisons
-- growth
-
-Optional AI:
-- chapter names
-- summaries
-- inside-joke detection
-- memory captions
-- interview-to-story conversion
-- image generation
-- video narration
-
-### 6. World rendering engine
-A shared renderer supports multiple visual metaphors:
-- Timeline
-- Map
-- Universe
-- City
-- Family graph
-- Memory book
-- Cinematic recap
-
-Each product supplies a theme and mapping rules rather than building a new visualization engine from scratch.
-
-### 7. Share engine
-Every product can produce a privacy-safe public artifact.
+## ThreadTales engine
 
 ```text
-private world
-   -> user selects shareable sections
-   -> share manifest
-   -> public page /s/:slug
+File API
+ -> importer
+ -> Web Worker when supported
+ -> parser
+ -> deterministic analytics
+ -> ChatStats
+ -> Result V2
+ -> story mode composer
+ -> detailed analytics UI + chapter deck
+ -> optional share/export/cloud/payment/AI
 ```
 
-Never publish raw source data by default.
+Worker failure, returned error, timeout and browser-no-Worker fallback are independent paths. The deterministic analyzer remains the source of factual metrics; AI does not recalculate them.
 
-### 8. Billing and entitlements
-Shared checkout and entitlement model:
-- one-time unlock
-- annual plan
-- monthly subscription
-- storage tier
-- premium export
-- print/video add-on
+## Occasion system
 
-## Recommended Vercel-first stack
-
-### Frontend and application runtime
-- Next.js App Router
-- Vercel deployments/CDN/functions
-- React + TypeScript
-
-### Persistent data
-- Neon Postgres
-- Start with ordinary relational tables + JSONB for product-specific metadata
-- Add pgvector only when semantic search is actually needed
-
-### Media
-- Vercel Blob initially
-- Abstract behind a storage interface so R2/S3 can be introduced later if economics require it
-
-### Authentication
-- Auth.js or another hosted identity provider behind a small adapter
-- Do not make individual products depend directly on provider-specific APIs
-
-### Background sync
-- Vercel Cron for low-frequency connector sync
-- Queue/background provider only when workloads require it
-
-### AI
-- Server-side AI gateway wrapper
-- Product features call one internal interface, never provider SDKs directly
-
-## Repository structure
+Occasions are configuration, not app forks:
 
 ```text
-src/
-  app/
-    (marketing)/
-    products/
-      friendship/
-      lifemap/
-      relationship/
-      petlife/
-      babystory/
-      homestory/
-      myyear/
-      founderworld/
-      creatorworld/
-      familytree/
-    s/[slug]/
-    api/
-  products/
-    friendship/
-    lifemap/
-    relationship/
-    petlife/
-    babystory/
-    homestory/
-    myyear/
-    founderworld/
-    creatorworld/
-    familytree/
-  platform/
-    auth/
-    billing/
-    connectors/
-    events/
-    media/
-    sharing/
-    storage/
-    world-engine/
-    ai/
+friends
+couple
+siblings
+family
+group
+birthday
+anniversary
+long-distance
+graduation
+year-together
 ```
 
-We should keep this as a single Next.js application until deployment size, team boundaries, or scaling requirements justify splitting into a monorepo with multiple apps.
+Each mode controls chapter priority, copy, theme and SEO surface while reusing one analysis engine.
 
-## Build order
+## MyYear.World
 
-### Wave 1 — prove virality
-1. Friendship Wrapped / ThreadTales
-2. MyYear.World
-3. PetLife
+MyYear proves the shared story/event/export contracts on a product that does not use chat parsing.
 
-### Wave 2 — recurring emotional products
-4. Relationship Universe
-5. BabyStory
-6. FamilyTree Live
+Current MVP:
 
-### Wave 3 — connector-heavy products
-7. LifeMap
-8. FounderWorld
-9. CreatorWorld
+```text
+manual moment + date
++ optional caption/location
++ local photo selection metadata
+ -> validated year summary
+ -> month counts
+ -> deterministic consecutive-month eras
+ -> StoryEvent[]
+ -> story chapters
+ -> safe public manifest / browser export
+```
 
-### Wave 4 — niche durable archive
-10. HomeStory
+Photo bytes are not uploaded or persisted by this MVP.
 
-The key is not to build ten separate stacks. Build shared primitives once, then let every product become a different lens on the same event, media, graph, sharing, and rendering platform.
+## PetLife
+
+PetLife proves repeat-use local persistence and household authorization.
+
+Local mode:
+
+```text
+pet profile + memories/milestones
+ -> namespaced localStorage timeline
+ -> annual recap
+ -> story chapters/share/export
+```
+
+Cloud mode, when a dedicated Supabase project is configured:
+
+```text
+authenticated user
+ -> household
+ -> owner/member membership
+ -> pet
+ -> private memories
+ -> optional invite / shared contribution
+```
+
+Owners manage households/pets/members. Members with `can_add_memories=true` can add memories through a server endpoint that rechecks pet access and membership before RLS performs the final database authorization.
+
+## Identity and persistence
+
+Supabase is optional and used as one simple provider for:
+
+- magic-link authentication;
+- Postgres;
+- RLS;
+- future media storage if/when needed.
+
+The repository uses direct HTTP adapters rather than making every product depend on a large provider SDK. Browser requests use a publishable key + user access token. A server-only Supabase secret is reserved for narrowly elevated operations.
+
+The reference schema is in `supabase/schema.sql`. It is not automatically applied by application startup or CI.
+
+## Billing and entitlements
+
+Stripe integration is also a thin REST boundary:
+
+```text
+premium CTA
+ -> /api/checkout
+ -> Stripe-hosted Checkout
+ -> verified Session / webhook
+ -> server-signed entitlement
+ -> premium export + keepsake UI
+```
+
+The entitlement keeps the first purchase flow account-optional. A success URL alone never unlocks premium.
+
+## Optional AI
+
+Products call a replaceable `StoryEnrichmentProvider` contract. The initial provider uses OpenAI Responses API directly.
+
+AI is used for copy enrichment only. ThreadTales sends an allowlisted derived representation, not the raw import, unless a user explicitly pastes and consents to a short selected snippet.
+
+## Telemetry
+
+The telemetry layer is a tiny content-blind event contract. It exists to support Phase 11 decisions without adding a heavyweight analytics dependency. The browser sends only event/product/mode to an internal route. If no external HTTPS endpoint is configured, the internal route returns 202 and does not transmit further.
+
+## Deployment simplicity
+
+The intended deployment remains:
+
+```text
+pull request
+ -> Vercel preview
+ -> GitHub Actions
+ -> browser smoke verification
+ -> merge
+ -> Vercel production from main
+```
+
+No Docker image, Kubernetes cluster, Redis instance, queue, worker fleet, vector database or separate API deployment is required.
+
+## Product boundary rule
+
+Shared code is extracted only when multiple real products use it. Avoid giant `if (product === ...)` platform logic. Product-specific narrative, validation and retention behavior remains inside each product module.
+
+## What is deliberately not being built in this wave
+
+- Relationship Universe
+- LifeMap
+- BabyStory
+- FamilyTree Live
+- FounderWorld
+- CreatorWorld
+- new connector ecosystems
+- print fulfillment
+- a separate AI service
+
+Those decisions are governed by `PRODUCT_DECISION_FRAMEWORK.md` after actual usage data exists.
