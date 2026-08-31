@@ -25,7 +25,7 @@ rollback deployment: dpl_CFhP6YdbAz3JLiXETyhxY6woUAsu
 | Keepsake/browser PDF | yes | n/a | yes | LIVE |
 | MyYear local MVP | yes | n/a | yes | LIVE |
 | PetLife local MVP | yes | n/a | yes | LIVE |
-| Stripe premium | yes | no | no | BLOCKED |
+| Stripe premium | yes | live product/price created; Checkout write still unavailable | no | BLOCKED |
 | Premium entitlements | yes | partial dependency | no live payment verification | BLOCKED |
 | Supabase Auth | yes | no dedicated project | no | BLOCKED |
 | Story cloud save | yes | no dedicated project | no | BLOCKED |
@@ -44,7 +44,7 @@ The currently deployed production app remains usable for all browser-local funct
 - `/create` responds successfully;
 - `/products/myyear` responds successfully with the MyYear builder;
 - `/products/petlife` responds successfully with the PetLife MVP;
-- Vercel reports no runtime error clusters in the inspected 24-hour baseline;
+- Vercel reports no runtime error clusters in the inspected baseline;
 - `/api/ai/enrich` reports AI disabled rather than failing unexpectedly;
 - `/api/stories` and `/api/petlife` fail closed with explicit Supabase-not-configured responses.
 
@@ -54,7 +54,9 @@ Those 503 configuration responses are activation blockers, not unknown runtime f
 
 Connected Stripe account: Rahul Singh.
 
-Test-mode ThreadTales resource created:
+### Test mode
+
+Dedicated ThreadTales test resource:
 
 ```text
 product: prod_VAw1yBd5k9jxqB
@@ -62,20 +64,36 @@ price: price_1UAa91RB8OGmEnBwX3Z1GHqf
 amount: USD 9.00 one time
 ```
 
-Current blocker:
+### Live mode
 
-- connected Stripe scope permits the test product write but rejects Checkout Session writes;
-- live mode rejects product creation;
-- account re-consent with expanded write permissions is required.
+After Stripe re-consent, live `product_write` became available and the dedicated production resource was created successfully:
 
-After permission expansion:
+```text
+product: prod_VAwYeFKyjsvtW1
+price: price_1UAafNRB8OGmEnBw0jaCUXdm
+amount: USD 9.00 one time
+billing model: one-time payment
+```
 
-1. verify test Checkout Session creation;
-2. create/configure test webhook;
-3. exercise test payment flow;
-4. create/reuse isolated live ThreadTales product/price;
-5. configure live webhook;
-6. install Stripe values into Vercel Preview/Production without exposing them.
+No unrelated Stripe product was reused or modified.
+
+### Remaining Stripe blocker
+
+The refreshed connected Stripe key still does not have the permission required for `PostCheckoutSessions`. Stripe explicitly rejects Checkout Session write access even though product writes now work.
+
+Therefore the application cannot yet truthfully pass the required real test Checkout flow through its existing `/api/checkout` architecture.
+
+Do not replace the existing Checkout Session architecture with Payment Links or another billing flow merely to bypass this permission boundary.
+
+After Checkout Session permission is available:
+
+1. verify test Checkout Session creation using `price_1UAa91RB8OGmEnBwX3Z1GHqf`;
+2. create/configure test webhook only when its signing secret can immediately be installed into the target deployment;
+3. exercise the test payment + paid/complete recovery path;
+4. verify signed entitlement issuance and tamper rejection;
+5. configure production with live price `price_1UAafNRB8OGmEnBw0jaCUXdm`;
+6. create/configure the production webhook only when its signing secret can immediately be installed into Vercel;
+7. do not perform an unnecessary real customer charge.
 
 ## Supabase checkpoint
 
