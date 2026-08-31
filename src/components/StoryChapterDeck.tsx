@@ -5,6 +5,7 @@ import type { ChatStats, StoryMode } from "@/lib/types";
 import { composeThreadTale } from "@/platform/story/compose";
 import { downloadStoryCard, type StoryCardPreset } from "@/platform/export/story-card";
 import { getStoryModeConfig } from "@/platform/story/modes";
+import { CloudSavePanel } from "./CloudSavePanel";
 import { PremiumPanel } from "./PremiumPanel";
 
 export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: StoryMode }) {
@@ -50,5 +51,6 @@ export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: Stor
       </div>
     </section>
     <PremiumPanel stats={stats} mode={mode}/>
+    <CloudSavePanel stats={stats} mode={mode}/>
   </>;
 }
