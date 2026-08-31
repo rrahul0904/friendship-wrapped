@@ -24,8 +24,8 @@ function parseTime(timeRaw: string) {
 function parseDate(dateRaw: string, timeRaw: string, order: DateOrder) {
   const parts = dateRaw.split(/[\/.\-]/).map(Number);
   if (parts.length !== 3) return null;
-  let [a, b, year] = parts;
-  year = normalizeYear(year);
+  const [a, b, rawYear] = parts;
+  const year = normalizeYear(rawYear);
 
   let month: number;
   let day: number;
