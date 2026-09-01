@@ -21,3 +21,7 @@ export function requireSupabaseSecretConfig() {
 export function isSupabaseConfigured() {
   return Boolean(getSupabasePublicConfig());
 }
+
+export function isSupabaseServerConfigured() {
+  return Boolean(getSupabasePublicConfig() && process.env.SUPABASE_SECRET_KEY);
+}
