@@ -1,10 +1,10 @@
 # Production Activation Status
 
-Last updated: 2026-08-31
+Last updated: 2026-09-01
 
-This file is the resumable checkpoint for the `production-integrations-live` release wave. It records what is live, what is implemented but blocked by external account configuration, and the exact gates required before PR #7 can merge.
+This is the resumable checkpoint for the `production-integrations-live` activation wave. Do not merge PR #7 until the external-service gates below are genuinely active and verified.
 
-## Baseline
+## Repository baseline
 
 ```text
 repository: rrahul0904/friendship-wrapped
@@ -13,129 +13,176 @@ activation branch: production-integrations-live
 activation PR: #7
 production URL: https://threadtales-five.vercel.app
 rollback deployment: dpl_CFhP6YdbAz3JLiXETyhxY6woUAsu
+latest verified activation CI before this docs commit: 036904c62a7826ef063991d93f11faffb9357dc0 / run #134
 ```
 
-## Current capability matrix
+## What is already live
 
-| Capability | Implemented | Account configured | Production verified | State |
-| --- | ---: | ---: | ---: | --- |
-| ThreadTales local analyzer | yes | n/a | yes | LIVE |
-| Story/share/export | yes | n/a | yes | LIVE |
-| Occasion modes | yes | n/a | yes | LIVE |
-| Keepsake/browser PDF | yes | n/a | yes | LIVE |
-| MyYear local MVP | yes | n/a | yes | LIVE |
-| PetLife local MVP | yes | n/a | yes | LIVE |
-| Stripe premium | yes | live product/price created; Checkout write still unavailable | no | BLOCKED |
-| Premium entitlements | yes | partial dependency | no live payment verification | BLOCKED |
-| Supabase Auth | yes | no dedicated project | no | BLOCKED |
-| Story cloud save | yes | no dedicated project | no | BLOCKED |
-| MyYear cloud save | yes | no dedicated project | no | BLOCKED |
-| PetLife cloud sync | yes | no dedicated project | no | BLOCKED |
-| PetLife household collaboration | yes | no dedicated project | no | BLOCKED |
-| OpenAI enrichment | yes | no production API key | no | BLOCKED |
-| Privacy-safe telemetry | yes | no live sink | no | BLOCKED |
-| Automatic Vercel PR previews | application compatible | Git integration not producing branch preview | no | BLOCKED |
+The browser-local product surface remains healthy in production:
 
-## Verified production baseline
+- ThreadTales local analyzer and Web Worker processing;
+- deterministic analytics and story engine;
+- privacy-safe sharing/export;
+- occasion modes;
+- keepsake/browser PDF;
+- MyYear local MVP;
+- PetLife local MVP.
 
-The currently deployed production app remains usable for all browser-local functionality. Production checks confirm:
+The raw ThreadTales chat boundary remains browser-only.
 
-- `/` responds successfully;
-- `/create` responds successfully;
-- `/products/myyear` responds successfully with the MyYear builder;
-- `/products/petlife` responds successfully with the PetLife MVP;
-- Vercel reports no runtime error clusters in the inspected baseline;
-- `/api/ai/enrich` reports AI disabled rather than failing unexpectedly;
-- `/api/stories` and `/api/petlife` fail closed with explicit Supabase-not-configured responses.
+## Activation code completed in PR #7
 
-Those 503 configuration responses are activation blockers, not unknown runtime failures.
+- server-only Supabase configuration detection;
+- privacy-safe Supabase `product_events` telemetry sink;
+- server-write-only telemetry migration with browser roles revoked;
+- `/api/integrations/status` boolean-only integration status endpoint;
+- preview-only `/api/integrations/stripe-preview-smoke` route that refuses live Stripe keys and creates a real test Checkout Session when Preview secrets exist;
+- integration-status, telemetry, and Stripe Preview smoke regression tests;
+- `npm run verify:production` route verifier;
+- strict `REQUIRE_ALL_INTEGRATIONS=1 npm run verify:production` gate.
 
-## Stripe checkpoint
+The strict verifier now exercises remote integrations rather than trusting configuration booleans alone. In strict mode it must:
 
-Connected Stripe account: Rahul Singh.
+1. create a real Stripe Checkout Session (`cs_test_...` for Preview or live Stripe Checkout for Production);
+2. receive a real OpenAI enrichment response through `/api/ai/enrich` using safe derived-only input;
+3. receive `accepted: true, delivered: true` from `/api/telemetry`;
+4. still require Stripe webhook, Supabase public/server configuration, AI, and telemetry status gates.
 
-### Test mode
+## CI
 
-Dedicated ThreadTales test resource:
+Production CI run #134 on `036904c62a7826ef063991d93f11faffb9357dc0` passed:
+
+```text
+install            PASS
+lint               PASS
+typecheck          PASS
+unit tests         PASS
+production build   PASS
+client secret scan PASS
+Chromium install   PASS
+browser smoke      PASS
+```
+
+## Vercel
+
+Project:
+
+```text
+threadtales
+prj_nkUfVeRw1fEQaROoAOOi4SI6GwVh
+team_zmEezpOKGZy2sH5nqTfO44LD
+```
+
+Production remains healthy on `dpl_CFhP6YdbAz3JLiXETyhxY6woUAsu` and no recent runtime error clusters were found.
+
+A manual READY Preview exists (`dpl_2Nzmbe6KxUTDYjkVyvENR6FiRzV3`) whose build output contains the PR #7 activation routes, including `/api/integrations/status` and `/api/integrations/stripe-preview-smoke`.
+
+Automatic Git-based PR Preview deployment is still not proven. The connected Vercel surface can read projects/deployments/logs and create deployments, but it does not expose project environment-variable writes or Git-integration mutation. Official supported activation paths are Vercel Project Settings, `vercel env add`, or the Vercel Project Env REST/SDK API using authorized credentials.
+
+## Stripe
+
+Connected account: Rahul Singh.
+
+### Test resource
 
 ```text
 product: prod_VAw1yBd5k9jxqB
 price: price_1UAa91RB8OGmEnBwX3Z1GHqf
 amount: USD 9.00 one time
+active: yes
 ```
 
-### Live mode
-
-After Stripe re-consent, live `product_write` became available and the dedicated production resource was created successfully:
+### Live resource
 
 ```text
 product: prod_VAwYeFKyjsvtW1
 price: price_1UAafNRB8OGmEnBw0jaCUXdm
 amount: USD 9.00 one time
-billing model: one-time payment
+active: yes
 ```
 
-No unrelated Stripe product was reused or modified.
+The connected Stripe surface still exposes Checkout Session reads but not `POST /v1/checkout/sessions`. This is not an application architecture blocker: ThreadTales already calls Stripe REST directly from its server route using `STRIPE_SECRET_KEY`.
 
-### Remaining Stripe blocker
+No test Checkout Session has yet been created in the Stripe account, so test Checkout is not verified.
 
-The refreshed connected Stripe key still does not have the permission required for `PostCheckoutSessions`. Stripe explicitly rejects Checkout Session write access even though product writes now work.
+Do not switch to Payment Links merely to bypass this connector limitation.
 
-Therefore the application cannot yet truthfully pass the required real test Checkout flow through its existing `/api/checkout` architecture.
+### Required Vercel Stripe configuration
 
-Do not replace the existing Checkout Session architecture with Payment Links or another billing flow merely to bypass this permission boundary.
+Preview:
 
-After Checkout Session permission is available:
+```text
+STRIPE_SECRET_KEY=<test secret key>
+STRIPE_PRICE_THREADTALES_PREMIUM=price_1UAa91RB8OGmEnBwX3Z1GHqf
+ENTITLEMENT_SIGNING_SECRET=<unique strong preview secret>
+```
 
-1. verify test Checkout Session creation using `price_1UAa91RB8OGmEnBwX3Z1GHqf`;
-2. create/configure test webhook only when its signing secret can immediately be installed into the target deployment;
-3. exercise the test payment + paid/complete recovery path;
-4. verify signed entitlement issuance and tamper rejection;
-5. configure production with live price `price_1UAafNRB8OGmEnBw0jaCUXdm`;
-6. create/configure the production webhook only when its signing secret can immediately be installed into Vercel;
-7. do not perform an unnecessary real customer charge.
+Production:
 
-## Supabase checkpoint
+```text
+STRIPE_SECRET_KEY=<live secret key>
+STRIPE_PRICE_THREADTALES_PREMIUM=price_1UAafNRB8OGmEnBw0jaCUXdm
+ENTITLEMENT_SIGNING_SECRET=<unique strong production secret>
+NEXT_PUBLIC_SITE_URL=https://threadtales-five.vercel.app
+```
 
-Organization: `BruceWayne_RahulSingh`.
+Do not put these secrets in Git or chat.
 
-A dedicated `threadtales-story-platform` project was requested in `us-east-2` after Supabase reported a $0/month cost. Creation was rejected because the account has reached its two-active-free-project limit.
+Create Stripe test/live webhooks only after their `whsec_...` values can be installed immediately in the corresponding Vercel environment as `STRIPE_WEBHOOK_SECRET`.
 
-The two existing projects belong to other applications and were not modified.
+## Supabase
 
-Required resolution:
+Organization:
 
-- increase the Supabase active-project allowance / upgrade, or
-- independently retire an unrelated project with explicit owner approval.
+```text
+BruceWayne_RahulSingh
+organization id: lfpgusafjkdqnfygykiv
+```
 
-After a slot is available:
+Current active projects are unrelated applications and were not modified:
+
+```text
+mioyiocrgdghmajyzzic
+cikxzxxreryycfjumwsd (provenance-cleaner)
+```
+
+Supabase reports a new `threadtales-story-platform` project in `us-east-2` would cost `$0/month`. Project creation was retried on 2026-09-01 after a fresh cost confirmation and failed again because the account owner is at the two-active-free-project limit.
+
+Do not repurpose, pause, or delete either unrelated project without explicit owner approval.
+
+Smallest required account action: add one Supabase active-project slot (upgrade/increase capacity), or explicitly authorize pausing/deleting one unrelated project.
+
+After capacity exists:
 
 1. create `threadtales-story-platform`;
-2. apply repository migrations including `20260831_product_events.sql`;
-3. retrieve supported publishable/server keys;
-4. configure auth redirect URLs;
+2. apply all Story Platform migrations including `20260831_product_events.sql`;
+3. configure modern publishable/server keys;
+4. configure auth redirects;
 5. run security advisors;
-6. verify owner/member/unrelated-user RLS behavior;
-7. install dedicated project credentials into Vercel.
+6. verify Owner / permitted Member / denied Member / Unrelated User RLS behavior across SELECT/INSERT/UPDATE/DELETE;
+7. install Preview/Production Supabase variables in Vercel;
+8. verify ThreadTales, MyYear and PetLife persistence plus household collaboration and telemetry.
 
-## OpenAI checkpoint
+## OpenAI
 
-The application provider is ready and current:
+The existing provider uses the Responses API, `store: false`, a configurable model, derived ThreadTales facts, and share-safe chapters. Selected snippets require explicit consent and are capped by the current 600-character contract.
 
-- Responses API;
-- configurable model;
-- default `gpt-5.6-luna`;
-- `store: false`;
-- default ThreadTales payload uses allowlisted derived facts/share-safe chapters;
-- selected snippet requires explicit consent and length validation.
+Current blocker: no authorized `OPENAI_API_KEY` is available in the Vercel deployment environment through the connected tools.
 
-Current blocker: no authorized production `OPENAI_API_KEY` is available to the deployment environment.
+Required deployment values:
 
-After authorization, perform one real privacy-trap request through the deployed route before marking AI live.
+```text
+OPENAI_API_KEY=<server-only key>
+OPENAI_STORY_MODEL=gpt-5.6-luna
+```
 
-## Telemetry checkpoint
+Do not put the key in Git, chat, or `NEXT_PUBLIC_*`.
 
-The activation branch now supports a built-in Supabase sink. `product_events` is server-write-only and stores only:
+After configuration, the strict production verifier performs a real safe AI request before the release can pass.
+
+## Telemetry
+
+The PR #7 Supabase sink stores only:
 
 ```text
 event
@@ -144,47 +191,40 @@ recognized mode or null
 created_at
 ```
 
-No browser role receives table access.
+Browser roles are explicitly denied direct table privileges. Telemetry becomes live when the dedicated Supabase server configuration is installed, unless an approved HTTPS `TELEMETRY_ENDPOINT` is supplied instead.
 
-Telemetry becomes live automatically when the dedicated Supabase server configuration is installed, unless an explicit HTTPS `TELEMETRY_ENDPOINT` is configured instead.
+The strict verifier requires actual delivery (`delivered: true`).
 
-## Vercel checkpoint
+## Current release blockers
 
-Current production project/deployment remains healthy. The connected Vercel capability used in this release can inspect deployments/logs and deploy builds, but it does not expose project environment-variable writes or Git-integration mutation.
-
-No automatic activation-branch preview deployment was observed after PR #7 opened.
-
-Required resolution: grant/use a Vercel write-capable project-settings surface so Preview/Production environment variables and Git integration can be configured.
-
-## Strict production verifier
-
-The activation branch adds:
-
-```bash
-npm run verify:production
-```
-
-which checks public production routes and the safe integration status endpoint.
-
-The final release gate is:
-
-```bash
-REQUIRE_ALL_INTEGRATIONS=1 npm run verify:production
-```
-
-That strict command must fail while any of Stripe Checkout/webhook, Supabase public/server config, AI, or telemetry remains disabled.
+1. **Vercel environment write access** — required server secrets cannot be installed through the currently connected Vercel tool surface.
+2. **Supabase capacity** — dedicated project creation is rejected by the two-active-free-project limit.
+3. **OpenAI deployment credential** — `OPENAI_API_KEY` is not available through an authorized secret-management surface.
+4. **Stripe end-to-end test** — requires the Stripe test secret installed in Vercel Preview so the application's own `/api/checkout` path can create a real test Checkout Session.
+5. **Stripe webhook verification** — intentionally deferred until the generated webhook signing secret can be immediately stored in Vercel.
+6. **Automatic Vercel Git previews** — manual Preview works, but automatic PR Preview linkage is not yet verified/repaired.
 
 ## Merge rule
 
-PR #7 must remain open/draft until:
+PR #7 remains open/draft. Do not merge until all of the following are green:
 
-- repository CI is green;
-- dedicated Supabase integration + RLS isolation are live-verified;
-- Stripe test checkout passes and production resources are configured;
-- a real OpenAI request passes the privacy boundary;
-- telemetry delivery is confirmed;
-- automatic Vercel Preview deployment is restored;
-- Preview smoke/runtime checks pass;
-- strict production verifier can pass after merge/deployment.
+```text
+repository CI                PASS
+Vercel Preview               PASS
+Stripe test Checkout         PASS
+Stripe webhook               PASS
+entitlement                  PASS
+Stripe live configuration    PASS
+dedicated Supabase project   PASS
+RLS isolation                PASS
+Auth                         PASS
+story persistence            PASS
+MyYear persistence           PASS
+PetLife cloud/collaboration  PASS
+OpenAI real request          PASS
+telemetry delivery           PASS
+privacy audit                PASS
+strict integration verifier  PASS
+```
 
-Do not classify this release as `FULLY LIVE` before those gates are complete.
+Current classification: **NOT FULLY LIVE — EXTERNAL ACCOUNT/SECRET-MANAGEMENT GATES REMAIN**.
