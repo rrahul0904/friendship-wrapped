@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - production-all-phases
   pull_request:
 
 permissions:
@@ -13,7 +12,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
@@ -37,6 +36,9 @@ jobs:
 
       - name: Unit tests
         run: npm run test
+
+      - name: Large-history performance regression
+        run: npm run test:performance
 
       - name: Production build
         run: npm run build
