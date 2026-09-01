@@ -2,93 +2,17 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { whatsappTextImporter } from "@/platform/importers/whatsapp";
 import { analyzeThreadTaleInput, type ThreadTalesAnalysisInput } from "@/platform/threadtales/worker-client";
 
-const input: ThreadTalesAnalysisInput = {
-  name: "test.txt",
-  type: "text/plain",
-  text: [
-    "2/3/2026, 9:10 AM - Maya: hello",
-    "2/3/2026, 9:11 AM - Jordan: hi",
-    "2/3/2026, 9:12 AM - Maya: how are you?",
-    "2/3/2026, 9:13 AM - Jordan: doing well",
-    "2/3/2026, 9:14 AM - Maya: great",
-  ].join("\n"),
-};
-
+const input: ThreadTalesAnalysisInput = { name: "test.txt", type: "text/plain", text: ["2/3/2026, 9:10 AM - Maya: hello","2/3/2026, 9:11 AM - Jordan: hi","2/3/2026, 9:12 AM - Maya: how are you?","2/3/2026, 9:13 AM - Jordan: doing well","2/3/2026, 9:14 AM - Maya: great"].join("\n") };
 type WorkerMessage = { id: number; ok: boolean; payload?: Awaited<ReturnType<typeof whatsappTextImporter.parse>>; error?: string };
-
-class FakeWorker {
-  static instances: FakeWorker[] = [];
-  onmessage: ((event: MessageEvent<WorkerMessage>) => void) | null = null;
-  onerror: (() => void) | null = null;
-  terminate = vi.fn();
-  postMessage = vi.fn();
-
-  constructor() {
-    FakeWorker.instances.push(this);
-  }
-}
-
-function installWorker() {
-  FakeWorker.instances = [];
-  vi.stubGlobal("Worker", FakeWorker as unknown as typeof Worker);
-  vi.stubGlobal("window", { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout });
-}
-
-afterEach(() => {
-  vi.useRealTimers();
-  vi.unstubAllGlobals();
-  FakeWorker.instances = [];
-});
+class FakeWorker { static instances: FakeWorker[] = []; onmessage: ((event: MessageEvent<WorkerMessage>) => void) | null = null; onerror: (() => void) | null = null; terminate = vi.fn(); postMessage = vi.fn(); constructor() { FakeWorker.instances.push(this); } }
+function installWorker() { FakeWorker.instances = []; vi.stubGlobal("Worker", FakeWorker as unknown as typeof Worker); vi.stubGlobal("window", { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout }); }
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); FakeWorker.instances = []; });
 
 describe("ThreadTales worker client", () => {
-  it("falls back to the importer when Worker is unavailable", async () => {
-    vi.stubGlobal("Worker", undefined);
-    const result = await analyzeThreadTaleInput(input, "mdy");
-    expect(result.messages).toHaveLength(5);
-    expect(result.stats.totalMessages).toBe(5);
-  });
-
-  it("correlates a successful worker response and terminates the worker", async () => {
-    installWorker();
-    const expected = await whatsappTextImporter.parse(input, { dateOrder: "mdy" });
-    const promise = analyzeThreadTaleInput(input, "mdy");
-    const worker = FakeWorker.instances[0];
-    expect(worker).toBeDefined();
-    const request = worker.postMessage.mock.calls[0][0] as { id: number };
-    worker.onmessage?.({ data: { id: request.id + 1, ok: true, payload: expected } } as MessageEvent<WorkerMessage>);
-    expect(worker.terminate).not.toHaveBeenCalled();
-    worker.onmessage?.({ data: { id: request.id, ok: true, payload: expected } } as MessageEvent<WorkerMessage>);
-    await expect(promise).resolves.toEqual(expected);
-    expect(worker.terminate).toHaveBeenCalledTimes(1);
-  });
-
-  it("surfaces worker-declared errors and terminates", async () => {
-    installWorker();
-    const promise = analyzeThreadTaleInput(input, "mdy");
-    const worker = FakeWorker.instances[0];
-    const request = worker.postMessage.mock.calls[0][0] as { id: number };
-    worker.onmessage?.({ data: { id: request.id, ok: false, error: "Parser exploded safely." } } as MessageEvent<WorkerMessage>);
-    await expect(promise).rejects.toThrow("Parser exploded safely.");
-    expect(worker.terminate).toHaveBeenCalledTimes(1);
-  });
-
-  it("surfaces worker runtime failures and terminates", async () => {
-    installWorker();
-    const promise = analyzeThreadTaleInput(input, "mdy");
-    const worker = FakeWorker.instances[0];
-    worker.onerror?.();
-    await expect(promise).rejects.toThrow(/background analyzer failed/i);
-    expect(worker.terminate).toHaveBeenCalledTimes(1);
-  });
-
-  it("times out after sixty seconds and terminates", async () => {
-    vi.useFakeTimers();
-    installWorker();
-    const promise = analyzeThreadTaleInput(input, "mdy");
-    const rejection = expect(promise).rejects.toThrow(/taking unusually long/i);
-    const worker = FakeWorker.instances[0];
-    await vi.advanceTimersByTimeAsync(60_000);
-    await rejection;
-    expect(worker.terminate).toHaveBeenCalledTimes(1);
-  });
+  it("falls back to the importer when Worker is unavailable", async () => { vi.stubGlobal("Worker", undefined); const result = await analyzeThreadTaleInput(input, "mdy"); expect(result.messages).toHaveLength(5); expect(result.stats.totalMessages).toBe(5); });
+  it("correlates a successful worker response and terminates the worker", async () => { installWorker(); const expected = await whatsappTextImporter.parse(input, { dateOrder: "mdy" }); const promise = analyzeThreadTaleInput(input, "mdy"); const worker = FakeWorker.instances[0]; const request = worker.postMessage.mock.calls[0][0] as { id: number }; worker.onmessage?.({ data: { id: request.id + 1, ok: true, payload: expected } } as MessageEvent<WorkerMessage>); expect(worker.terminate).not.toHaveBeenCalled(); worker.onmessage?.({ data: { id: request.id, ok: true, payload: expected } } as MessageEvent<WorkerMessage>); await expect(promise).resolves.toEqual(expected); expect(worker.terminate).toHaveBeenCalledTimes(1); });
+  it("surfaces worker-declared errors and terminates", async () => { installWorker(); const promise = analyzeThreadTaleInput(input, "mdy"); const worker = FakeWorker.instances[0]; const request = worker.postMessage.mock.calls[0][0] as { id: number }; worker.onmessage?.({ data: { id: request.id, ok: false, error: "Parser exploded safely." } } as MessageEvent<WorkerMessage>); await expect(promise).rejects.toThrow("Parser exploded safely."); expect(worker.terminate).toHaveBeenCalledTimes(1); });
+  it("surfaces worker runtime failures and terminates", async () => { installWorker(); const promise = analyzeThreadTaleInput(input, "mdy"); const worker = FakeWorker.instances[0]; worker.onerror?.(); await expect(promise).rejects.toThrow(/background analyzer failed/i); expect(worker.terminate).toHaveBeenCalledTimes(1); });
+  it("times out after sixty seconds and terminates", async () => { vi.useFakeTimers(); installWorker(); const promise = analyzeThreadTaleInput(input, "mdy"); const rejection = expect(promise).rejects.toThrow(/taking unusually long/i); const worker = FakeWorker.instances[0]; await vi.advanceTimersByTimeAsync(60_000); await rejection; expect(worker.terminate).toHaveBeenCalledTimes(1); });
+  it("supports explicit cancellation and ignores work after abort", async () => { installWorker(); const controller = new AbortController(); const promise = analyzeThreadTaleInput(input, "mdy", controller.signal); const worker = FakeWorker.instances[0]; controller.abort(); await expect(promise).rejects.toMatchObject({ name: "AbortError" }); expect(worker.terminate).toHaveBeenCalledTimes(1); });
 });
