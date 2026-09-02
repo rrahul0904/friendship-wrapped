@@ -1,6 +1,41 @@
 # Production Activation Status
 
-Last verified: 2026-09-01
+Last verified: 2026-09-02
+
+## Memory Cinema release checkpoint
+
+The Memory Cinema release candidate has been consolidated and fully verified in GitHub. Its public deployment is pending an account-level Vercel deployment limit; the canonical production URL still serves the previous release. This document distinguishes release-code readiness from production-live status.
+
+```text
+repository: rrahul0904/friendship-wrapped
+original main: 64ba89862ee612225c2c676bc2e7fc8ddbed001d
+Memory Cinema verified head: 41ee3b06f33e224b03c0179dc9f944945db86d8b
+PR #9 merge commit / current main: a872c42c5f75a83a75628afd5b16848851a535b0
+PR #9 retargeted CI: PASS
+merged-main CI: PASS
+rollback production deployment: dpl_CFhP6YdbAz3JLiXETyhxY6woUAsu
+```
+
+GitHub reports PR #8 as `MERGED` because its complete history is contained in the merge to `main`; it must not be merged independently again. PR #9 is `MERGED`.
+
+### Implemented and verified
+
+- Memory Cinema OS is on `main`: private uploader, demo, WhatsApp and Telegram import, deterministic analysis, Wrapped story, chapter deck, themes, cinematic recap, 9:16/4:5/1:1 export, native-share fallback, premium-unavailable behavior, keepsake, MyYear, PetLife, and memorial opt-in.
+- The exact release candidate and the exact merged `main` passed clean-install CI: lint, typecheck, 141 unit tests, large-history performance regression, production build, client secret scan, and 36 Chromium browser tests.
+- Vercel project `threadtales` is now connected to `rrahul0904/friendship-wrapped`, with `main` set as the production branch and automatic Git deployments enabled.
+
+### Configured but not production-live
+
+- The Vercel project currently has no Preview or Production environment variables. Stripe, Supabase, OpenAI, and telemetry therefore remain deliberately disabled.
+- The production deployment attempt for `a872c42` was rejected by Vercel's free-plan daily deployment limit (`api-deployments-free-per-day`). No new deployment was created.
+- `https://threadtales-five.vercel.app` still resolves to rollback deployment `dpl_CFhP6YdbAz3JLiXETyhxY6woUAsu`; it is not the Memory Cinema build. In particular, `/api/integrations/status` returns 404 there while `/api/ai/enrich` truthfully reports `{ enabled: false, provider: null }`.
+
+### Required next activation sequence
+
+1. After the Vercel deployment limit resets, deploy current `main` (`a872c42` or its documentation-only descendant) to the existing `threadtales` project and verify the deployment's Git SHA.
+2. Run the production browser matrix and privacy/runtime/secret audits against the canonical URL. Only then classify the local family experience `FAMILY_SURPRISE_READY`.
+3. Provision a dedicated Supabase project without touching the unrelated projects; apply migrations, RLS, auth, persistence, household, and telemetry checks.
+4. Configure Vercel Preview/Production secrets directly, then exercise Stripe test checkout/payment/webhook/entitlement, live Checkout creation/webhook, OpenAI derived-only privacy tests, telemetry delivery, and the strict production verifier.
 
 This is the resumable checkpoint for the `production-integrations-live` activation wave. PR #7 must remain unmerged until the external integration gates are genuinely active and verified.
 

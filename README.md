@@ -8,6 +8,8 @@ This repository is one simple Next.js application containing three implemented p
 - **MyYear.World** — a deterministic year-in-review builder;
 - **PetLife** — a repeat-use pet memory timeline and annual recap.
 
+ThreadTales uses the **Memory Cinema OS** interface: a private memory-capsule import flow, paced processing/reveal sequence, Wrapped-style story chapters, cinematic recap, four visual themes, and share/keepsake tools. The free experience remains browser-local and does not require an account.
+
 The platform deliberately keeps optional infrastructure behind configuration gates so the free/local experiences remain deployable without accounts, a database, payments, AI, queues, or a separate backend.
 
 ## ThreadTales privacy promise
@@ -42,7 +44,9 @@ See [Privacy architecture](docs/PRIVACY_ARCHITECTURE.md) for every implemented b
 - monthly/yearly timeline and deterministic vibe scores
 - ten story modes including birthday and anniversary experiences
 - rendering-neutral chapter composer
-- 1080×1920 and 1080×1080 browser PNG exports
+- Midnight, Sunset, Paper, and Neon story themes
+- cinematic recap with accessible playback controls and reduced-motion support
+- 9:16, 4:5, and 1:1 browser PNG exports plus native-share fallback
 - privacy-safe public share payloads
 - optional one-time Stripe premium architecture
 - optional derived-story Supabase save
@@ -171,6 +175,8 @@ feature/production branch
 ```
 
 Do not promote an unverified feature branch over production. See [Deployment readiness](docs/DEPLOYMENT_READINESS.md).
+
+The current production-activation checkpoint, including whether the latest `main` commit has reached the public URL, is recorded in [Production activation status](docs/PRODUCTION_ACTIVATION_STATUS.md).
 
 ## Product roadmap status
 
