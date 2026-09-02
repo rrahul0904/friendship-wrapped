@@ -1,15 +1,20 @@
 import type { ChatStats, StoryMode } from "@/lib/types";
 
 export type StoryPrivacyLevel = "safe" | "sensitive";
+export type StoryThemeId = "midnight" | "sunset" | "paper" | "neon";
 export type StoryChapterType =
   | "cover"
   | "beginning"
   | "scale"
   | "balance"
+  | "conversation-starter"
+  | "reply-speed"
+  | "response-rhythm"
   | "streak"
   | "busiest-day"
   | "late-night"
   | "language"
+  | "vibe"
   | "timeline"
   | "closing";
 
@@ -30,9 +35,9 @@ export interface StoryModeConfig {
   eyebrow: string;
   ending: string;
   noun: string;
-  theme: string;
+  theme: StoryThemeId;
   chapterPriority: StoryChapterType[];
-  recommendedExports: Array<"vertical" | "square" | "print">;
+  recommendedExports: Array<"vertical" | "square" | "portrait" | "print">;
   seoTitle: string;
   seoDescription: string;
 }

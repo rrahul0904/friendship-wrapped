@@ -1,0 +1,5 @@
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+
+export const metadata = { title: "Terms | ThreadTales" };
+export default function TermsPage(){return <><Header/><main className="shell section mc-legal-page"><span className="mc-eyebrow dark"><i/> Terms</span><h1>Use ThreadTales with care for the people in your memories.</h1><p>ThreadTales is a personal storytelling tool. You are responsible for having the right to process and share the material you provide. The default local analysis is designed to keep raw chat exports in your browser; optional cloud, billing and AI capabilities have separate explicit actions.</p><h2>Sharing</h2><p>Public links and exported artifacts should only contain information you are comfortable sharing. Sensitive chapters remain local unless you deliberately include them.</p><h2>Availability</h2><p>Features that depend on external providers may be unavailable when those providers are not configured. The interface should state that honestly rather than simulate a working service.</p></main><Footer/></>}

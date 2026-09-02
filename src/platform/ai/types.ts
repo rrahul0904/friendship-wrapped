@@ -1,33 +1,27 @@
 import type { StoryChapter } from "@/platform/types";
 
+export const STORY_ENRICHMENT_INTENTS = ["recap", "sweeter", "funnier", "birthday-caption", "anniversary-caption", "shorter-share-caption"] as const;
+export type StoryEnrichmentIntent = (typeof STORY_ENRICHMENT_INTENTS)[number];
+
 export interface StoryEnrichmentInput {
   product: "threadtales" | "myyear" | "petlife";
   mode?: string;
+  intent?: StoryEnrichmentIntent;
   facts: Record<string, string | number | boolean | null>;
   chapters: Array<Pick<StoryChapter, "id" | "type" | "title" | "subtitle" | "metric" | "supportingText" | "renderVariant">>;
   selectedSnippet?: string;
   snippetConsent?: boolean;
 }
 
-export interface StoryEnrichmentResult {
-  text: string;
-  provider: string;
-  model: string;
-}
+export interface StoryEnrichmentResult { text: string; provider: string; model: string; }
+export interface StoryEnrichmentProvider { readonly name: string; enrich(input: StoryEnrichmentInput): Promise<StoryEnrichmentResult>; }
 
-export interface StoryEnrichmentProvider {
-  readonly name: string;
-  enrich(input: StoryEnrichmentInput): Promise<StoryEnrichmentResult>;
-}
-
-const THREADTALES_FACTS = new Set([
-  "totalMessages","totalWords","daysTogether","activeDays","longestStreak","longestSilenceDays","medianReplyMinutes","peakHour","favoriteWeekday","lateNightMessages","questionsAsked","laughSignals","heartSignals","mediaSignals","conversationBalance","yearCount",
-]);
-
+const THREADTALES_FACTS = new Set(["totalMessages","totalWords","daysTogether","activeDays","longestStreak","longestSilenceDays","medianReplyMinutes","peakHour","favoriteWeekday","lateNightMessages","questionsAsked","laughSignals","heartSignals","mediaSignals","conversationBalance","yearCount"]);
 const FORBIDDEN_KEYS = /raw|messageText|chatMessages|participants|topWords|sender|transcript/i;
 
 export function validateStoryEnrichmentInput(input: StoryEnrichmentInput) {
   if (!input || !["threadtales","myyear","petlife"].includes(input.product)) throw new Error("Unsupported AI enrichment product.");
+  if (input.intent !== undefined && !STORY_ENRICHMENT_INTENTS.includes(input.intent)) throw new Error("Unsupported AI enrichment intent.");
   const entries = Object.entries(input.facts ?? {});
   if (entries.length > 30) throw new Error("Too many enrichment facts.");
   for (const [key, value] of entries) {
