@@ -38,6 +38,8 @@ export function LandingHero() {
         <article className="mc-preview-card mc-preview-vibe"><small>Vibe check</small><strong>94</strong><span>chaotic softies</span></article>
         <article className="mc-preview-card mc-preview-hour"><small>Peak chaos</small><strong>1:14<span>am</span></strong><span>sleep was optional</span></article>
         <article className="mc-preview-card mc-preview-share"><span>↗</span><strong>Ready to share</strong><small>Derived story only</small></article>
+        <article className="mc-preview-chip mc-preview-split"><small>Message split</small><strong>54 / 46</strong></article>
+        <article className="mc-preview-chip mc-preview-laugh"><small>Laugh signals</small><strong>1,204</strong><span>😂</span></article>
       </div>
     </div>
   </section>;
