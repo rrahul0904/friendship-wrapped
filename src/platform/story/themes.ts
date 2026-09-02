@@ -6,17 +6,44 @@ export interface StoryTheme {
   premium: boolean;
   background: readonly [string, string, string];
   surface: string;
+  surfaceSoft: string;
   foreground: string;
   accent: string;
+  accent2: string;
+  heart: string;
   muted: string;
+  glow: string;
 }
 
 export const STORY_THEMES: Record<StoryThemeId, StoryTheme> = {
-  midnight: { id: "midnight", label: "Midnight", premium: false, background: ["#17122b", "#452f74", "#8a4f8e"], surface: "rgba(255,255,255,.09)", foreground: "#ffffff", accent: "#d7b8ff", muted: "rgba(255,255,255,.74)" },
-  sunset: { id: "sunset", label: "Sunset", premium: true, background: ["#3b173f", "#b43c68", "#f29a5b"], surface: "rgba(255,255,255,.12)", foreground: "#fffaf7", accent: "#ffd7a8", muted: "rgba(255,250,247,.76)" },
-  paper: { id: "paper", label: "Paper", premium: true, background: ["#f5efe4", "#eee1cb", "#d9c6a7"], surface: "rgba(255,255,255,.42)", foreground: "#2b241c", accent: "#7c5332", muted: "rgba(43,36,28,.68)" },
-  neon: { id: "neon", label: "Neon", premium: true, background: ["#07131d", "#0c3d49", "#46226f"], surface: "rgba(54,255,211,.09)", foreground: "#f7fffd", accent: "#36ffd3", muted: "rgba(247,255,253,.72)" },
+  midnight: {
+    id: "midnight", label: "Midnight", premium: false,
+    background: ["#080A12", "#111426", "#191D32"], surface: "#111426", surfaceSoft: "#191D32",
+    foreground: "#F8FAFC", muted: "#9CA3AF", accent: "#A78BFA", accent2: "#38BDF8", heart: "#FB7185", glow: "rgba(167, 139, 250, 0.35)",
+  },
+  sunset: {
+    id: "sunset", label: "Sunset", premium: true,
+    background: ["#FFF3E4", "#FFE4C7", "#FFFFFF"], surface: "#FFFFFF", surfaceSoft: "#FFE4C7",
+    foreground: "#2B160E", muted: "#8A5A44", accent: "#F97316", accent2: "#EC4899", heart: "#E11D48", glow: "rgba(249, 115, 22, 0.25)",
+  },
+  paper: {
+    id: "paper", label: "Paper", premium: true,
+    background: ["#F7F1E8", "#FFFDF8", "#EFE2CF"], surface: "#FFFDF8", surfaceSoft: "#EFE2CF",
+    foreground: "#241C15", muted: "#76695D", accent: "#8B5E34", accent2: "#31572C", heart: "#A44A3F", glow: "rgba(139, 94, 52, 0.18)",
+  },
+  neon: {
+    id: "neon", label: "Neon", premium: true,
+    background: ["#050008", "#14001E", "#210032"], surface: "#14001E", surfaceSoft: "#210032",
+    foreground: "#FFFFFF", muted: "#C084FC", accent: "#F0ABFC", accent2: "#22D3EE", heart: "#FB7185", glow: "rgba(240, 171, 252, 0.45)",
+  },
 };
 
-export function getStoryTheme(id: StoryThemeId | string | null | undefined) { if (id && Object.prototype.hasOwnProperty.call(STORY_THEMES, id)) return STORY_THEMES[id as StoryThemeId]; return STORY_THEMES.midnight; }
-export function storyThemeBackground(theme: StoryTheme) { const [start, middle, end] = theme.background; return `linear-gradient(135deg, ${start}, ${middle} 56%, ${end})`; }
+export function getStoryTheme(id: StoryThemeId | string | null | undefined) {
+  if (id && Object.prototype.hasOwnProperty.call(STORY_THEMES, id)) return STORY_THEMES[id as StoryThemeId];
+  return STORY_THEMES.midnight;
+}
+
+export function storyThemeBackground(theme: StoryTheme) {
+  const [start, middle, end] = theme.background;
+  return `linear-gradient(135deg, ${start}, ${middle} 56%, ${end})`;
+}
