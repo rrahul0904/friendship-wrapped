@@ -29,11 +29,11 @@ test.describe("Memory Cinema UI", () => {
     await expect(page.getByRole("button", { name: "Choose chat export" })).toBeVisible();
   });
 
-  test("product universe labels future concepts honestly", async ({ page }) => {
+  test("product universe exposes ten live products", async ({ page }) => {
     await page.goto("/products");
-    await expect(page.getByText("Live", { exact: true })).toBeVisible();
-    await expect(page.getByText("MVP", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("Future", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("Live", { exact: true })).toHaveCount(10);
+    await expect(page.getByText("MVP", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Future", { exact: true })).toHaveCount(0);
   });
 
   test("short MyYear and PetLife routes resolve to their actual MVP pages", async ({ page }) => {
