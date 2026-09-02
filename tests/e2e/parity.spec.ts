@@ -29,17 +29,18 @@ test.describe("reverse-engineering parity browser matrix", () => {
     expect(shareUrl).not.toContain("tiny dragon club forever");
   });
 
-  test("story parity controls expose 4:5, themes, safe story set and accessible cinematic playback", async ({ page }) => {
+  test("story parity controls expose 4:5, themes, premium story set and accessible cinematic playback", async ({ page }) => {
     await page.goto("/create?demo=1");
     const deck = page.getByRole("region", { name: /story chapters/i });
     await expect(deck.getByLabel("Export")).toContainText("4:5 portrait");
     await expect(deck.getByLabel("Theme")).toContainText("Midnight");
     await expect(deck.getByLabel("Theme")).toContainText("Sunset");
     await expect(deck.getByRole("button", { name: "Share card" })).toBeVisible();
-    await expect(deck.getByRole("button", { name: "Download safe story set" })).toBeVisible();
+    await expect(deck.getByRole("button", { name: "Premium full story set" })).toBeVisible();
     const player = page.getByRole("region", { name: "Cinematic story playback" });
     await expect(player.getByRole("button", { name: "Play" })).toBeVisible();
     await expect(player.getByRole("button", { name: "Replay" })).toBeVisible();
+    await expect(player.getByRole("button", { name: "Full screen" })).toBeVisible();
   });
 
   test("MyYear photo bytes remain session-local while previews enrich the experience", async ({ page }) => {
@@ -70,6 +71,6 @@ test.describe("reverse-engineering parity browser matrix", () => {
     expect(local).not.toContain("private-pet-photo.png");
     expect(local).not.toContain("blob:");
     await page.getByLabel(/Memorial mode/i).check();
-    await expect(page.getByRole("heading", { name: "Remembering Milo Photo Test" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Remembering Milo Photo Test" }).first()).toBeVisible();
   });
 });
