@@ -38,9 +38,9 @@ test.describe("reverse-engineering parity browser matrix", () => {
     await expect(deck.getByRole("button", { name: "Share card" })).toBeVisible();
     await expect(deck.getByRole("button", { name: "Premium full story set" })).toBeVisible();
     const player = page.getByRole("region", { name: "Cinematic story playback" });
-    await expect(player.getByRole("button", { name: "Play" })).toBeVisible();
-    await expect(player.getByRole("button", { name: "Replay" })).toBeVisible();
-    await expect(player.getByRole("button", { name: "Full screen" })).toBeVisible();
+    await expect(player.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+    await expect(player.getByRole("button", { name: "Replay", exact: true })).toBeVisible();
+    await expect(player.getByRole("button", { name: "Full screen", exact: true })).toBeVisible();
   });
 
   test("MyYear photo bytes remain session-local while previews enrich the experience", async ({ page }) => {
