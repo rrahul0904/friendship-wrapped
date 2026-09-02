@@ -29,7 +29,8 @@ export async function analyzeThreadTaleInput(input: ThreadTalesAnalysisInput, da
     signal?.addEventListener("abort", onAbort, { once: true });
     worker.onmessage = (event: MessageEvent<{ id: number; ok: boolean; payload?: ParseResult; error?: string }>) => {
       if (event.data.id !== id || settled) return;
-      if (event.data.ok && event.data.payload) finish(() => resolve(event.data.payload));
+      const payload = event.data.payload;
+      if (event.data.ok && payload) finish(() => resolve(payload));
       else finish(() => reject(new Error(event.data.error ?? "Could not analyze this chat.")));
     };
     worker.onerror = () => finish(() => reject(new Error("The background analyzer failed. Please retry this export.")));
