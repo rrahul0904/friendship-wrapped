@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+const responsiveWidths = [360, 375, 390, 430, 768, 820, 1024, 1180, 1280, 1440, 1728];
+
 test.describe("Memory Cinema UI", () => {
   test("landing communicates the private emotional story promise", async ({ page }) => {
     await page.goto("/");
@@ -41,5 +43,32 @@ test.describe("Memory Cinema UI", () => {
     await page.goto("/petlife");
     await expect(page).toHaveURL(/\/products\/petlife$/);
     await expect(page.getByLabel("Pet name")).toBeVisible();
+  });
+
+  test("required responsive matrix does not create horizontal page overflow", async ({ page }) => {
+    test.setTimeout(45_000);
+    for (const width of responsiveWidths) {
+      await page.setViewportSize({ width, height: width < 768 ? 844 : 1000 });
+      await page.goto("/");
+      const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
+      expect(overflow, `unexpected horizontal overflow at ${width}px`).toBeLessThanOrEqual(1);
+    }
+  });
+
+  test("story controls stay usable on phone and iPad layouts", async ({ page }) => {
+    for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/create?demo=1");
+      await expect(page.locator("#results")).toBeVisible();
+      const deck = page.getByRole("region", { name: /story chapters/i });
+      await expect(deck.getByRole("radiogroup", { name: "Story theme selector" })).toBeVisible();
+      await expect(deck.getByRole("radio", { name: "Midnight Free" })).toBeVisible();
+      await expect(deck.getByLabel("Story export controls")).toBeVisible();
+      await expect(deck.getByRole("button", { name: "9:16 Story" })).toBeVisible();
+      await expect(deck.getByRole("button", { name: "4:5 Portrait" })).toBeVisible();
+      await expect(deck.getByRole("button", { name: "1:1 Square" })).toBeVisible();
+      const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
+      expect(overflow, `story workspace overflow at ${viewport.width}px`).toBeLessThanOrEqual(1);
+    }
   });
 });

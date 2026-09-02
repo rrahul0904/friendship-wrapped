@@ -7,6 +7,7 @@ import "./memory-cinema.css";
 import "./memory-cinema-products.css";
 import "./memory-cinema-ai.css";
 import "./memory-cinema-finishing.css";
+import "./memory-cinema-os.css";
 
 export const metadata: Metadata = {
   title: "ThreadTales — Your chats, turned into a story",

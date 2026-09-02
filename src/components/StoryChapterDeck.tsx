@@ -6,12 +6,13 @@ import { validateBrowserPremiumEntitlement } from "@/platform/billing/client-ent
 import { downloadStoryCard, downloadStorySet, shareStoryCard, type StoryCardPreset } from "@/platform/export/story-card";
 import { composeThreadTale } from "@/platform/story/compose";
 import { getStoryModeConfig } from "@/platform/story/modes";
-import { getStoryTheme, STORY_THEMES, storyThemeBackground } from "@/platform/story/themes";
+import { getStoryTheme, storyThemeBackground } from "@/platform/story/themes";
 import { trackProductEvent } from "@/platform/telemetry/client";
 import type { StoryThemeId } from "@/platform/types";
 import { AIEnrichmentPanel } from "./AIEnrichmentPanel";
 import { CinematicStoryPlayer } from "./CinematicStoryPlayer";
 import { CloudSavePanel } from "./CloudSavePanel";
+import { ExportToolbar, StoryPrivacyBadge, ThemeSelector } from "./MemoryCinemaControls";
 import { PremiumPanel } from "./PremiumPanel";
 
 export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: StoryMode }) {
@@ -31,21 +32,34 @@ export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: Stor
 
   if (!chapter) return null;
 
-  async function exportCurrent() { setExporting(true); setMessage(""); try { await downloadStoryCard(chapter, preset, true, themeId); trackProductEvent("story_exported", "threadtales", mode); } finally { setExporting(false); } }
-  async function shareCurrent() { setExporting(true); setMessage(""); try { const shared = await shareStoryCard(chapter, preset, true, themeId); if (!shared) { await downloadStoryCard(chapter, preset, true, themeId); setMessage("Native file sharing is unavailable in this browser, so the PNG was downloaded instead."); } else trackProductEvent("share_created", "threadtales", mode); } finally { setExporting(false); } }
-  async function exportSafeStory() { if (!premiumUnlocked) { setMessage("Full-story image sets are a Premium artifact. Your complete analysis and individual standard-theme cards remain free."); return; } setExporting(true); setMessage(""); try { const count = await downloadStorySet(chapters, preset, true, themeId, false); trackProductEvent("story_exported", "threadtales", mode); setMessage(`Prepared ${count} share-safe story cards. Sensitive name/language chapters were excluded.`); } finally { setExporting(false); } }
-  function chooseTheme(next: StoryThemeId) { const requested = getStoryTheme(next); if (requested.premium && !premiumUnlocked) { setMessage(`${requested.label} is a Premium theme. Midnight remains available for free.`); return; } setThemeId(next); setMessage(""); }
+  async function exportCurrent() { setExporting(true); setMessage(""); try { await downloadStoryCard(chapter, preset, true, themeId); trackProductEvent("story_exported", "threadtales", mode); setMessage("Your chapter is ready as a social-native PNG."); } finally { setExporting(false); } }
+  async function shareCurrent() { setExporting(true); setMessage(""); try { const shared = await shareStoryCard(chapter, preset, true, themeId); if (!shared) { await downloadStoryCard(chapter, preset, true, themeId); setMessage("Native file sharing is unavailable in this browser, so the PNG was downloaded instead."); } else { trackProductEvent("share_created", "threadtales", mode); setMessage("Share sheet opened with this derived story artifact."); } } finally { setExporting(false); } }
+  async function exportSafeStory() { if (!premiumUnlocked) { setMessage("Full-story image sets are a Premium artifact. Your complete analysis and individual Midnight cards remain free."); return; } setExporting(true); setMessage(""); try { const count = await downloadStorySet(chapters, preset, true, themeId, false); trackProductEvent("story_exported", "threadtales", mode); setMessage(`Prepared ${count} share-safe story cards. Sensitive name/language chapters were excluded.`); } finally { setExporting(false); } }
+  function chooseTheme(next: StoryThemeId) { const requested = getStoryTheme(next); if (requested.premium && !premiumUnlocked) { setMessage(`${requested.label} is a Premium artifact theme. Midnight remains fully available for free.`); return; } setThemeId(next); setMessage(""); }
 
   return <>
-    <section className="story chapter-deck" aria-label={`${config.label} story chapters`}>
-      <div className="chapter-head"><div><span className="story-summary-kicker">Story engine</span><h3>{config.label} · {chapters.length} chapters</h3><p>The complete deterministic analysis remains free. Sensitive chapters stay local unless you explicitly choose to share them; premium unlocks additional artifact styling and full-story exports.</p></div><div className="chapter-export-controls">
-        <label>Theme <select className="select" value={themeId} onChange={(event) => chooseTheme(event.target.value as StoryThemeId)}>{Object.values(STORY_THEMES).map((item) => <option key={item.id} value={item.id} disabled={item.premium && !premiumUnlocked}>{item.label}{item.premium ? " · Premium" : ""}</option>)}</select></label>
-        <label>Export <select className="select" value={preset} onChange={(event) => setPreset(event.target.value as StoryCardPreset)}><option value="vertical">9:16 story</option><option value="portrait">4:5 portrait</option><option value="square">1:1 square</option></select></label>
-        <button className="btn btn-primary" onClick={() => void exportCurrent()} disabled={exporting}>{exporting ? "Rendering…" : "Download PNG"}</button><button className="btn btn-soft" onClick={() => void shareCurrent()} disabled={exporting}>Share card</button><button className="btn btn-soft" onClick={() => void exportSafeStory()} disabled={exporting}>{premiumUnlocked ? "Download full safe story set" : "Premium full story set"}</button>
-      </div></div>
-      <div className="chapter-preview" style={{ background: storyThemeBackground(theme), color: theme.foreground }}><small>{chapter.type.replace("-", " ")}</small><h3>{chapter.title}</h3>{chapter.metric !== undefined ? <strong>{chapter.metric}</strong> : null}{chapter.subtitle ? <span>{chapter.subtitle}</span> : null}{chapter.supportingText ? <p>{chapter.supportingText}</p> : null}<div className="chapter-privacy">{chapter.privacyLevel === "safe" ? "Share-safe derived fact" : "Sensitive · local unless selected"}</div></div>
-      <div className="chapter-nav" aria-label="Story chapter navigation"><button className="btn btn-soft" onClick={() => setActive((value) => Math.max(0, value - 1))} disabled={active === 0}>← Previous</button><div className="chapter-dots">{chapters.map((item, index) => <button key={item.id} className={index === active ? "active" : ""} aria-label={`Open chapter ${index + 1}`} onClick={() => setActive(index)} />)}</div><button className="btn btn-soft" onClick={() => setActive((value) => Math.min(chapters.length - 1, value + 1))} disabled={active === chapters.length - 1}>Next →</button></div>
-      {message ? <div className="notice" role="status">{message}</div> : null}
+    <section className="story chapter-deck mc-story-deck" aria-label={`${config.label} story chapters`}>
+      <div className="chapter-head mc-story-deck-head"><div><span className="story-summary-kicker">Story engine</span><h3>{config.label} · {chapters.length} chapters</h3><p>The complete deterministic analysis remains free. Story themes change the artifact—not the facts—and sensitive chapters stay local unless you explicitly choose otherwise.</p></div></div>
+      <div className="mc-story-workbench">
+        <div className="mc-story-canvas">
+          <div className="chapter-preview" data-preset={preset} style={{ background: storyThemeBackground(theme), color: theme.foreground }}>
+            <small>{chapter.type.replace("-", " ")}</small>
+            <h3>{chapter.title}</h3>
+            {chapter.metric !== undefined ? <strong>{chapter.metric}</strong> : null}
+            {chapter.subtitle ? <span>{chapter.subtitle}</span> : null}
+            {chapter.supportingText ? <p>{chapter.supportingText}</p> : null}
+            <StoryPrivacyBadge sensitive={chapter.privacyLevel !== "safe"} />
+          </div>
+          <div className="chapter-nav" aria-label="Story chapter navigation">
+            <button className="btn btn-soft" onClick={() => setActive((value) => Math.max(0, value - 1))} disabled={active === 0}>← Previous</button>
+            <div className="chapter-dots" aria-label={`Chapter ${active + 1} of ${chapters.length}`}>{chapters.map((item, index) => <button key={item.id} className={index === active ? "active" : ""} aria-label={`Open chapter ${index + 1}`} aria-current={index === active ? "step" : undefined} onClick={() => setActive(index)} />)}</div>
+            <button className="btn btn-soft" onClick={() => setActive((value) => Math.min(chapters.length - 1, value + 1))} disabled={active === chapters.length - 1}>Next →</button>
+          </div>
+        </div>
+        <ThemeSelector value={themeId} premiumUnlocked={premiumUnlocked} onChange={chooseTheme} />
+      </div>
+      <ExportToolbar preset={preset} exporting={exporting} premiumUnlocked={premiumUnlocked} onPresetChange={setPreset} onDownload={() => void exportCurrent()} onShare={() => void shareCurrent()} onExportSet={() => void exportSafeStory()} />
+      {message ? <div className="notice mc-export-status" role="status" aria-live="polite">{message}</div> : null}
     </section>
     <CinematicStoryPlayer chapters={chapters} themeId={themeId}/><PremiumPanel stats={stats} mode={mode}/><CloudSavePanel stats={stats} mode={mode}/><AIEnrichmentPanel stats={stats} mode={mode}/>
   </>;
