@@ -5,6 +5,7 @@ import "./platform.css";
 import "./parity.css";
 import "./memory-cinema.css";
 import "./memory-cinema-products.css";
+import "./memory-cinema-ai.css";
 
 export const metadata: Metadata = {
   title: "ThreadTales — Your chats, turned into a story",
