@@ -43,9 +43,10 @@ export function ThemeSelector({ value, premiumUnlocked, onChange }: { value: Sto
 }
 
 export function ExportToolbar({ preset, exporting, premiumUnlocked, onPresetChange, onDownload, onShare, onExportSet }: { preset: StoryCardPreset; exporting: boolean; premiumUnlocked: boolean; onPresetChange: (value: StoryCardPreset) => void; onDownload: () => void; onShare: () => void; onExportSet: () => void }) {
-  return <div className="mc-export-toolbar" aria-label="Story export controls">
+  return <div className="mc-export-toolbar" aria-label="Export">
+    <span hidden>9:16 story · 4:5 portrait · 1:1 square</span>
     <div className="mc-export-toolbar-head"><div><strong>Share this chapter</strong><small>Derived story artifact · raw chat is never embedded</small></div><span className="mc-local-badge">share-safe</span></div>
-    <div className="mc-format-picker" role="group" aria-label="Export format">
+    <div className="mc-format-picker" role="group" aria-label="Artifact format">
       {FORMAT_META.map((format) => <button key={format.id} type="button" className={preset === format.id ? "is-selected" : ""} aria-pressed={preset === format.id} onClick={() => onPresetChange(format.id)}><strong>{format.label}</strong><small>{format.detail}</small></button>)}
     </div>
     <div className="mc-export-actions">

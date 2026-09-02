@@ -63,7 +63,7 @@ test.describe("Memory Cinema UI", () => {
       const deck = page.getByRole("region", { name: /story chapters/i });
       await expect(deck.getByRole("radiogroup", { name: "Story theme selector" })).toBeVisible();
       await expect(deck.getByRole("radio", { name: "Midnight Free" })).toBeVisible();
-      await expect(deck.getByLabel("Story export controls")).toBeVisible();
+      await expect(deck.getByLabel("Export", { exact: true })).toBeVisible();
       await expect(deck.getByRole("button", { name: "9:16 Story" })).toBeVisible();
       await expect(deck.getByRole("button", { name: "4:5 Portrait" })).toBeVisible();
       await expect(deck.getByRole("button", { name: "1:1 Square" })).toBeVisible();
