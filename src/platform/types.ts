@@ -78,12 +78,15 @@ export interface ThreadTaleShareManifest {
 
 export interface StoryEvent {
   id: string;
-  product: "threadtales" | "myyear" | "petlife";
+  product: "threadtales" | "myyear" | "petlife" | "relationship" | "lifemap" | "babystory" | "homestory" | "familytree" | "founderworld" | "creatorworld";
+  /** Optional for legacy local artifacts; required for a persisted multi-world record. */
+  worldId?: string;
   occurredAt: string;
   type: string;
   title: string;
   description?: string;
   location?: string;
+  people?: string[];
   media?: Array<{ id: string; name: string; url?: string; mimeType?: string }>;
   metadata?: Record<string, string | number | boolean | null>;
 }

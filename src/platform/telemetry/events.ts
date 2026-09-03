@@ -18,7 +18,7 @@ export const PRODUCT_EVENTS = [
 ] as const;
 
 export type ProductEventName = typeof PRODUCT_EVENTS[number];
-export type ProductEventProduct = "threadtales" | "myyear" | "petlife";
+export type ProductEventProduct = "threadtales" | "myyear" | "petlife" | "relationship" | "lifemap" | "babystory" | "homestory" | "familytree" | "founderworld" | "creatorworld";
 
 export interface ProductEvent {
   event: ProductEventName;
@@ -33,7 +33,7 @@ export function sanitizeProductEvent(value: unknown): ProductEvent {
   if (!value || typeof value !== "object") throw new Error("Invalid product event.");
   const input = value as Record<string, unknown>;
   if (typeof input.event !== "string" || !EVENT_SET.has(input.event)) throw new Error("Unsupported product event.");
-  if (typeof input.product !== "string" || !["threadtales","myyear","petlife"].includes(input.product)) throw new Error("Unsupported event product.");
+  if (typeof input.product !== "string" || !["threadtales","myyear","petlife","relationship","lifemap","babystory","homestory","familytree","founderworld","creatorworld"].includes(input.product)) throw new Error("Unsupported event product.");
   const mode = typeof input.mode === "string" && ALLOWED_MODES.has(input.mode) ? input.mode : undefined;
   return { event: input.event as ProductEventName, product: input.product as ProductEventProduct, ...(mode ? { mode } : {}) };
 }
