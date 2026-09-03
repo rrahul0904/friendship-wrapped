@@ -45,3 +45,5 @@ alter table public.product_events enable row level security;
 
 -- Deliberately no anon/authenticated policies: product telemetry is server-write-only.
 revoke all on table public.product_events from anon, authenticated;
+drop policy if exists "product_events_service_role_only" on public.product_events;
+create policy "product_events_service_role_only" on public.product_events for all to service_role using (true) with check (true);
