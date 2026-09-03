@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isSupabaseServerConfigured } from "@/platform/persistence/config";
 import { supabaseAdminRest } from "@/platform/persistence/supabase-rest";
 import { sanitizeProductEvent } from "@/platform/telemetry/events";
+import { deliverToPulseAtlas } from "@/platform/telemetry/pulseatlas";
 
 export const runtime = "nodejs";
 
@@ -17,17 +18,16 @@ async function deliverToSupabase(event: ReturnType<typeof sanitizeProductEvent>)
   await supabaseAdminRest<null>("product_events", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      event: event.event,
-      product: event.product,
-      mode: event.mode ?? null,
-    }),
+    body: JSON.stringify({ event: event.event, product: event.product, mode: event.mode ?? null }),
   });
 }
 
 export async function POST(request: Request) {
   try {
     const event = sanitizeProductEvent(await request.json());
+    // Independent fail-open fanout. The mapper accepts only the already-sanitized
+    // content-blind event shape; raw chat/story/photo content cannot enter this call.
+    const pulseAtlasDelivered = await deliverToPulseAtlas(event);
     const endpoint = telemetryEndpoint();
 
     if (endpoint) {
@@ -41,15 +41,15 @@ export async function POST(request: Request) {
         cache: "no-store",
       });
       if (!response.ok) throw new Error("Telemetry destination rejected the event.");
-      return NextResponse.json({ accepted: true, delivered: true }, { status: 202 });
+      return NextResponse.json({ accepted: true, delivered: true, pulseAtlasDelivered }, { status: 202 });
     }
 
     if (isSupabaseServerConfigured()) {
       await deliverToSupabase(event);
-      return NextResponse.json({ accepted: true, delivered: true }, { status: 202 });
+      return NextResponse.json({ accepted: true, delivered: true, pulseAtlasDelivered }, { status: 202 });
     }
 
-    return NextResponse.json({ accepted: true, delivered: false }, { status: 202 });
+    return NextResponse.json({ accepted: true, delivered: pulseAtlasDelivered, pulseAtlasDelivered }, { status: 202 });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Invalid telemetry event.";
     return NextResponse.json({ error: message }, { status: /invalid|unsupported/i.test(message) ? 400 : 502 });
