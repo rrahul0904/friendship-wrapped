@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isSupabaseServerConfigured } from "@/platform/persistence/config";
 import { supabaseAdminRest } from "@/platform/persistence/supabase-rest";
 import { sanitizeProductEvent } from "@/platform/telemetry/events";
+import { deliverToPulseAtlas } from "@/platform/telemetry/pulseatlas";
 
 export const runtime = "nodejs";
 
@@ -17,17 +18,16 @@ async function deliverToSupabase(event: ReturnType<typeof sanitizeProductEvent>)
   await supabaseAdminRest<null>("product_events", {
     method: "POST",
     headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({
-      event: event.event,
-      product: event.product,
-      mode: event.mode ?? null,
-    }),
+    body: JSON.stringify({ event: event.event, product: event.product, mode: event.mode ?? null }),
   });
 }
 
 export async function POST(request: Request) {
   try {
     const event = sanitizeProductEvent(await request.json());
+    // Independent fail-open fanout. PulseAtlas is deliberately invisible to the
+    // existing telemetry API contract, and only receives the sanitized event.
+    void deliverToPulseAtlas(event);
     const endpoint = telemetryEndpoint();
 
     if (endpoint) {
