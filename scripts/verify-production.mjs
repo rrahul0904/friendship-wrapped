@@ -1,165 +1,19 @@
-const base = (process.env.PRODUCTION_URL || "https://threadtales-five.vercel.app").replace(/\/$/, "");
-const requireAllIntegrations = process.env.REQUIRE_ALL_INTEGRATIONS === "1";
-const expectedStripeMode = process.env.EXPECTED_STRIPE_MODE || (base === "https://threadtales-five.vercel.app" ? "live" : "test");
+const base=(process.env.PRODUCTION_URL||"https://threadtales-five.vercel.app").replace(/\/$/,"");
+const requireAll=process.env.REQUIRE_ALL_INTEGRATIONS==="1";
+const expectedStripeMode=process.env.EXPECTED_STRIPE_MODE||(base==="https://threadtales-five.vercel.app"?"live":"test");
+const expectedCommit=process.env.EXPECTED_COMMIT_SHA||"";
 
-const publicRoutes = [
-  "/",
-  "/create",
-  "/create?demo=1",
-  "/products",
-  "/products/friendship",
-  "/products/myyear",
-  "/products/petlife",
-  "/occasions",
-  "/occasions/birthday",
-  "/occasions/anniversary",
-  "/occasions/long-distance",
-  "/occasions/graduation",
-  "/occasions/year-together",
-  "/privacy",
-  "/account",
-  "/share",
-  "/premium/success",
-  "/robots.txt",
-  "/sitemap.xml",
-];
+const publicRoutes=["/","/create","/products","/myyear","/petlife","/relationship","/lifemap","/babystory","/homestory","/familytree","/founderworld","/creatorworld","/register","/login","/forgot-password","/privacy","/terms","/contact"];
+const protectedRoutes=["/app","/albums","/billing","/settings","/admin","/admin/users","/admin/products","/admin/subscriptions","/admin/revenue","/admin/finops","/admin/integrations","/admin/audit"];
 
-async function checkRoute(path) {
-  const response = await fetch(`${base}${path}`, { redirect: "follow" });
-  if (!response.ok) throw new Error(`${path} returned HTTP ${response.status}`);
-  return { path, status: response.status };
-}
+async function checkPublic(path){const r=await fetch(base+path,{redirect:"follow"});if(!r.ok)throw new Error(path+" returned HTTP "+r.status);return{path,status:r.status};}
+async function checkProtected(path){const r=await fetch(base+path,{redirect:"manual"});if([301,302,303,307,308].includes(r.status)){const location=r.headers.get("location")||"";if(!location.includes("/login"))throw new Error(path+" redirected somewhere other than login.");return{path,status:r.status,protected:true};}if(r.status===401||r.status===403)return{path,status:r.status,protected:true};throw new Error(path+" did not enforce authentication (HTTP "+r.status+").");}
+async function version(){const r=await fetch(base+"/api/version",{cache:"no-store"});if(!r.ok)throw new Error("/api/version returned HTTP "+r.status);const v=await r.json();if(expectedCommit&&v.commit!==expectedCommit)throw new Error("Production commit mismatch: expected "+expectedCommit+", got "+v.commit);return v;}
+async function integrations(){const r=await fetch(base+"/api/integrations/status",{cache:"no-store"});if(!r.ok)throw new Error("integration status returned HTTP "+r.status);const s=await r.json();if(requireAll){const missing=[];if(!s.stripe?.checkout)missing.push("stripe.checkout");if(!s.stripe?.webhook)missing.push("stripe.webhook");if(!s.stripe?.subscriptions)missing.push("stripe.subscriptions");if(!s.supabase?.public)missing.push("supabase.public");if(!s.supabase?.server)missing.push("supabase.server");if(!s.supabase?.auth)missing.push("supabase.auth");if(!s.supabase?.storage)missing.push("supabase.storage");if(!s.ai?.enabled)missing.push("ai.enabled");if(!s.telemetry?.enabled)missing.push("telemetry.enabled");if(missing.length)throw new Error("Production integrations are not fully active: "+missing.join(", "));}return s;}
+async function stripe(){if(expectedStripeMode==="test"){const r=await fetch(base+"/api/integrations/stripe-preview-smoke",{cache:"no-store"}),d=await r.json().catch(()=>({}));if(!r.ok||!d.ok||!d.hasCheckoutUrl||!/^cs_test_/.test(String(d.sessionId||"")))throw new Error("Stripe TEST smoke did not create a real Checkout session.");return{environment:"test",sessionId:d.sessionId};}if(expectedStripeMode!=="live")throw new Error("Unsupported EXPECTED_STRIPE_MODE.");const r=await fetch(base+"/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({mode:"friends"}),cache:"no-store"}),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error("Production Checkout smoke failed: "+(d.error||r.status));const u=new URL(String(d.url||""));if(u.hostname!=="checkout.stripe.com"||!u.href.includes("cs_live_"))throw new Error("Production Checkout did not create a live Stripe session.");return{environment:"live",checkoutCreated:true};}
+async function ai(){const payload={product:"threadtales",mode:"friends",facts:{totalMessages:42,totalWords:420,daysTogether:365,activeDays:120,longestStreak:8,longestSilenceDays:5,medianReplyMinutes:14,peakHour:20,favoriteWeekday:"Friday",lateNightMessages:7,questionsAsked:21,laughSignals:16,heartSignals:9,mediaSignals:3,conversationBalance:91,yearCount:2},chapters:[{id:"scale",type:"scale",title:"A year in messages",metric:42,renderVariant:"metric"}]};const r=await fetch(base+"/api/ai/enrich",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),cache:"no-store"}),d=await r.json().catch(()=>({}));if(!r.ok||typeof d.text!=="string"||d.provider!=="openai")throw new Error("AI enrichment smoke failed.");return{provider:d.provider,model:d.model};}
+async function telemetry(){const r=await fetch(base+"/api/telemetry",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({event:"analysis_started",product:"threadtales",mode:"friends"}),cache:"no-store"}),d=await r.json().catch(()=>({}));if(r.status!==202||d.accepted!==true||d.delivered!==true)throw new Error("Telemetry smoke was not delivered.");return{delivered:true};}
 
-async function checkIntegrationStatus() {
-  const response = await fetch(`${base}/api/integrations/status`, { cache: "no-store" });
-  if (!response.ok) throw new Error(`/api/integrations/status returned HTTP ${response.status}`);
-  const status = await response.json();
-  const expectedShape = status && typeof status === "object" && status.stripe && status.supabase && status.ai && status.telemetry;
-  if (!expectedShape) throw new Error("Integration status response has an unexpected shape.");
-
-  if (requireAllIntegrations) {
-    const missing = [];
-    if (!status.stripe.checkout) missing.push("stripe.checkout");
-    if (!status.stripe.webhook) missing.push("stripe.webhook");
-    if (!status.supabase.public) missing.push("supabase.public");
-    if (!status.supabase.server) missing.push("supabase.server");
-    if (!status.ai.enabled) missing.push("ai.enabled");
-    if (!status.telemetry.enabled) missing.push("telemetry.enabled");
-    if (missing.length) throw new Error(`Production integrations are not fully active: ${missing.join(", ")}`);
-  }
-
-  return status;
-}
-
-async function checkStripeRoundTrip() {
-  if (expectedStripeMode === "test") {
-    const response = await fetch(`${base}/api/integrations/stripe-preview-smoke`, { cache: "no-store" });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(`Stripe Preview smoke returned HTTP ${response.status}: ${data.error ?? "unknown error"}`);
-    if (!data.ok || !data.hasCheckoutUrl || !/^cs_test_[A-Za-z0-9_]+$/.test(String(data.sessionId ?? ""))) {
-      throw new Error("Stripe Preview smoke did not create a real test Checkout Session.");
-    }
-    return { environment: "test", sessionId: data.sessionId, checkoutCreated: true };
-  }
-
-  if (expectedStripeMode !== "live") throw new Error(`Unsupported EXPECTED_STRIPE_MODE: ${expectedStripeMode}`);
-  const response = await fetch(`${base}/api/checkout`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode: "friends" }),
-    cache: "no-store",
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`Production Checkout smoke returned HTTP ${response.status}: ${data.error ?? "unknown error"}`);
-  let checkoutUrl;
-  try {
-    checkoutUrl = new URL(String(data.url ?? ""));
-  } catch {
-    throw new Error("Production Checkout smoke did not return a valid Checkout URL.");
-  }
-  if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "checkout.stripe.com") {
-    throw new Error("Production Checkout smoke did not return a Stripe-hosted Checkout URL.");
-  }
-  if (!checkoutUrl.href.includes("cs_live_")) {
-    throw new Error("Production Checkout smoke did not create a live-mode Checkout Session.");
-  }
-  return { environment: "live", checkoutCreated: true, host: checkoutUrl.hostname };
-}
-
-async function checkAiRoundTrip() {
-  const privateMarkers = ["SECRET_RAW_CHAT_ALPHA", "SECRET_RAW_CHAT_BETA", "PRIVATE_UNSHARED_SENTENCE"];
-  const payload = {
-    product: "threadtales",
-    mode: "friends",
-    facts: {
-      totalMessages: 42,
-      totalWords: 420,
-      daysTogether: 365,
-      activeDays: 120,
-      longestStreak: 8,
-      longestSilenceDays: 5,
-      medianReplyMinutes: 14,
-      peakHour: 20,
-      favoriteWeekday: "Friday",
-      lateNightMessages: 7,
-      questionsAsked: 21,
-      laughSignals: 16,
-      heartSignals: 9,
-      mediaSignals: 3,
-      conversationBalance: 91,
-      yearCount: 2,
-    },
-    chapters: [
-      { id: "scale", type: "scale", title: "A year in messages", metric: 42, renderVariant: "metric" },
-    ],
-  };
-  const serialized = JSON.stringify(payload);
-  for (const marker of privateMarkers) {
-    if (serialized.includes(marker)) throw new Error(`AI verification payload unexpectedly contains ${marker}.`);
-  }
-
-  const response = await fetch(`${base}/api/ai/enrich`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: serialized,
-    cache: "no-store",
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(`AI enrichment smoke returned HTTP ${response.status}: ${data.error ?? "unknown error"}`);
-  if (typeof data.text !== "string" || !data.text.trim() || data.provider !== "openai" || typeof data.model !== "string") {
-    throw new Error("AI enrichment smoke returned an unexpected provider response.");
-  }
-  return { provider: data.provider, model: data.model, responded: true };
-}
-
-async function checkTelemetryRoundTrip() {
-  const response = await fetch(`${base}/api/telemetry`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ event: "analysis_started", product: "threadtales", mode: "friends" }),
-    cache: "no-store",
-  });
-  const data = await response.json().catch(() => ({}));
-  if (response.status !== 202 || data.accepted !== true || data.delivered !== true) {
-    throw new Error(`Telemetry smoke was not delivered (HTTP ${response.status}).`);
-  }
-  return { delivered: true };
-}
-
-const results = [];
-for (const route of publicRoutes) results.push(await checkRoute(route));
-const integrations = await checkIntegrationStatus();
-const remote = requireAllIntegrations ? {
-  stripe: await checkStripeRoundTrip(),
-  ai: await checkAiRoundTrip(),
-  telemetry: await checkTelemetryRoundTrip(),
-} : null;
-
-console.log(JSON.stringify({
-  productionUrl: base,
-  checkedAt: new Date().toISOString(),
-  routes: results,
-  integrations,
-  remote,
-  fullyLiveGate: requireAllIntegrations ? "PASS" : "NOT_REQUIRED",
-}, null, 2));
+const routes=[];for(const p of publicRoutes)routes.push(await checkPublic(p));for(const p of protectedRoutes)routes.push(await checkProtected(p));
+const build=await version();const status=await integrations();const remote=requireAll?{stripe:await stripe(),ai:await ai(),telemetry:await telemetry()}:null;
+console.log(JSON.stringify({productionUrl:base,checkedAt:new Date().toISOString(),build,routes,integrations:status,remote,fullyLiveGate:requireAll?"PASS":"NOT_REQUIRED"},null,2));
