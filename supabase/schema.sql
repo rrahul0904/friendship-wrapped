@@ -134,16 +134,23 @@ create table if not exists public.household_invites (
 );
 
 create index if not exists story_runs_user_created_idx on public.story_runs(user_id, created_at desc);
+create index if not exists story_runs_world_idx on public.story_runs(world_id);
 create index if not exists worlds_user_product_idx on public.worlds(user_id, product);
 create index if not exists share_manifests_story_idx on public.share_manifests(story_run_id);
+create index if not exists share_manifests_user_idx on public.share_manifests(user_id);
 create index if not exists story_events_world_date_idx on public.story_events(world_id, occurred_at desc);
+create index if not exists story_events_user_idx on public.story_events(user_id);
+create index if not exists entitlements_user_idx on public.entitlements(user_id);
 create index if not exists media_assets_world_idx on public.media_assets(world_id);
+create index if not exists media_assets_user_idx on public.media_assets(user_id);
 create index if not exists households_owner_idx on public.households(owner_id);
 create index if not exists memberships_user_idx on public.household_memberships(user_id);
 create index if not exists pets_household_idx on public.pets(household_id);
 create index if not exists pet_memories_pet_date_idx on public.pet_memories(pet_id, memory_date desc);
 create index if not exists pet_memories_household_idx on public.pet_memories(household_id);
+create index if not exists pet_memories_created_by_idx on public.pet_memories(created_by);
 create index if not exists household_invites_household_idx on public.household_invites(household_id, expires_at desc);
+create index if not exists household_invites_created_by_idx on public.household_invites(created_by);
 
 alter table public.worlds enable row level security;
 alter table public.story_runs enable row level security;
