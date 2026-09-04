@@ -1,193 +1,236 @@
-# ThreadTales / Story Platform
+# ThreadTales / WorldCore Story Platform
 
 **Turn private digital history into stories worth sharing and keeping.**
 
-This repository is one simple Next.js application containing three implemented product experiences:
+ThreadTales is the flagship experience in a broader story-platform codebase. The repository now contains both a privacy-first local analyzer and an optional account-backed SaaS/media layer.
 
-- **ThreadTales** — a privacy-first WhatsApp story/analyzer;
-- **MyYear.World** — a deterministic year-in-review builder;
-- **PetLife** — a repeat-use pet memory timeline and annual recap.
-
-The platform deliberately keeps optional infrastructure behind configuration gates so the free/local experiences remain deployable without accounts, a database, payments, AI, queues, or a separate backend.
-
-## ThreadTales privacy promise
-
-The free ThreadTales flow is local-first:
-
-```text
-WhatsApp .txt
- -> browser File API
- -> Web Worker when available
- -> parser + deterministic analytics
- -> derived story
- -> optional privacy-safe share/export
-```
-
-Raw imported chat is not silently uploaded to Vercel functions, Supabase, Stripe, telemetry, or an AI provider. Public share links use a separate derived snapshot; participant names and top words are excluded by default.
-
-See [Privacy architecture](docs/PRIVACY_ARCHITECTURE.md) for every implemented boundary.
-
-## Product surface
+## What is implemented
 
 ### ThreadTales
+- WhatsApp Android/iOS parsing
+- deterministic date-order detection
+- strict timestamp/Unicode normalization
+- Web Worker large-history processing
+- `ThreadTaleResultV2`
+- deterministic story composition
+- Memory Cinema presentation
+- social/image/print foundations
+- privacy-safe public sharing
+- local-first default: raw chat is not silently uploaded
 
-- Android/iOS WhatsApp text parsing
-- MM/DD and DD/MM modes
-- 12/24-hour timestamps and multiline messages
-- Web Worker processing with fallback/error/timeout behavior
-- message/word/participant analytics
-- streaks, silence, reply speed, conversation starts
-- busiest day, peak hour, weekday/dayparts
-- laughter/heart/media/question signals
-- monthly/yearly timeline and deterministic vibe scores
-- ten story modes including birthday and anniversary experiences
-- rendering-neutral chapter composer
-- 1080×1920 and 1080×1080 browser PNG exports
-- privacy-safe public share payloads
-- optional one-time Stripe premium architecture
-- optional derived-story Supabase save
-- vendor-neutral keepsake/print model
-- optional derived-data AI enrichment
-- content-blind product telemetry
-
-### MyYear.World
-
-- manual dated highlights
-- locally selected photo metadata
-- optional caption/location
-- deterministic monthly counts and consecutive-month eras
-- story chapters and vertical export
-- privacy-safe share manifest excluding captions/locations/photo bytes
-- optional derived cloud save
-
-### PetLife
-
-- local pet profile
-- memory/milestone timeline
-- intentionally namespaced browser persistence
-- local delete control
-- annual recap and story export
-- privacy-safe recap manifest
-- optional Supabase household model
-- owner/member roles and `can_add_memories`
-- hashed one-time seven-day invitations
-- permitted shared-memory contribution path
+### Story platform / WorldCore
+- reusable world/story contracts
+- multiple story-world product configurations
+- MyYear and PetLife domain models
+- identity/session layer
+- Supabase persistence
+- world CRUD/import
+- profile/onboarding
+- private media APIs
+- albums and album items
+- music/soundtrack metadata
+- billing/entitlement adapters
+- Stripe server integration
+- optional AI enrichment
+- privacy-safe telemetry/PulseAtlas instrumentation
 
 ## Architecture
 
-Keep the stack boring:
-
 ```text
-Next.js App Router
-React
-TypeScript strict mode
-plain CSS
-Browser APIs / Web Worker
-Vitest
-Playwright
-GitHub Actions
-Vercel
+PRIVATE THREADTALES FLOW
 
-optional only:
-Stripe
-Supabase
-OpenAI
-HTTPS telemetry endpoint
+local chat export
+      ↓
+browser File API
+      ↓
+Web Worker
+      ↓
+parse + analyze
+      ↓
+ThreadTaleResultV2
+      ↓
+story / export / share
+
+
+OPTIONAL ACCOUNT-BACKED FLOW
+
+browser
+  ↓
+Next.js route handlers
+  ↓
+identity / authorization
+  ↓
+platform services
+  ↓
+Supabase / Stripe / AI / telemetry
 ```
 
-Not present/required:
+The local analyzer and cloud platform are intentionally separated. Enabling accounts, persistence, payments or AI must not silently weaken the local privacy boundary.
 
-- Redis
-- Kafka
-- Docker/Kubernetes
-- microservices
-- Python backend
-- queue infrastructure
-- vector database
+## Repository map
 
-See [Platform architecture](docs/PLATFORM_ARCHITECTURE.md).
+Start here:
 
-## External integrations
+- [End-to-end project structure](docs/PROJECT_STRUCTURE.md)
+- [GitHub repository handoff](docs/GITHUB_HANDOFF.md)
+- [Platform architecture](docs/PLATFORM_ARCHITECTURE.md)
+- [Privacy architecture](docs/PRIVACY_ARCHITECTURE.md)
+- [External integrations](docs/EXTERNAL_INTEGRATIONS.md)
+- [Deployment readiness](docs/DEPLOYMENT_READINESS.md)
+- [Production activation status](docs/PRODUCTION_ACTIVATION_STATUS.md)
+- [All phases status](docs/ALL_PHASES_STATUS.md)
+- [Product strategy](docs/PRODUCT_STRATEGY_2026.md)
+- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
 
-Optional integrations are intentionally distinguished as:
+High-level source layout:
 
 ```text
-implemented
-configured
-verified
+src/
+├── app/          # Next.js pages and API routes
+├── components/   # UI / Memory Cinema / auth experiences
+├── lib/          # shared local utility/domain logic
+├── platform/     # identity, persistence, story, billing, media, AI, telemetry
+├── products/     # product-specific domain models/config
+└── workers/      # local ThreadTales Web Worker
+
+supabase/
+├── schema.sql
+└── migrations/
+
+tests/
+├── unit/
+├── e2e/
+├── performance/
+├── fixtures/
+└── helpers/
 ```
 
-Code being implemented does not imply a live service is configured. See [External integrations](docs/EXTERNAL_INTEGRATIONS.md).
+See [PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) for the full responsibility map.
 
-The free/local product needs no secret.
+## Tech stack
 
-Copy `.env.example` only when enabling optional capabilities.
+- Next.js App Router
+- React
+- strict TypeScript
+- plain CSS
+- browser File API + Web Workers
+- Supabase/Postgres
+- Stripe
+- optional AI provider
+- optional telemetry/PulseAtlas
+- Vitest
+- Playwright
+- GitHub Actions
+- Vercel
+
+There is no requirement for Redis, Kafka, Docker/Kubernetes, a Python backend or a separate microservice stack for the current product.
 
 ## Local development
 
 ```bash
+git clone https://github.com/rrahul0904/friendship-wrapped.git
+cd friendship-wrapped
 npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`.
+Open:
+
+```text
+http://localhost:3000
+```
 
 ## Verification
 
-Fast verification:
-
 ```bash
-npm run verify
-```
-
-Full production gate:
-
-```bash
-npm ci
 npm run lint
 npm run typecheck
 npm run test
+npm run test:performance
 npm run build
 npx playwright install chromium
 npm run test:e2e
 ```
 
-GitHub Actions runs the clean-checkout equivalent for pull requests.
+GitHub Actions runs the clean-checkout production equivalent and additionally verifies client bundles do not contain server-secret identifiers.
 
-## Deployment
+## Environment configuration
 
-Vercel project: `threadtales`.
-
-The intended lifecycle is:
+Use:
 
 ```text
-feature/production branch
- -> pull request
- -> GitHub Actions
- -> Vercel preview
- -> smoke/privacy verification
- -> explicit merge
- -> production from main
+.env.example
 ```
 
-Do not promote an unverified feature branch over production. See [Deployment readiness](docs/DEPLOYMENT_READINESS.md).
+Never commit real secrets.
 
-## Product roadmap status
+The optional integration families include:
+- Supabase
+- Stripe
+- AI provider/gateway
+- telemetry
+- deployment/site settings
 
-- [All phases status](docs/ALL_PHASES_STATUS.md)
-- [Product strategy](docs/PRODUCT_STRATEGY_2026.md)
-- [Implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md)
-- [Platform architecture](docs/PLATFORM_ARCHITECTURE.md)
-- [Privacy architecture](docs/PRIVACY_ARCHITECTURE.md)
-- [External integrations](docs/EXTERNAL_INTEGRATIONS.md)
-- [Deployment readiness](docs/DEPLOYMENT_READINESS.md)
-- [Product decision framework](docs/PRODUCT_DECISION_FRAMEWORK.md)
-- [Phase 0 historical status](docs/PHASE_0_STATUS.md)
+The local ThreadTales analyzer remains usable without those external services.
 
-## Decision discipline
+## Database
 
-ThreadTales, MyYear and PetLife are the proving products. Relationship Universe, LifeMap, BabyStory, FamilyTree Live, FounderWorld and CreatorWorld remain evidence-gated ideas. Do not build them merely because they exist in the product registry; use the measurable gates in [Product decision framework](docs/PRODUCT_DECISION_FRAMEWORK.md).
+Versioned database state is checked in under:
 
-## Core principle
+```text
+supabase/schema.sql
+supabase/migrations/
+```
 
-Do not weaken the anonymous local ThreadTales pipeline for convenience. Any persistence, payment, telemetry, or AI feature must remain separate, minimized, explicit where content is involved, and accurately documented.
+The latest SaaS/media migrations include authenticated world/media/album/music persistence plus RLS and index hardening.
+
+## Deployment policy
+
+Canonical repository:
+
+```text
+https://github.com/rrahul0904/friendship-wrapped
+```
+
+Canonical release flow:
+
+```text
+branch
+  ↓
+pull request
+  ↓
+exact-head CI
+  ↓
+Vercel preview
+  ↓
+browser + runtime verification
+  ↓
+main
+  ↓
+production
+```
+
+Do not promote authenticated persistence/media changes solely because CI is green. Preview configuration, migrations and runtime behavior must also be verified.
+
+## Current latest integration work
+
+The latest end-to-end SaaS/media implementation is tracked in:
+
+```text
+branch: platform-saas-media-live
+PR: #13 — Story Platform SaaS + Media OS launch
+```
+
+That branch is the newest complete source superset and is already checked into GitHub. Its release remains gated by deployment/environment verification before promotion to `main`.
+
+## Privacy rule
+
+Raw ThreadTales chat content must not silently enter:
+- Supabase
+- Stripe
+- telemetry
+- AI
+- logs
+- public share payloads
+
+Any future content-bearing cloud feature must be explicit, minimized and accurately disclosed.
