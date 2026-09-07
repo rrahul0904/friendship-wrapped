@@ -4,7 +4,6 @@ import { GET } from "@/app/api/version/route";
 const originalVercelSha = process.env.VERCEL_GIT_COMMIT_SHA;
 const originalPublicSha = process.env.NEXT_PUBLIC_GIT_SHA;
 const originalVercelEnv = process.env.VERCEL_ENV;
-const originalNodeEnv = process.env.NODE_ENV;
 
 afterEach(() => {
   if (originalVercelSha === undefined) delete process.env.VERCEL_GIT_COMMIT_SHA;
@@ -15,9 +14,6 @@ afterEach(() => {
 
   if (originalVercelEnv === undefined) delete process.env.VERCEL_ENV;
   else process.env.VERCEL_ENV = originalVercelEnv;
-
-  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = originalNodeEnv;
 });
 
 describe("/api/version", () => {
