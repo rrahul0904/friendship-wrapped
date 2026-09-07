@@ -4,7 +4,7 @@ const expectedStripeMode=process.env.EXPECTED_STRIPE_MODE||(base==="https://thre
 const expectedCommit=process.env.EXPECTED_COMMIT_SHA||"";
 
 const publicRoutes=["/","/create","/products","/myyear","/petlife","/relationship","/lifemap","/babystory","/homestory","/familytree","/founderworld","/creatorworld","/register","/login","/forgot-password","/privacy","/terms","/contact"];
-const protectedRoutes=["/app","/albums","/billing","/settings","/admin","/admin/users","/admin/products","/admin/subscriptions","/admin/revenue","/admin/finops","/admin/integrations","/admin/audit"];
+const protectedRoutes=["/app","/albums","/billing","/settings","/admin","/admin/users","/admin/products","/admin/worlds","/admin/albums","/admin/media","/admin/subscriptions","/admin/revenue","/admin/finops","/admin/integrations","/admin/audit"];
 
 async function checkPublic(path){const r=await fetch(base+path,{redirect:"follow"});if(!r.ok)throw new Error(path+" returned HTTP "+r.status);return{path,status:r.status};}
 async function checkProtected(path){const r=await fetch(base+path,{redirect:"manual"});if([301,302,303,307,308].includes(r.status)){const location=r.headers.get("location")||"";if(!location.includes("/login"))throw new Error(path+" redirected somewhere other than login.");return{path,status:r.status,protected:true};}if(r.status===401||r.status===403)return{path,status:r.status,protected:true};throw new Error(path+" did not enforce authentication (HTTP "+r.status+").");}
