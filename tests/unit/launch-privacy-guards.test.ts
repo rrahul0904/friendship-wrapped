@@ -74,20 +74,23 @@ describe("launch privacy traps", () => {
   });
 
   it("does not serialize unrelated raw-content properties into provider input", async () => {
-    const fetchSpy = vi.fn(async () =>
-      new Response(
-        JSON.stringify({
-          model: "test-model",
-          output: [
-            {
-              content: [
-                { type: "output_text", text: "Safe derived story copy" },
-              ],
-            },
-          ],
-        }),
-        { status: 200, headers: { "Content-Type": "application/json" } },
-      ),
+    const fetchSpy = vi.fn(
+      async (...args: Parameters<typeof fetch>): Promise<Response> => {
+        void args;
+        return new Response(
+          JSON.stringify({
+            model: "test-model",
+            output: [
+              {
+                content: [
+                  { type: "output_text", text: "Safe derived story copy" },
+                ],
+              },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      },
     );
     vi.stubGlobal("fetch", fetchSpy);
 
