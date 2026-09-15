@@ -71,4 +71,50 @@ test.describe("Memory Cinema UI", () => {
       expect(overflow, `story workspace overflow at ${viewport.width}px`).toBeLessThanOrEqual(1);
     }
   });
+
+  test("desktop reveal uses the full story canvas and keeps Relive composition connected", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.goto("/create?demo=1");
+    const results = page.locator("#results");
+    await expect(results).toBeVisible();
+
+    const hero = results.locator(".story-hero");
+    const deck = results.locator(".mc-story-deck");
+    const workbench = deck.locator(".mc-story-workbench");
+    const canvas = workbench.locator(".mc-story-canvas");
+    const themes = workbench.locator(".mc-theme-selector");
+    const cinematic = results.locator(".mc-cinematic");
+    const cinematicHead = cinematic.locator(".mc-cinematic-head");
+    const cinematicStage = cinematic.locator(".mc-cinematic-stage");
+
+    await expect(hero).toBeVisible();
+    await expect(deck).toBeVisible();
+    await expect(cinematic).toBeVisible();
+
+    const heroBox = await hero.boundingBox();
+    const deckBox = await deck.boundingBox();
+    const canvasBox = await canvas.boundingBox();
+    const themesBox = await themes.boundingBox();
+    const cinematicBox = await cinematic.boundingBox();
+    const cinematicHeadBox = await cinematicHead.boundingBox();
+    const cinematicStageBox = await cinematicStage.boundingBox();
+
+    expect(heroBox).not.toBeNull();
+    expect(deckBox).not.toBeNull();
+    expect(canvasBox).not.toBeNull();
+    expect(themesBox).not.toBeNull();
+    expect(cinematicBox).not.toBeNull();
+    expect(cinematicHeadBox).not.toBeNull();
+    expect(cinematicStageBox).not.toBeNull();
+
+    expect(heroBox!.width).toBeGreaterThan(1000);
+    expect(deckBox!.width).toBeGreaterThan(1000);
+    expect(themesBox!.x).toBeGreaterThan(canvasBox!.x + 450);
+    expect(cinematicBox!.width).toBeGreaterThan(1000);
+    expect(cinematicStageBox!.x).toBeGreaterThan(cinematicHeadBox!.x + 300);
+    expect(cinematicStageBox!.height).toBeGreaterThan(650);
+
+    const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
 });
