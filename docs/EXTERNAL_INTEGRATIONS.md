@@ -2,9 +2,9 @@
 
 ## Current live evidence — 2026-10-01
 
-Production's public integration endpoint reports Stripe checkout/webhook/subscriptions disabled and AI disabled. It reports Supabase public/server/auth/storage environment flags set and telemetry configured for Supabase. A real allowlisted telemetry smoke returned HTTP 502 (`fetch failed`); `/api/telemetry` therefore is not delivering successfully. The dedicated project was previously reported `INACTIVE`; Supabase project health and schema state require the connected provider account. The environment flags are not proof of service health.
+Production's public integration endpoint reports Stripe checkout/webhook/subscriptions disabled and AI disabled. It reports Supabase public/server/auth/storage environment flags set and telemetry configured for Supabase. A real allowlisted telemetry smoke returned HTTP 502 (`fetch failed`). The exact-head Vercel Preview reports Stripe checkout/webhook and Supabase public/server/auth/storage configured, AI disabled, and Supabase telemetry enabled; the strict Preview smoke created a TEST Checkout Session but telemetry again did not deliver. The dedicated project was reported `INACTIVE`, and its host failed DNS resolution during verification. Environment flags are not proof of provider health.
 
-No Stripe TEST checkout/payment/webhook, Supabase account/RLS/storage flow, OpenAI live request, or Preview for the certification changes has been run. See `PRODUCTION_CERTIFICATION.md` for the evidence table and specific owner actions.
+The Preview can create a Stripe TEST Checkout Session, but no test payment, webhook, or entitlement has been verified. Supabase account/RLS/storage and OpenAI live requests remain unverified. The certification Preview exists and passes route checks; its strict integration gate remains red on AI and telemetry. See `PRODUCTION_CERTIFICATION.md` for exact evidence and owner actions.
 
 The free ThreadTales flow requires none of these services. Each integration must fail closed without breaking anonymous local analysis. This document distinguishes implementation from actual activation.
 
@@ -14,7 +14,8 @@ The free ThreadTales flow requires none of these services. Each integration must
 code implemented: yes
 production status: checkout=false, webhook=false, subscriptions=false
 test product/price: historical IDs exist in older notes; not re-read during this check
-test checkout/webhook/payment verified: no
+Preview TEST Checkout Session: created on candidate SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37`
+test payment/webhook/entitlement verified: no
 live product/price/webhook verified: no
 ```
 

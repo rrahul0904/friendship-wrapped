@@ -2,9 +2,9 @@
 
 ## Current release checkpoint — 2026-10-01
 
-PR #17 is merged. The canonical main SHA and production `/api/version` are both `067c3d635e45413514850fb7fcab4504822ee216`; main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed. Public production route checks are recorded in `PRODUCTION_CERTIFICATION.md` and do not establish a Preview for the current certification branch.
+PR #17 is merged. The canonical main SHA and production `/api/version` are both `067c3d635e45413514850fb7fcab4504822ee216`; main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is at `67b8777e32a6265cf3d2094f3db1d1e7f781fa37`; exact-head CI [36910230791](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36910230791) passed, and Vercel created a successful exact-head Preview.
 
-The certification branch has local fixes and passes the production build and 49/49 Chromium E2E tests, but has not been pushed. The requested hosted deployment targets the existing Vercel project; the dashboard redirects to login, and this session has no Vercel token, linked project, or Git credential. Do not treat historical PR #6/#7 gates below as open PRs. Supabase-backed telemetry currently returns HTTP 502, so remote integrations are not certified.
+The branch passes the production build and 49/49 Chromium E2E tests; all code checks also pass on hosted CI. Preview route verification succeeds and a TEST Checkout Session was created, but the strict Preview gate remains red because AI is disabled and telemetry delivery fails. Supabase account/RLS/storage, Stripe payment/webhook/entitlement, and OpenAI request flows remain uncertified. The Vercel dashboard still requires login to inspect project settings and build/runtime logs. Do not treat historical PR #6/#7 gates below as open PRs.
 
 ## Deployment model
 
