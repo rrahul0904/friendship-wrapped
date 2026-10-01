@@ -10,13 +10,13 @@ GitHub owner: `rrahul0904`
 
 Default branch: `main`
 
-Latest end-to-end integration branch:
+Historical end-to-end integration branch (merged into `main`):
 
 ```text
 platform-saas-media-live
 ```
 
-Latest integration PR:
+Merged integration PR:
 
 ```text
 #13 — Story Platform SaaS + Media OS launch
@@ -82,11 +82,11 @@ See `docs/PROJECT_STRUCTURE.md` for the canonical tree and responsibility map.
 
 ## Current integration safety status
 
-The latest integration code is committed to GitHub and its exact pre-documentation head passed the complete production CI gate.
+PR #7, #13, and #17 are merged. Main currently points to `067c3d635e45413514850fb7fcab4504822ee216`; the matching GitHub Actions run 34925302823 succeeded. Production serves the same `/api/version` SHA.
 
 That does **not** mean authenticated persistence/media changes should be promoted automatically.
 
-Before merging the latest integration branch to `main`, verify:
+Before certifying the current release's optional account and payment features, verify:
 
 1. required Supabase migrations are applied to the intended environment;
 2. production/preview environment variables are configured;

@@ -40,6 +40,32 @@ afterEach(() => {
 });
 
 describe("launch privacy traps", () => {
+  it("projects nested chapter objects before serializing provider input", async () => {
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ output: [{ content: [{ type: "output_text", text: "Safe copy" }] }] })));
+    vi.stubGlobal("fetch", fetchSpy);
+    const provider = new OpenAIStoryEnrichmentProvider("test-key", "test-model");
+    const poisoned = { ...safeInput, chapters: [{ ...safeInput.chapters[0], rawChat: "SECRET_NESTED_CHAT", metadata: { messages: ["SECRET_NESTED_CHAT"] } }] };
+    await provider.enrich(poisoned);
+    expect(JSON.stringify(fetchSpy.mock.calls)).not.toContain("SECRET_NESTED_CHAT");
+  });
+
+  it.each(["true", 1, {}, []])("rejects non-boolean snippet consent %j", async (snippetConsent) => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    await expect(new OpenAIStoryEnrichmentProvider("test-key").enrich({ ...safeInput, selectedSnippet: "PRIVATE", snippetConsent } as StoryEnrichmentInput)).rejects.toThrow(/consent/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects private text smuggled into numeric facts or mode", async () => {
+    const provider = new OpenAIStoryEnrichmentProvider("test-key");
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    await expect(provider.enrich({ ...safeInput, facts: { totalMessages: "PRIVATE_CHAT" } })).rejects.toThrow(/numeric/);
+    await expect(provider.enrich({ ...safeInput, mode: "PRIVATE_CHAT" })).rejects.toThrow(/mode/);
+    await expect(provider.enrich({ ...safeInput, chapters: [{ ...safeInput.chapters[0], metric: { transcript: "PRIVATE_CHAT" } }] } as unknown as StoryEnrichmentInput)).rejects.toThrow(/metric/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("rejects raw-chat sentinels before any OpenAI request is sent", async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal("fetch", fetchSpy);

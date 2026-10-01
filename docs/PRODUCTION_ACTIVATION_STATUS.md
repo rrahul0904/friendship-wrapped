@@ -1,8 +1,20 @@
 # Production Activation Status
 
-Last verified: 2026-09-01
+Last verified against public source and production endpoints: 2026-10-01. This update does not claim authenticated provider certification.
 
-This is the resumable checkpoint for the `production-integrations-live` activation wave. PR #7 must remain unmerged until the external integration gates are genuinely active and verified.
+## Current certification checkpoint (2026-10-01)
+
+The deployed main SHA is `067c3d635e45413514850fb7fcab4504822ee216`, also returned by production `/api/version`. GitHub confirms PR #7, #13, and #17 have merged. The baseline main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed on that SHA. Certification fixes are on the local, unpushed branch `codex/threadtales-production-certification`.
+
+Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref was last reported inactive; its current health and database state need a connected Supabase account to verify.
+
+The certification branch now passes clean dependency audit (0 vulnerabilities), lint (0 errors; 17 warnings), typecheck, 179 unit tests, and the unchanged performance budget (100,000 messages in 1,146ms on isolated rerun). The optimized Next.js build completed, and all 49 Chromium E2E tests passed against that production build. Separately, the deployed production `/create?demo=1` flow rendered at desktop (1440px) and mobile (390px) with no overflow or page errors. That browser smoke applies to current production main, not the unpushed branch. Public production route verification found `/admin` redirects to `/app?admin=denied`; the verifier follows protected internal redirects and requires eventual login/denial.
+
+The environment has no GitHub credential or linked Vercel project, and the Vercel dashboard opens at its login page. Hosted deployment, provider account checks, secret changes, provider-side RLS/storage tests, payment/webhook tests, and merge therefore remain unverified. The requested web deployment can resume after the owner authenticates Vercel/GitHub and links the existing project to this repository.
+
+See [CERTIFICATION_BASELINE.md](CERTIFICATION_BASELINE.md) for the evidence matrix and [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for remaining gates.
+
+Historical checkpoint for the `production-integrations-live` activation wave. PR #7 merged on 2026-09-01. The statements below that checkpoint describe what was observed on 2026-09-01; they are not current account truth. The 2026-10-01 evidence at the top of this document supersedes historical project-slot, Vercel-link, secret, and PR status claims.
 
 ## Repository baseline
 
@@ -51,7 +63,11 @@ Strict mode must prove real remote behavior, not only environment-variable prese
 3. receive `accepted: true, delivered: true` from telemetry;
 4. require Stripe webhook plus Supabase public/server configuration.
 
-## Vercel — exact current state
+## Historical account findings — 2026-09-01; not current verified state
+
+The following Vercel, Stripe, and Supabase account details were captured in the earlier activation wave on 2026-09-01. They are retained as historical handoff context and have not been re-verified in this certification.
+
+### Historical Vercel details
 
 Project:
 
@@ -82,7 +98,7 @@ Vercel runtime audit returned no current error clusters.
 
 The connected Vercel tool surface can inspect projects, deployments, builds and runtime logs, but does not expose project environment-variable writes or Git-link mutation. Supported owner-side activation paths are Vercel Project Settings, `vercel env add`, or Vercel Project Env/Git APIs with an authorized token.
 
-## Stripe — exact current state
+### Historical Stripe details
 
 Connected account: Rahul Singh (`acct_1QrNa7RB8OGmEnBw`).
 
@@ -135,7 +151,7 @@ NEXT_PUBLIC_SITE_URL=https://threadtales-five.vercel.app
 
 Do not put any secret values in Git, PR text, logs, or chat.
 
-## Supabase — exact current state
+### Historical Supabase details
 
 Organization:
 

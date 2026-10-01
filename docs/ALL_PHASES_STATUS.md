@@ -1,6 +1,6 @@
 # ThreadTales / Story Platform — All Phases Status
 
-This document classifies implementation scope on `production-all-phases`. Merge readiness is a separate final verification decision documented in `DEPLOYMENT_READINESS.md` and PR #6.
+This document describes source implementation originally developed on `production-all-phases`; it is historical implementation tracking. PR #17 is merged into `main`. Current verification and integration state is in `PRODUCTION_ACTIVATION_STATUS.md`; this table does not certify live integrations.
 
 | Phase | Status | Implemented scope |
 | --- | --- | --- |
@@ -70,7 +70,7 @@ This PR does not implement Relationship Universe, LifeMap, BabyStory, FamilyTree
 
 ## Final verification requirement
 
-These status classifications do not authorize merge. PR #6 must still satisfy the complete final gate on its final SHA:
+Historical final verification gate from PR #6 (already merged):
 
 ```text
 npm ci
@@ -84,4 +84,4 @@ privacy audit
 Vercel preview
 ```
 
-Only the final PR report may classify the branch `READY TO MERGE` or `NOT READY TO MERGE`.
+The final PR report for a future certification branch should classify the exact Preview head before merge.

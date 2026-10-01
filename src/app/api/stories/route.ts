@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireStorySession } from "@/platform/identity/session";
 import { isSupabaseConfigured } from "@/platform/persistence/config";
 import { assertDerivedStoryPayload, supabaseRest } from "@/platform/persistence/supabase-rest";
-import { isThreadTaleResultV2 } from "@/platform/threadtales/result-v2";
+import { sanitizeThreadTaleCloudResult } from "@/platform/threadtales/cloud-result";
 
 export const runtime = "nodejs";
 
@@ -18,7 +18,7 @@ export async function GET() {
       "story_runs?select=id,product,mode,title,result,created_at&order=created_at.desc&limit=25",
       token,
     );
-    return NextResponse.json({ stories: rows });
+    return NextResponse.json({ stories: rows.map((row) => ({ ...row, result: row.product === "threadtales" ? sanitizeThreadTaleCloudResult(row.result) : row.result })) }, { headers: { "Cache-Control": "no-store" } });
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : "Could not load saved stories.";
     return NextResponse.json({ error: message === "AUTH_REQUIRED" ? "Sign in to save and reopen stories." : message }, { status: message === "AUTH_REQUIRED" ? 401 : /not configured/i.test(message) ? 503 : 400 });
@@ -32,8 +32,8 @@ export async function POST(request: Request) {
     const body = await request.json() as { product?: string; mode?: string; title?: string; result?: unknown };
     if (!body.product || !["threadtales", "myyear", "petlife"].includes(body.product)) throw new Error("Unsupported story product.");
     if (!body.title || body.title.trim().length > 160) throw new Error("Give this story a title under 160 characters.");
-    assertDerivedStoryPayload(body.result);
-    if (body.product === "threadtales" && !isThreadTaleResultV2(body.result)) throw new Error("ThreadTales cloud saves require the derived result v2 schema.");
+    const result = body.product === "threadtales" ? sanitizeThreadTaleCloudResult(body.result) : body.result;
+    assertDerivedStoryPayload(result);
 
     const rows = await supabaseRest<Array<{ id: string; product: string; mode?: string; title: string; created_at: string }>>(
       "story_runs?select=id,product,mode,title,created_at",
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
           product: body.product,
           mode: body.mode ?? null,
           title: body.title.trim(),
-          result: body.result,
+          result,
         }),
       },
     );

@@ -212,16 +212,22 @@ production
 
 Do not promote authenticated persistence/media changes solely because CI is green. Preview configuration, migrations and runtime behavior must also be verified.
 
-## Current latest integration work
+## Current release state (2026-10-01)
 
-The latest end-to-end SaaS/media implementation is tracked in:
+The canonical `main` SHA is `067c3d635e45413514850fb7fcab4504822ee216`. GitHub confirms PRs #7, #13, and #17 are merged; production `/api/version` serves that SHA. The exact-SHA main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed.
+
+Those facts certify the deployed source revision and its CI run. They do not certify live account-backed integrations: production reports Stripe and AI disabled, and the telemetry smoke currently returns HTTP 502. Supabase variables are present, but the dedicated project's health, migration state, RLS, storage, and persistence flows need provider-side verification. See [production activation status](docs/PRODUCTION_ACTIVATION_STATUS.md).
+
+The local certification branch `codex/threadtales-production-certification` passes lint, typecheck, 179 unit tests, the unchanged 100k-message performance budget, the optimized production build, and all 49 Chromium E2E tests against the production build. It has not been pushed or deployed: this session has no Git credential or authenticated Vercel project access. See [production certification evidence](docs/PRODUCTION_CERTIFICATION.md) before treating any hosted or account-backed feature as verified.
+
+Historical integration work was tracked on:
 
 ```text
 branch: platform-saas-media-live
-PR: #13 — Story Platform SaaS + Media OS launch
+PR: #13 — Story Platform SaaS + Media OS launch (merged 2026-09-07)
 ```
 
-That branch is the newest complete source superset and is already checked into GitHub. Its release remains gated by deployment/environment verification before promotion to `main`.
+That branch's changes are in canonical `main`; this reference is historical.
 
 ## Privacy rule
 

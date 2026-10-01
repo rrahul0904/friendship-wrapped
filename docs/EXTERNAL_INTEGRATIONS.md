@@ -1,25 +1,31 @@
 # External Integrations
 
+## Current live evidence — 2026-10-01
+
+Production's public integration endpoint reports Stripe checkout/webhook/subscriptions disabled and AI disabled. It reports Supabase public/server/auth/storage environment flags set and telemetry configured for Supabase. A real allowlisted telemetry smoke returned HTTP 502 (`fetch failed`); `/api/telemetry` therefore is not delivering successfully. The dedicated project was previously reported `INACTIVE`; Supabase project health and schema state require the connected provider account. The environment flags are not proof of service health.
+
+No Stripe TEST checkout/payment/webhook, Supabase account/RLS/storage flow, OpenAI live request, or Preview for the certification changes has been run. See `PRODUCTION_CERTIFICATION.md` for the evidence table and specific owner actions.
+
 The free ThreadTales flow requires none of these services. Each integration must fail closed without breaking anonymous local analysis. This document distinguishes implementation from actual activation.
 
 ## Stripe
 
 ```text
 code implemented: yes
-test product configured: yes
-test checkout API write permission: blocked by current connected Stripe scope
-live product configured: no
-production checkout verified: no
+production status: checkout=false, webhook=false, subscriptions=false
+test product/price: historical IDs exist in older notes; not re-read during this check
+test checkout/webhook/payment verified: no
+live product/price/webhook verified: no
 ```
 
-Dedicated test resources created for ThreadTales:
+Historical test resource record (not re-read in this certification):
 
 ```text
 product: prod_VAw1yBd5k9jxqB
 one-time USD price ($9): price_1UAa91RB8OGmEnBwX3Z1GHqf
 ```
 
-The connected Stripe account already contained products for other applications; they were deliberately left unchanged. Test mode accepted creation of the isolated ThreadTales product. The current connected scope does not permit `PostCheckoutSessions`, and live mode does not permit `PostProducts`; Stripe account re-consent/permission expansion is required before checkout/webhook/live activation can be completed.
+Older account notes say test-mode creation succeeded and creation endpoints were unavailable through that prior connection. This session has no connected Stripe account, so those permissions and product records are unverified today.
 
 Implemented boundary:
 
@@ -47,22 +53,14 @@ No raw ThreadTales chat or derived result payload is sent to Stripe.
 
 ```text
 code implemented: yes
-dedicated Story Platform project configured: no
-schema applied: no
+dedicated project named `threadtales-story-platform` exists per the canonical project handoff
+current health: reported INACTIVE in the task handoff; direct host DNS lookup failed on 2026-10-01
+remote migration history/schema: unverified
 RLS verified against live Story Platform database: no
 multi-user isolation verified live: no
 ```
 
-The connected organization currently has two active projects, both belonging to other applications. A new `threadtales-story-platform` project was attempted in `us-east-2`; Supabase reported a $0/month project cost but rejected creation because the account has reached its two-active-free-project limit.
-
-Neither existing project was paused, deleted, repurposed, or modified.
-
-Activation requires either:
-
-1. an additional Supabase project slot / plan upgrade; or
-2. explicit owner authorization to retire an unrelated project outside this repository's release process.
-
-The second option must never be performed automatically from this repository.
+An older 2026-09-01 checkpoint says project creation hit the account's free-project limit. That statement is historical: the current canonical handoff identifies an existing dedicated ThreadTales project. Restore that project; do not create a duplicate or repurpose another database.
 
 Implemented boundary:
 
@@ -97,7 +95,7 @@ Before production activation:
 ```text
 provider abstraction implemented: yes
 OpenAI provider implementation: yes
-credentials configured in production: no
+production status: disabled (public `/api/integrations/status`)
 real production request verified: no
 store=false behavior: implemented and unit-tested
 ```
@@ -118,7 +116,7 @@ Optional:
 OPENAI_STORY_MODEL
 ```
 
-Production currently reports AI disabled until an authorized API key is installed in Vercel.
+Production currently reports AI disabled. Add an authorized server-side key through deployment secret management before testing.
 
 ## Telemetry
 
@@ -126,8 +124,8 @@ Production currently reports AI disabled until an authorized API key is installe
 code implemented: yes
 allowlisted events instrumented: yes
 Supabase server-only sink implemented: yes
-external endpoint configured in production: no
-production delivery verified: no
+production status: Supabase sink reported configured
+production delivery: FAILED; allowlisted smoke returned HTTP 502 `fetch failed`
 ```
 
 Allowed client dimensions remain only:
@@ -142,7 +140,7 @@ The API sanitizes the payload before delivery. Sink precedence is:
 
 1. configured HTTPS `TELEMETRY_ENDPOINT`;
 2. dedicated Supabase `product_events` table when server persistence is configured;
-3. safe HTTP 202 no-op when neither exists.
+3. safe HTTP 202 no-op when neither exists. Production currently chooses Supabase but the send is failing; status flags do not establish delivery.
 
 The `product_events` migration grants no browser-role table access. It contains only event, product, optional recognized mode and database timestamp; no arbitrary JSON or private content is stored.
 
