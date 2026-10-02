@@ -1,10 +1,10 @@
 # Deployment Readiness
 
-## Current release checkpoint — 2026-10-01
+## Current release checkpoint — 2026-10-02
 
-PR #17 is merged. The canonical main SHA and production `/api/version` are both `067c3d635e45413514850fb7fcab4504822ee216`; main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open at audited head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`; exact-head CI [36911136761](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36911136761) passed, and Vercel produced a successful exact-head Preview at `https://threadtales-iekpoesmx-rrahul0904-5013s-projects.vercel.app`.
+PR #17 is merged. Before PR #19, production `/api/version` returned `067c3d635e45413514850fb7fcab4504822ee216`. PR #19's implementation candidate `1474d7d` plus evidence-only docs child `b1101482b476df7cba045e3c795ed4f3d90b35f9` passed hosted CI; the exact docs-child Preview returned its SHA and passed all 19 public and 16 protected route checks. Privacy disclosure and synthetic demo browser spot checks also passed on that Preview. See [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for run and deployment identifiers. Recheck the current PR head and hosted evidence before marking it ready or merging.
 
-The prior candidate passed production build and 49/49 Chromium E2E tests. Exact Preview route verification passed all 19 public and 16 protected routes, and a TEST Checkout Session was created. Strict Preview certification remains incomplete: AI is disabled, telemetry delivery failed, and Supabase health/migrations/RLS/storage, Stripe payment/webhook/entitlement, and authenticated cloud flows remain uncertified. Current local changes add an AI privacy projection and a 16 KiB request-body cap; focused tests, typecheck, and targeted lint pass, but the changed SHA still needs exact-head hosted CI and Preview. Vercel dashboard authentication is needed for project settings and logs. Do not treat historical PR #6/#7 gates below as open PRs.
+The source candidate passed production build and 49/49 Chromium E2E tests; hosted CI passed again on its docs-only evidence child. Exact Preview route verification passed all 19 public and 16 protected routes, and privacy/demo browser spot checks passed. A TEST Checkout Session exists from an earlier verifier run; no payment or entitlement was verified. Strict Preview certification remains incomplete: AI is disabled, telemetry delivery failed, and Supabase health/migrations/RLS/storage, Stripe payment/webhook/entitlement, and authenticated cloud flows remain uncertified. Vercel dashboard authentication is needed for project settings and logs. Do not treat historical PR #6/#7 gates below as open PRs.
 
 ## Deployment model
 
@@ -102,7 +102,7 @@ A configuration-gated optional integration is not certified merely because:
 3. documentation states that live verification has not occurred;
 4. no secret is required at build time.
 
-For this release, exact-head CI and required code review determine whether PR #19 can merge. Provider configuration, authenticated security UAT, and end-to-end certification remain separate gates; a merge does not certify providers or authorize claims of full production readiness. Any automatic main deployment must be checked against the merged SHA.
+For this release, exact-head CI and any repository-required code review determine whether PR #19 can merge. The repository audit found no branch protection configured on `main`; independent read-only code review found no merge-blocking issue, while GitHub has no formal review decision. Provider configuration, authenticated security UAT, and end-to-end certification remain separate gates; a merge does not certify providers or authorize claims of full production readiness. Any automatic main deployment must be checked against the merged SHA.
 
 See `EXTERNAL_INTEGRATIONS.md` for the activation state of Stripe, Supabase, AI and telemetry.
 
@@ -126,4 +126,4 @@ Otherwise the final report must say `NOT READY TO MERGE` and list exact code/rev
 
 ## Production policy
 
-The requested web deployment should use the existing Vercel project `threadtales`. A hosted Preview of the exact pushed branch is the next deployment step once Vercel and GitHub access are available. Keep production on the current merged SHA until all mandatory Preview and account-backed integration gates in the certification report pass; then deploy the exact approved merge SHA.
+The existing Vercel project `threadtales` produced an automatic Preview for the audited PR head. Merging PR #19 may trigger an automatic production deployment; verify the resulting deployment and `/api/version` against the merge commit. Provider-backed certification remains incomplete regardless of deployment status, and production claims must reflect that status.

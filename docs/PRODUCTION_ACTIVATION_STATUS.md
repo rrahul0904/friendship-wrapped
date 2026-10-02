@@ -1,22 +1,22 @@
 # Production Activation Status
 
-Last verified against public source, current PR Preview, and production endpoints: 2026-10-01. This update does not claim authenticated provider certification.
+Evidence refreshed 2026-10-02 against PR #19 Preview and production endpoints. This update does not claim authenticated provider certification.
 
 ## Current certification checkpoint (updated 2026-10-02)
 
-The deployed main SHA is `067c3d635e45413514850fb7fcab4504822ee216`, also returned by production `/api/version` on 2026-10-02. GitHub confirms PR #7, #13, and #17 have merged. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open against `main` at candidate `1474d7d89dabd4ae8b952d1463e132586d574122`; exact-head CI [37012928682](https://github.com/rrahul0904/friendship-wrapped/actions/runs/37012928682), Vercel Preview, `/api/version`, 19 public/16 protected route checks, and independent code review pass. The candidate limits browser and provider AI payloads to chapter-type labels and updates the public privacy disclosure.
+The pre-merge production SHA is `067c3d635e45413514850fb7fcab4504822ee216`, returned by production `/api/version` on 2026-10-02. GitHub confirms PR #7, #13, and #17 have merged. PR #19's implementation candidate `1474d7d` and evidence-only docs child `b1101482b476df7cba045e3c795ed4f3d90b35f9` passed exact-head hosted CI; the docs child Preview returned its exact SHA, and 19 public/16 protected routes plus the privacy/demo browser spot checks passed. Independent read-only code review found no merge-blocking issue. The candidate limits browser and provider AI payloads to chapter-type labels and updates the public privacy disclosure. Recheck the current head, CI, and Preview before merging.
 
 Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref `pkmkynhkgitdslhadupj` failed DNS resolution during the current audit; its health and database state need connected provider access to verify.
 
-The certification branch now passes clean dependency audit (0 vulnerabilities), lint (0 errors; 17 warnings), typecheck, 179 unit tests, and the unchanged performance budget (100,000 messages in 1,146ms on isolated rerun). The optimized Next.js build completed, and all 49 Chromium E2E tests passed against that production build. Separately, the deployed production `/create?demo=1` flow rendered at desktop (1440px) and mobile (390px) with no overflow or page errors. That browser smoke applies to current production main, not the unpushed branch. Public production route verification found `/admin` redirects to `/app?admin=denied`; the verifier follows protected internal redirects and requires eventual login/denial.
+The implementation candidate passed dependency audit (0 vulnerabilities), lint (0 errors; 17 warnings), typecheck, 182 unit tests, and the performance budget; its optimized Next.js build and all 49 Chromium E2E tests passed. These code checks were repeated by hosted CI on the evidence-only docs child. Separately, production `/create?demo=1` previously rendered at desktop (1440px) and mobile (390px); current exact-Preview browser spot checks covered the privacy disclosure and synthetic demo flow. Public production route verification found `/admin` redirects to `/app?admin=denied`; the verifier follows protected internal redirects and requires eventual login/denial.
 
-GitHub access is available. Draft PR #19's audited head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` passed exact-head CI [36911136761](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36911136761), and Vercel automatically produced a successful Preview at `https://threadtales-iekpoesmx-rrahul0904-5013s-projects.vercel.app`; Preview `/api/version` reports that exact SHA. All 19 public and 16 protected routes passed read-only checks. The Vercel dashboard, CLI auth, and project context are unavailable, so project settings and build/runtime logs cannot be inspected from this session.
+GitHub access is available. Historical PR #19 head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` passed its exact-head CI and Preview checks. Current evidence is recorded in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md). The Vercel dashboard, CLI auth, and project context are unavailable, so project settings and build/runtime logs cannot be inspected from this session.
 
-The strict Preview verifier at implementation SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37` created a Stripe TEST Checkout Session but failed truthfully: AI is disabled and the allowlisted telemetry event was not delivered. That implementation is the source-identical ancestor of the audited documentation follow-up at `ef7a94b5`. No test payment/webhook, authenticated Supabase/RLS/storage path, production change, or merge has occurred. The current local candidate also adds server-side projection of AI chapter data and a bounded request body; focused regression tests pass but hosted verification is pending.
+The strict Preview verifier at implementation SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37` created a Stripe TEST Checkout Session but did not establish a completed integration: AI was disabled and the allowlisted telemetry event was not delivered. No test payment/webhook, authenticated Supabase/RLS/storage path, or provider certification has been completed. PR #19 contains the server-side AI chapter projection, bounded request body, privacy disclosure, and regression coverage; hosted verification passed as recorded in the certification ledger. Production deployment and merge state must be refreshed after the merge action.
 
 See [CERTIFICATION_BASELINE.md](CERTIFICATION_BASELINE.md) for the evidence matrix and [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for remaining gates.
 
-Historical checkpoint for the `production-integrations-live` activation wave. PR #7 merged on 2026-09-01. The statements below that checkpoint describe what was observed on 2026-09-01; they are not current account truth. The 2026-10-01 evidence at the top of this document supersedes historical project-slot, Vercel-link, secret, and PR status claims.
+Historical checkpoint for the `production-integrations-live` activation wave. PR #7 merged on 2026-09-01. The statements below that checkpoint describe what was observed on 2026-09-01; they are not current account truth. The 2026-10-02 evidence at the top of this document supersedes historical project-slot, Vercel-link, secret, and PR status claims.
 
 ## Repository baseline
 
@@ -69,7 +69,7 @@ Strict mode must prove real remote behavior, not only environment-variable prese
 
 The following Vercel, Stripe, and Supabase account details were captured in the earlier activation wave on 2026-09-01. They are retained as historical handoff context and have not been re-verified in this certification.
 
-### Historical Vercel details — superseded by the 2026-10-01 PR #19 Preview audit
+### Historical Vercel details — superseded by the 2026-10-02 PR #19 Preview audit
 
 Project:
 
