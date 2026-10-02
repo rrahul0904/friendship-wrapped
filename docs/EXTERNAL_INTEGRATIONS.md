@@ -103,7 +103,7 @@ store=false behavior: implemented and unit-tested
 
 The provider uses the OpenAI Responses API. Default model configuration is `gpt-5.6-luna`, overridable by `OPENAI_STORY_MODEL`.
 
-Default ThreadTales AI payload contains allowlisted derived metrics and closed chapter-type labels. Server projection strips chapter IDs, titles, subtitles, supporting copy, and metric strings; a user-selected snippet is limited to 600 characters and requires literal boolean consent. The API also caps streamed request bodies at 16 KiB. These source checks do not establish provider activation; Preview AI is disabled and no real OpenAI request has been sent.
+Default ThreadTales AI payload contains allowlisted derived metrics and closed chapter-type labels. The browser sends only chapter types; server projection validates and reconstructs those labels. A user-selected snippet is limited to 600 characters and requires literal boolean consent. The API also caps streamed request bodies at 16 KiB. The public AI endpoint currently has no rate limit or usage quota; establish enforced platform-side controls before enabling a provider key. These source checks do not establish provider activation; Preview AI is disabled and no real OpenAI request has been sent.
 
 Required server-only value:
 
