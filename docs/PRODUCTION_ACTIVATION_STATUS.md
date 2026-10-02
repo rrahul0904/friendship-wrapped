@@ -4,7 +4,7 @@ Last verified against public source, current PR Preview, and production endpoint
 
 ## Current certification checkpoint (updated 2026-10-02)
 
-The deployed main SHA is `067c3d635e45413514850fb7fcab4504822ee216`, also returned by production `/api/version`. GitHub confirms PR #7, #13, and #17 have merged. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open against `main`; its latest remotely audited head is `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`. The working candidate includes additional local AI privacy boundary changes that still need commit and exact-head CI/Preview verification.
+The deployed main SHA is `067c3d635e45413514850fb7fcab4504822ee216`, also returned by production `/api/version` on 2026-10-02. GitHub confirms PR #7, #13, and #17 have merged. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open against `main` at candidate `1474d7d89dabd4ae8b952d1463e132586d574122`; exact-head CI [37012928682](https://github.com/rrahul0904/friendship-wrapped/actions/runs/37012928682), Vercel Preview, `/api/version`, 19 public/16 protected route checks, and independent code review pass. The candidate limits browser and provider AI payloads to chapter-type labels and updates the public privacy disclosure.
 
 Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref `pkmkynhkgitdslhadupj` failed DNS resolution during the current audit; its health and database state need connected provider access to verify.
 
@@ -194,13 +194,13 @@ GET /api/ai/enrich
 200 { enabled: false, provider: null }
 
 GET /api/stories
-503 Supabase persistence is not configured.
+401 Sign in to save and reopen stories.
 
 GET /api/petlife
-503 Supabase persistence is not configured for PetLife.
+401 Sign in to use PetLife cloud features.
 ```
 
-The AI provider code remains ready for Responses API usage with `store: false`, a derived ThreadTales allowlist, share-safe chapters, and explicit consent for the selected-snippet path.
+The exact Preview and production integration endpoints report Supabase and telemetry environment flags present; these do not prove provider health or successful database access. Unauthenticated stories and PetLife API reads return 401. The AI provider code uses the Responses API with `store: false`, an allowlisted ThreadTales fact schema, chapter-type labels, and explicit consent for the selected-snippet path. Preview AI is disabled; the public endpoint has no rate limit or usage quota, so platform-side controls are required before a key is enabled.
 
 Required Vercel OpenAI configuration:
 

@@ -2,7 +2,7 @@
 
 ## Current live evidence — 2026-10-02
 
-Production's public integration endpoint reports Stripe checkout/webhook/subscriptions disabled and AI disabled. It reports Supabase public/server/auth/storage environment flags set and telemetry configured for Supabase. A real allowlisted telemetry smoke returned HTTP 502 (`fetch failed`). The audited PR #19 Vercel Preview at `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` reports Stripe checkout/webhook and Supabase public/server/auth/storage configured, AI disabled, and Supabase telemetry enabled; the strict Preview smoke created a TEST Checkout Session but did not deliver telemetry. The dedicated project's hostname failed DNS resolution during verification. Environment flags are not proof of provider health. The latest local candidate adds an AI chapter projection and request-size bound; it has not yet been deployed.
+Production's public integration endpoint reports Stripe checkout/webhook/subscriptions disabled and AI disabled. It reports Supabase public/server/auth/storage environment flags set and telemetry configured for Supabase. A real allowlisted telemetry smoke returned HTTP 502 (`fetch failed`). PR #19 Preview candidate `1474d7d89dabd4ae8b952d1463e132586d574122` reports Stripe checkout/webhook and Supabase public/server/auth/storage configured, AI disabled, and Supabase telemetry enabled; the strict Preview smoke at its source-identical implementation predecessor created a TEST Checkout Session but did not deliver telemetry. The dedicated project's hostname failed DNS resolution during provider audit. Current unauthenticated stories and PetLife API reads return 401. Environment flags are not proof of provider health.
 
 The Preview can create a Stripe TEST Checkout Session, but no test payment, webhook, or entitlement has been verified. Supabase account/RLS/storage and OpenAI live requests remain unverified. The certification Preview exists and passes route checks; strict integration certification remains incomplete on AI, telemetry, and authenticated provider flows. See `PRODUCTION_CERTIFICATION.md` for exact evidence and owner actions.
 
@@ -151,11 +151,11 @@ The `product_events` migration grants no browser-role table access. It contains 
 production project: threadtales
 canonical URL: https://threadtales-five.vercel.app
 current production state: READY
-automatic PR preview deployment observed for PR #19: yes; deployment `6792750560` succeeded on audited head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`
+automatic PR preview deployment observed for PR #19: yes; deployment `6809455565` succeeded on candidate `1474d7d89dabd4ae8b952d1463e132586d574122`
 environment-variable write capability available to current connected agent: no
 ```
 
-No authenticated Vercel CLI, project context, or dashboard session is available in this runtime. The automatic PR Preview proves the repository deployment path is working. Project branch settings, environment-variable names/status, and build/runtime logs still require authenticated Vercel access.
+No authenticated Vercel CLI, project context, or dashboard session is available in this runtime. The automatic PR Preview proves the repository deployment path is working. Project branch settings, environment-variable names/status, and build/runtime logs still require authenticated Vercel access. Exact Preview `/api/version` and route checks passed for candidate `1474d7d`.
 
 ## Safe status endpoint
 
