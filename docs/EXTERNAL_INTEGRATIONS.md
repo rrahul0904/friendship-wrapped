@@ -1,25 +1,32 @@
 # External Integrations
 
+## Current live evidence — 2026-10-02
+
+Production's public integration endpoint reports Stripe checkout/webhook/subscriptions disabled and AI disabled. It reports Supabase public/server/auth/storage environment flags set and telemetry configured for Supabase. A real allowlisted telemetry smoke returned HTTP 502 (`fetch failed`). PR #19 Preview candidate `1474d7d89dabd4ae8b952d1463e132586d574122` reports Stripe checkout/webhook and Supabase public/server/auth/storage configured, AI disabled, and Supabase telemetry enabled; the strict Preview smoke at its source-identical implementation predecessor created a TEST Checkout Session but did not deliver telemetry. The dedicated project's hostname failed DNS resolution during provider audit. Current unauthenticated stories and PetLife API reads return 401. Environment flags are not proof of provider health.
+
+The Preview can create a Stripe TEST Checkout Session, but no test payment, webhook, or entitlement has been verified. Supabase account/RLS/storage and OpenAI live requests remain unverified. The certification Preview exists and passes route checks; strict integration certification remains incomplete on AI, telemetry, and authenticated provider flows. See `PRODUCTION_CERTIFICATION.md` for exact evidence and owner actions.
+
 The free ThreadTales flow requires none of these services. Each integration must fail closed without breaking anonymous local analysis. This document distinguishes implementation from actual activation.
 
 ## Stripe
 
 ```text
 code implemented: yes
-test product configured: yes
-test checkout API write permission: blocked by current connected Stripe scope
-live product configured: no
-production checkout verified: no
+production status: checkout=false, webhook=false, subscriptions=false
+test product/price: historical IDs exist in older notes; not re-read during this check
+Preview TEST Checkout Session: created at source-identical implementation SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37`; later audited Preview head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` differs only by documentation
+test payment/webhook/entitlement verified: no
+live product/price/webhook verified: no
 ```
 
-Dedicated test resources created for ThreadTales:
+Historical test resource record (not re-read in this certification):
 
 ```text
 product: prod_VAw1yBd5k9jxqB
 one-time USD price ($9): price_1UAa91RB8OGmEnBwX3Z1GHqf
 ```
 
-The connected Stripe account already contained products for other applications; they were deliberately left unchanged. Test mode accepted creation of the isolated ThreadTales product. The current connected scope does not permit `PostCheckoutSessions`, and live mode does not permit `PostProducts`; Stripe account re-consent/permission expansion is required before checkout/webhook/live activation can be completed.
+Older account notes say test-mode creation succeeded and creation endpoints were unavailable through that prior connection. This session has no connected Stripe account, so those permissions and product records are unverified today.
 
 Implemented boundary:
 
@@ -47,22 +54,14 @@ No raw ThreadTales chat or derived result payload is sent to Stripe.
 
 ```text
 code implemented: yes
-dedicated Story Platform project configured: no
-schema applied: no
+dedicated project named `threadtales-story-platform` exists per the canonical project handoff
+last reported state: INACTIVE in the task handoff; current health is UNKNOWN because direct host DNS lookup failed on 2026-10-01
+remote migration history/schema: unverified
 RLS verified against live Story Platform database: no
 multi-user isolation verified live: no
 ```
 
-The connected organization currently has two active projects, both belonging to other applications. A new `threadtales-story-platform` project was attempted in `us-east-2`; Supabase reported a $0/month project cost but rejected creation because the account has reached its two-active-free-project limit.
-
-Neither existing project was paused, deleted, repurposed, or modified.
-
-Activation requires either:
-
-1. an additional Supabase project slot / plan upgrade; or
-2. explicit owner authorization to retire an unrelated project outside this repository's release process.
-
-The second option must never be performed automatically from this repository.
+An older 2026-09-01 checkpoint says project creation hit the account's free-project limit. That statement is historical: the current canonical handoff identifies an existing dedicated ThreadTales project. Restore that project; do not create a duplicate or repurpose another database.
 
 Implemented boundary:
 
@@ -86,25 +85,25 @@ SUPABASE_SECRET_KEY
 
 Before production activation:
 
-1. provision the dedicated project;
-2. apply repository migrations;
+1. restore/resolve the existing dedicated project and verify its exact ref;
+2. compare remote migration history and schema with repository migrations before applying anything;
 3. run Supabase security advisors;
-4. verify owner/member/unrelated-user isolation with real test identities;
-5. configure only the dedicated project's credentials in Vercel.
+4. verify owner/member/unrelated-user isolation with controlled test identities;
+5. configure only the dedicated project's credentials in Vercel. Create a replacement only if the provider proves the existing project is absent and the owner authorizes new infrastructure.
 
 ## OpenAI story enrichment
 
 ```text
 provider abstraction implemented: yes
 OpenAI provider implementation: yes
-credentials configured in production: no
+production status: disabled (public `/api/integrations/status`)
 real production request verified: no
 store=false behavior: implemented and unit-tested
 ```
 
 The provider uses the OpenAI Responses API. Default model configuration is `gpt-5.6-luna`, overridable by `OPENAI_STORY_MODEL`.
 
-Default ThreadTales AI payload contains only allowlisted derived metrics and share-safe deterministic chapters. A user-selected snippet is limited to 600 characters and requires explicit consent.
+Default ThreadTales AI payload contains allowlisted derived metrics and closed chapter-type labels. The browser sends only chapter types; server projection validates and reconstructs those labels. A user-selected snippet is limited to 600 characters and requires literal boolean consent. The API also caps streamed request bodies at 16 KiB. The public AI endpoint currently has no rate limit or usage quota; establish enforced platform-side controls before enabling a provider key. These source checks do not establish provider activation; Preview AI is disabled and no real OpenAI request has been sent.
 
 Required server-only value:
 
@@ -118,7 +117,7 @@ Optional:
 OPENAI_STORY_MODEL
 ```
 
-Production currently reports AI disabled until an authorized API key is installed in Vercel.
+Production currently reports AI disabled. Add an authorized server-side key through deployment secret management before testing.
 
 ## Telemetry
 
@@ -126,8 +125,8 @@ Production currently reports AI disabled until an authorized API key is installe
 code implemented: yes
 allowlisted events instrumented: yes
 Supabase server-only sink implemented: yes
-external endpoint configured in production: no
-production delivery verified: no
+production status: Supabase sink reported configured
+production delivery: FAILED; allowlisted smoke returned HTTP 502 `fetch failed`
 ```
 
 Allowed client dimensions remain only:
@@ -142,7 +141,7 @@ The API sanitizes the payload before delivery. Sink precedence is:
 
 1. configured HTTPS `TELEMETRY_ENDPOINT`;
 2. dedicated Supabase `product_events` table when server persistence is configured;
-3. safe HTTP 202 no-op when neither exists.
+3. safe HTTP 202 no-op when neither exists. Production currently chooses Supabase but the send is failing; status flags do not establish delivery.
 
 The `product_events` migration grants no browser-role table access. It contains only event, product, optional recognized mode and database timestamp; no arbitrary JSON or private content is stored.
 
@@ -152,11 +151,11 @@ The `product_events` migration grants no browser-role table access. It contains 
 production project: threadtales
 canonical URL: https://threadtales-five.vercel.app
 current production state: READY
-automatic PR preview deployment observed for activation branch: no
+automatic PR preview deployment observed for PR #19: yes; deployment `6809455565` succeeded on candidate `1474d7d89dabd4ae8b952d1463e132586d574122`
 environment-variable write capability available to current connected agent: no
 ```
 
-The current connected Vercel surface supports project/deployment/log inspection and deployment operations but does not expose project environment-variable or Git-integration mutations. Those account-level settings must be authorized through a Vercel write-capable surface before the external services can become live.
+No authenticated Vercel CLI, project context, or dashboard session is available in this runtime. The automatic PR Preview proves the repository deployment path is working. Project branch settings, environment-variable names/status, and build/runtime logs still require authenticated Vercel access. Exact Preview `/api/version` and route checks passed for candidate `1474d7d`.
 
 ## Safe status endpoint
 

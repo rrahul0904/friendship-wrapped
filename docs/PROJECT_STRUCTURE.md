@@ -495,18 +495,18 @@ Default branch:
 main
 ```
 
-Current latest end-to-end integration branch:
+Historical SaaS/media integration branch (merged into `main`):
 
 ```text
 platform-saas-media-live
 ```
 
-PR:
+PR (merged 2026-09-07):
 ```text
 #13 — Story Platform SaaS + Media OS launch
 ```
 
-The branch contains the latest complete superset of the application. It must only be promoted to `main` after its deployment gate is satisfied because it changes authenticated persistence/media behavior.
+The changes from this branch are in canonical `main`. Current production certification is tracked in `PRODUCTION_ACTIVATION_STATUS.md`.
 
 ## 17. Definition of "end-to-end complete"
 

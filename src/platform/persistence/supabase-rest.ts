@@ -212,6 +212,8 @@ export function assertDerivedStoryPayload(value: unknown) {
     if ("sender" in record && "timestamp" in record && "text" in record) throw new Error("Raw chat messages cannot be saved to cloud persistence.");
     for (const [key, child] of Object.entries(record)) {
       const normalizedKey = key.replace(/[_\-\s]/g, "").toLowerCase();
+      // Result V2 uses this exact key for aggregate participant/month/day counts.
+      if (normalizedKey === "messages" && typeof child === "number" && Number.isFinite(child) && child >= 0) continue;
       if (RAW_CONTENT_KEYS.has(normalizedKey)) throw new Error(`Cloud save rejected a raw-content field: ${key}`);
       visit(child, depth + 1);
     }

@@ -1,8 +1,22 @@
 # Production Activation Status
 
-Last verified: 2026-09-01
+Evidence refreshed 2026-10-02 against PR #19 Preview and production endpoints. This update does not claim authenticated provider certification.
 
-This is the resumable checkpoint for the `production-integrations-live` activation wave. PR #7 must remain unmerged until the external integration gates are genuinely active and verified.
+## Current certification checkpoint (updated 2026-10-02)
+
+The pre-merge production SHA is `067c3d635e45413514850fb7fcab4504822ee216`, returned by production `/api/version` on 2026-10-02. GitHub confirms PR #7, #13, and #17 have merged. PR #19's implementation candidate `1474d7d` and evidence-only docs child `b1101482b476df7cba045e3c795ed4f3d90b35f9` passed exact-head hosted CI; the docs child Preview returned its exact SHA, and 19 public/16 protected routes plus the privacy/demo browser spot checks passed. Independent read-only code review found no merge-blocking issue. The candidate limits browser and provider AI payloads to chapter-type labels and updates the public privacy disclosure. Recheck the current head, CI, and Preview before merging.
+
+Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref `pkmkynhkgitdslhadupj` failed DNS resolution during the current audit; its health and database state need connected provider access to verify.
+
+The implementation candidate passed dependency audit (0 vulnerabilities), lint (0 errors; 17 warnings), typecheck, 182 unit tests, and the performance budget; its optimized Next.js build and all 49 Chromium E2E tests passed. These code checks were repeated by hosted CI on the evidence-only docs child. Separately, production `/create?demo=1` previously rendered at desktop (1440px) and mobile (390px); current exact-Preview browser spot checks covered the privacy disclosure and synthetic demo flow. Public production route verification found `/admin` redirects to `/app?admin=denied`; the verifier follows protected internal redirects and requires eventual login/denial.
+
+GitHub access is available. Historical PR #19 head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` passed its exact-head CI and Preview checks. Current evidence is recorded in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md). The Vercel dashboard, CLI auth, and project context are unavailable, so project settings and build/runtime logs cannot be inspected from this session.
+
+The strict Preview verifier at implementation SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37` created a Stripe TEST Checkout Session but did not establish a completed integration: AI was disabled and the allowlisted telemetry event was not delivered. No test payment/webhook, authenticated Supabase/RLS/storage path, or provider certification has been completed. PR #19 contains the server-side AI chapter projection, bounded request body, privacy disclosure, and regression coverage; hosted verification passed as recorded in the certification ledger. Production deployment and merge state must be refreshed after the merge action.
+
+See [CERTIFICATION_BASELINE.md](CERTIFICATION_BASELINE.md) for the evidence matrix and [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for remaining gates.
+
+Historical checkpoint for the `production-integrations-live` activation wave. PR #7 merged on 2026-09-01. The statements below that checkpoint describe what was observed on 2026-09-01; they are not current account truth. The 2026-10-02 evidence at the top of this document supersedes historical project-slot, Vercel-link, secret, and PR status claims.
 
 ## Repository baseline
 
@@ -51,7 +65,11 @@ Strict mode must prove real remote behavior, not only environment-variable prese
 3. receive `accepted: true, delivered: true` from telemetry;
 4. require Stripe webhook plus Supabase public/server configuration.
 
-## Vercel — exact current state
+## Historical account findings — 2026-09-01; not current verified state
+
+The following Vercel, Stripe, and Supabase account details were captured in the earlier activation wave on 2026-09-01. They are retained as historical handoff context and have not been re-verified in this certification.
+
+### Historical Vercel details — superseded by the 2026-10-02 PR #19 Preview audit
 
 Project:
 
@@ -64,7 +82,7 @@ node: 24.x
 Git link: NONE (`link: null`)
 ```
 
-The missing Git link is the reason automatic PR Preview deployment is not occurring. Other Vercel projects in the same account show a GitHub `link`; `threadtales` does not.
+The 2026-09-01 check found no Git link and no automatic PR Preview. This finding is historical: PR #19 later produced successful automatic Preview deployments, including exact audited SHA `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`.
 
 Current production deployment remains READY:
 
@@ -82,7 +100,7 @@ Vercel runtime audit returned no current error clusters.
 
 The connected Vercel tool surface can inspect projects, deployments, builds and runtime logs, but does not expose project environment-variable writes or Git-link mutation. Supported owner-side activation paths are Vercel Project Settings, `vercel env add`, or Vercel Project Env/Git APIs with an authorized token.
 
-## Stripe — exact current state
+### Historical Stripe details
 
 Connected account: Rahul Singh (`acct_1QrNa7RB8OGmEnBw`).
 
@@ -135,7 +153,7 @@ NEXT_PUBLIC_SITE_URL=https://threadtales-five.vercel.app
 
 Do not put any secret values in Git, PR text, logs, or chat.
 
-## Supabase — exact current state
+### Historical Supabase details
 
 Organization:
 
@@ -176,13 +194,13 @@ GET /api/ai/enrich
 200 { enabled: false, provider: null }
 
 GET /api/stories
-503 Supabase persistence is not configured.
+401 Sign in to save and reopen stories.
 
 GET /api/petlife
-503 Supabase persistence is not configured for PetLife.
+401 Sign in to use PetLife cloud features.
 ```
 
-The AI provider code remains ready for Responses API usage with `store: false`, a derived ThreadTales allowlist, share-safe chapters, and explicit consent for the selected-snippet path.
+The exact Preview and production integration endpoints report Supabase and telemetry environment flags present; these do not prove provider health or successful database access. Unauthenticated stories and PetLife API reads return 401. The AI provider code uses the Responses API with `store: false`, an allowlisted ThreadTales fact schema, chapter-type labels, and explicit consent for the selected-snippet path. Preview AI is disabled; the public endpoint has no rate limit or usage quota, so platform-side controls are required before a key is enabled.
 
 Required Vercel OpenAI configuration:
 
@@ -208,9 +226,9 @@ Browser roles receive no direct table privileges. Telemetry becomes live automat
 
 Strict verification requires actual delivery (`delivered: true`).
 
-## ONE consolidated owner-action checkpoint
+## SUPERSEDED — historical owner-action checklist (2026-09-01)
 
-All machine-resolvable work has been completed without touching unrelated infrastructure. The remaining account actions should be completed together so activation can resume without repeated stops.
+The following checklist records the 2026-09-01 activation attempt. It is not current account truth or the active merge rule. Current provider evidence and owner actions are in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md).
 
 ### ACTION 1 — Vercel Git linkage
 
@@ -234,9 +252,9 @@ Production requires LIVE Stripe secret, LIVE price ID, unique Production entitle
 
 Leave `STRIPE_WEBHOOK_SECRET` unset until the webhook endpoints are created; install each generated signing secret immediately afterward.
 
-### ACTION 3 — Supabase capacity
+### ACTION 3 — Supabase capacity (historical)
 
-Increase the active-project allowance for organization `BruceWayne_RahulSingh` by one slot. The dedicated ThreadTales project itself currently prices at $0/month; creation is blocked by the owner's two-free-project quota.
+The earlier attempt said creating a new project was blocked by the account's free-project quota. The current handoff identifies an existing dedicated ThreadTales project; restore and verify that project instead of creating a duplicate.
 
 Do not delete/pause either unrelated project unless explicitly intended.
 
@@ -244,7 +262,7 @@ Do not delete/pause either unrelated project unless explicitly intended.
 
 Create/authorize a server-side OpenAI API key for ThreadTales and store it directly in Vercel as `OPENAI_API_KEY`. Do not paste the key into chat.
 
-## Automated continuation after those four account actions
+## Historical continuation plan — superseded
 
 Resume without another architecture phase:
 
@@ -273,31 +291,6 @@ create dedicated Supabase project
 → FULLY LIVE
 ```
 
-## Merge rule
+## Current release classification
 
-PR #7 remains open/draft. Do not merge until all of the following are green:
-
-```text
-repository CI                PASS
-automatic Vercel Preview     PASS
-Preview runtime              PASS
-Stripe test Checkout         PASS
-Stripe test payment          PASS
-Stripe webhook               PASS
-entitlement                  PASS
-Stripe live configuration    PASS
-dedicated Supabase project   PASS
-migrations                   PASS
-RLS isolation                PASS
-Auth                         PASS
-story persistence            PASS
-MyYear persistence           PASS
-PetLife cloud/collaboration  PASS
-OpenAI real request          PASS
-telemetry delivery           PASS
-strict integration verifier  PASS
-privacy audit                PASS
-secret scan                  PASS
-```
-
-Current classification: **NOT FULLY LIVE — ONLY ACCOUNT/SECRET-MANAGEMENT GATES REMAIN**.
+Code merge readiness is based on the pushed PR candidate's exact-head CI, independent review, and repository-required checks. Provider access and UAT gates are tracked separately and still block full production certification. The latest audit found no branch protection configured on `main`, but the candidate still requires its new hosted run and review. Production `/api/version` last returned `067c3d635e45413514850fb7fcab4504822ee216`. Current results and owner actions are in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md); certification remains **NOT COMPLETE**.

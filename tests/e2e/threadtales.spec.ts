@@ -75,10 +75,12 @@ test("a second failed import clears the previous result and the input is reusabl
   await expect(page.locator("#results")).toBeVisible();
 });
 
-test("privacy page states the implemented local-only free flow", async ({ page }) => {
+test("privacy page explains local-first processing and optional AI data boundaries", async ({ page }) => {
   await page.goto("/privacy");
   await expect(page.getByText(/Parsing and statistical analysis happen in local browser memory/i)).toBeVisible();
-  await expect(page.getByText(/does not send the raw file or message text/i)).toBeVisible();
+  await expect(page.getByText(/By default, the raw export and message history are not sent/i)).toBeVisible();
+  await expect(page.getByText(/request to the configured provider contains allowlisted derived metrics and chapter-type labels/i)).toBeVisible();
+  await expect(page.getByText(/consent to send that exact snippet/i)).toBeVisible();
 });
 
 test("share flow uses a derived-stat payload and renders an anonymous public story", async ({ page }) => {

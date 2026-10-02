@@ -2,7 +2,7 @@
 
 ## Scope
 
-This document describes the implemented architecture on `production-all-phases` for ThreadTales, MyYear.World, and PetLife. The central rule is unchanged: **the free ThreadTales analyzer does not upload the imported WhatsApp chat**. Optional payment, cloud persistence, AI enrichment, and telemetry are separate boundaries with narrow schemas and graceful disabled states.
+This document describes the implemented architecture now in canonical `main` for ThreadTales, MyYear.World, and PetLife. The central rule is unchanged: **the free ThreadTales analyzer does not upload the imported WhatsApp chat**. Optional payment, cloud persistence, AI enrichment, and telemetry are separate boundaries with narrow schemas and graceful disabled states. Live provider health and delivery are not certified; current evidence is in `PRODUCTION_ACTIVATION_STATUS.md`.
 
 ## Data-boundary summary
 
@@ -87,12 +87,12 @@ The repository contains `supabase/schema.sql` as an activation reference. It ena
 
 ### ThreadTales cloud save
 
-Only the versioned derived Result V2 is accepted. The server recursively rejects raw-content container keys including normalized forms of:
+ThreadTales persistence projects Result V2 into a smaller cloud record: numeric aggregate counts, normalized month keys, and anonymous `Person 1` labels. Top words, user names, and unknown nested properties are dropped before transmission. The server validates the projected shape again. The general recursive raw-content guard rejects raw-content container keys including normalized forms of:
 
 - `raw`;
 - `rawText`;
 - `rawChat`;
-- `messages`;
+- `messages` when it contains anything other than a finite non-negative count;
 - `chatMessages`;
 - `messageText`;
 - `sender`;
@@ -100,7 +100,7 @@ Only the versioned derived Result V2 is accepted. The server recursively rejects
 - `conversation`;
 - `text`.
 
-Derived counters such as `totalMessages` and `lateNightMessages` remain valid because the sanitizer matches forbidden raw-content keys exactly after normalization rather than substring-matching `messages` everywhere.
+Derived counters such as `totalMessages` and each numeric monthly `messages` count remain valid. ThreadTales saved-story reads apply the same projection before returning records to a browser.
 
 ### MyYear cloud save
 

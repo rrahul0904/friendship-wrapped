@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { STORY_MODES } from "@/platform/story/modes";
 
 const STRIPE_API = "https://api.stripe.com/v1";
 
@@ -33,6 +34,7 @@ export interface StripeCheckoutSession {
 }
 
 export async function createPremiumCheckout(origin: string, mode: string) {
+  if (typeof mode !== "string" || !Object.hasOwn(STORY_MODES, mode)) throw new Error("Unsupported story mode.");
   const price = process.env.STRIPE_PRICE_THREADTALES_PREMIUM;
   if (!price) throw new Error("STRIPE_PRICE_THREADTALES_PREMIUM is not configured.");
   const body = new URLSearchParams();

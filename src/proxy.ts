@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedPrefixes = ["/app", "/albums", "/settings", "/billing", "/admin"];
+const protectedPrefixes = ["/app", "/albums", "/settings", "/billing", "/admin", "/worlds"];
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -14,5 +14,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app/:path*", "/albums/:path*", "/settings/:path*", "/billing/:path*", "/admin/:path*"],
+  matcher: ["/app/:path*", "/albums/:path*", "/settings/:path*", "/billing/:path*", "/admin/:path*", "/worlds/:path*"],
 };

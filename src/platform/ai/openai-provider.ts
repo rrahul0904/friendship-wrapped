@@ -1,5 +1,5 @@
 import type { StoryEnrichmentInput, StoryEnrichmentIntent, StoryEnrichmentProvider, StoryEnrichmentResult } from "./types";
-import { validateStoryEnrichmentInput } from "./types";
+import { sanitizeStoryEnrichmentInput } from "./types";
 
 interface OpenAIResponse { model?: string; output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>; error?: { message?: string } | null; }
 
@@ -23,7 +23,7 @@ export class OpenAIStoryEnrichmentProvider implements StoryEnrichmentProvider {
   constructor(private readonly apiKey: string, private readonly model = "gpt-5.6-luna") {}
 
   async enrich(input: StoryEnrichmentInput): Promise<StoryEnrichmentResult> {
-    validateStoryEnrichmentInput(input);
+    input = sanitizeStoryEnrichmentInput(input);
     const payload = { product: input.product, mode: input.mode, intent: input.intent ?? "recap", facts: input.facts, chapters: input.chapters, ...(input.selectedSnippet?.trim() ? { userSelectedSnippet: input.selectedSnippet.trim() } : {}) };
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -32,14 +32,15 @@ export class OpenAIStoryEnrichmentProvider implements StoryEnrichmentProvider {
         model: this.model,
         store: false,
         max_output_tokens: 700,
-        instructions: `You enrich a personal story using only supplied derived facts, safe chapters, and any explicitly user-selected snippet. Do not infer private facts, relationship health, diagnoses, identities, or hidden message content. ${intentInstruction(input.intent)}`,
+        instructions: `You enrich a personal story using only supplied derived facts, chapter type labels, and any explicitly user-selected snippet. Chapter titles and other chapter copy are intentionally excluded. Do not infer private facts, relationship health, diagnoses, identities, or hidden message content. ${intentInstruction(input.intent)}`,
         input: JSON.stringify(payload),
         text: { verbosity: "low" },
       }),
       cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
     });
     const data = await response.json().catch(() => ({})) as OpenAIResponse;
-    if (!response.ok) throw new Error(data.error?.message ?? "AI enrichment provider failed.");
+    if (!response.ok) throw new Error("AI enrichment provider failed. Your deterministic story is still available.");
     const text = outputText(data);
     if (!text) throw new Error("AI enrichment returned no text.");
     return { text, provider: this.name, model: data.model ?? this.model };

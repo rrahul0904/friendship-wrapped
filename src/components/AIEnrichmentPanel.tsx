@@ -23,7 +23,7 @@ export function AIEnrichmentPanel({ stats, mode }: { stats: ChatStats; mode: Sto
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const safeChapters = useMemo(() => composeThreadTale(stats, mode).filter((chapter) => chapter.privacyLevel === "safe").map(({ id, type, title, subtitle, metric, supportingText, renderVariant }) => ({ id, type, title, subtitle, metric, supportingText, renderVariant })), [stats, mode]);
+  const safeChapters = useMemo(() => composeThreadTale(stats, mode).filter((chapter) => chapter.privacyLevel === "safe").map(({ type }) => ({ type })), [stats, mode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,7 +64,7 @@ export function AIEnrichmentPanel({ stats, mode }: { stats: ChatStats; mode: Sto
 
   return <section className="story ai-panel mc-ai-panel">
     <span className="story-summary-kicker">Optional AI studio</span><h3>Polish the words, not the facts.</h3>
-    <p>These actions send only allowlisted aggregate metrics and share-safe deterministic chapters by default. Participant names, top words and raw messages stay out.</p>
+    <p>The configured AI provider receives only allowlisted aggregate metrics and chapter-type labels by default. Participant names, top words and raw messages stay out.</p>
     <div className="mc-ai-actions" aria-label="AI writing actions">{ACTIONS.map((action) => <button className={`btn btn-soft ${intent === action.intent ? "active" : ""}`} key={action.intent} disabled={busy || Boolean(snippet.trim() && !consent)} onClick={() => void enrich(action.intent)}>{action.label}</button>)}</div>
     <label className="file-drop">Optional user-selected snippet<textarea className="share-input story-textarea" value={snippet} maxLength={600} onChange={(event) => { setSnippet(event.target.value); if (!event.target.value.trim()) setConsent(false); }} placeholder="Paste up to 600 characters only if you want this exact snippet processed remotely."/></label>
     {snippet.trim() ? <label className="toggle"><input type="checkbox" checked={consent} onChange={(event)=>setConsent(event.target.checked)}/> I understand this selected snippet will be sent to the configured AI provider.</label> : null}
