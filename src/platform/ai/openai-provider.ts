@@ -32,7 +32,7 @@ export class OpenAIStoryEnrichmentProvider implements StoryEnrichmentProvider {
         model: this.model,
         store: false,
         max_output_tokens: 700,
-        instructions: `You enrich a personal story using only supplied derived facts, safe chapters, and any explicitly user-selected snippet. Do not infer private facts, relationship health, diagnoses, identities, or hidden message content. ${intentInstruction(input.intent)}`,
+        instructions: `You enrich a personal story using only supplied derived facts, chapter type labels, and any explicitly user-selected snippet. Chapter titles and other chapter copy are intentionally excluded. Do not infer private facts, relationship health, diagnoses, identities, or hidden message content. ${intentInstruction(input.intent)}`,
         input: JSON.stringify(payload),
         text: { verbosity: "low" },
       }),

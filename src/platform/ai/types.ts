@@ -9,7 +9,8 @@ export interface StoryEnrichmentInput {
   mode?: string;
   intent?: StoryEnrichmentIntent;
   facts: Record<string, string | number | boolean | null>;
-  chapters: Array<Pick<StoryChapter, "id" | "type" | "title" | "subtitle" | "metric" | "supportingText" | "renderVariant">>;
+  /** Chapter labels are accepted for compatibility but never forwarded to the provider. */
+  chapters: Array<Pick<StoryChapter, "type"> & Partial<Pick<StoryChapter, "id" | "title" | "subtitle" | "metric" | "supportingText" | "renderVariant">>>;
   selectedSnippet?: string;
   snippetConsent?: boolean;
 }
@@ -19,9 +20,14 @@ export interface StoryEnrichmentProvider { readonly name: string; enrich(input: 
 
 const THREADTALES_FACTS = new Set(["totalMessages","totalWords","daysTogether","activeDays","longestStreak","longestSilenceDays","medianReplyMinutes","peakHour","favoriteWeekday","lateNightMessages","questionsAsked","laughSignals","heartSignals","mediaSignals","conversationBalance","yearCount"]);
 const FORBIDDEN_KEYS = /raw|messageText|chatMessages|participants|topWords|sender|transcript/i;
+const STORY_CHAPTER_TYPES = new Set<StoryChapter["type"]>([
+  "cover", "beginning", "scale", "balance", "conversation-starter", "reply-speed",
+  "response-rhythm", "streak", "busiest-day", "late-night", "language", "vibe", "timeline", "closing",
+]);
 
 export function validateStoryEnrichmentInput(input: StoryEnrichmentInput) {
   if (!input || !["threadtales","myyear","petlife"].includes(input.product)) throw new Error("Unsupported AI enrichment product.");
+  if (input.product !== "threadtales") throw new Error("AI enrichment is not enabled for this product.");
   if (input.mode !== undefined && (typeof input.mode !== "string" || !Object.hasOwn(STORY_MODES, input.mode))) throw new Error("Unsupported AI enrichment mode.");
   if (input.intent !== undefined && !STORY_ENRICHMENT_INTENTS.includes(input.intent)) throw new Error("Unsupported AI enrichment intent.");
   if (!input.facts || typeof input.facts !== "object" || Array.isArray(input.facts)) throw new Error("Invalid enrichment facts.");
@@ -39,10 +45,12 @@ export function validateStoryEnrichmentInput(input: StoryEnrichmentInput) {
   if (!Array.isArray(input.chapters) || input.chapters.length > 20) throw new Error("Invalid enrichment chapter list.");
   for (const chapter of input.chapters) {
     if (!chapter || typeof chapter !== "object" || Array.isArray(chapter)) throw new Error("Invalid enrichment chapter.");
+    if (typeof chapter.type !== "string" || !STORY_CHAPTER_TYPES.has(chapter.type as StoryChapter["type"])) throw new Error("Invalid enrichment chapter type.");
     for (const key of ["id", "type", "title", "subtitle", "supportingText", "renderVariant"] as const) {
       if (chapter[key] !== undefined && typeof chapter[key] !== "string") throw new Error("Invalid enrichment chapter field.");
     }
-    if (typeof chapter.id !== "string" || typeof chapter.title !== "string") throw new Error("Invalid enrichment chapter.");
+    if (chapter.id !== undefined && typeof chapter.id !== "string") throw new Error("Invalid enrichment chapter.");
+    if (chapter.title !== undefined && typeof chapter.title !== "string") throw new Error("Invalid enrichment chapter.");
     if (chapter.metric !== undefined && typeof chapter.metric !== "string" && !(typeof chapter.metric === "number" && Number.isFinite(chapter.metric))) throw new Error("Invalid enrichment chapter metric.");
     const joined = [chapter.id, chapter.type, chapter.title, chapter.subtitle, chapter.metric, chapter.supportingText, chapter.renderVariant].filter((value) => value !== undefined).join(" ");
     if (joined.length > 1000) throw new Error("AI chapter input is too long.");
@@ -63,7 +71,10 @@ export function sanitizeStoryEnrichmentInput(input: StoryEnrichmentInput): Story
     ...(input.mode !== undefined ? { mode: input.mode } : {}),
     ...(input.intent !== undefined ? { intent: input.intent } : {}),
     facts: { ...input.facts },
-    chapters: input.chapters.map(({ id, type, title, subtitle, metric, supportingText, renderVariant }) => ({ id, type, title, subtitle, metric, supportingText, renderVariant })),
+    // Chapter copy may contain names, notes, or other user text, even when a
+    // client labels it share-safe. Only the closed chapter-type enum crosses
+    // the provider boundary; selected free text uses the consented snippet path.
+    chapters: input.chapters.map(({ type }) => ({ type })),
     ...(input.selectedSnippet?.trim() ? { selectedSnippet: input.selectedSnippet.trim(), snippetConsent: true } : {}),
   };
 }

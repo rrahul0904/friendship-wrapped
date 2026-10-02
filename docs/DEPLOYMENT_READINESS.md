@@ -2,9 +2,9 @@
 
 ## Current release checkpoint — 2026-10-01
 
-PR #17 is merged. The canonical main SHA and production `/api/version` are both `067c3d635e45413514850fb7fcab4504822ee216`; main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is at `67b8777e32a6265cf3d2094f3db1d1e7f781fa37`; exact-head CI [36910230791](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36910230791) passed, and Vercel created a successful exact-head Preview.
+PR #17 is merged. The canonical main SHA and production `/api/version` are both `067c3d635e45413514850fb7fcab4504822ee216`; main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open at audited head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`; exact-head CI [36911136761](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36911136761) passed, and Vercel produced a successful exact-head Preview at `https://threadtales-iekpoesmx-rrahul0904-5013s-projects.vercel.app`.
 
-The branch passes the production build and 49/49 Chromium E2E tests; all code checks also pass on hosted CI. Preview route verification succeeds and a TEST Checkout Session was created, but the strict Preview gate remains red because AI is disabled and telemetry delivery fails. Supabase account/RLS/storage, Stripe payment/webhook/entitlement, and OpenAI request flows remain uncertified. The Vercel dashboard still requires login to inspect project settings and build/runtime logs. Do not treat historical PR #6/#7 gates below as open PRs.
+The prior candidate passed production build and 49/49 Chromium E2E tests. Exact Preview route verification passed all 19 public and 16 protected routes, and a TEST Checkout Session was created. Strict Preview certification remains incomplete: AI is disabled, telemetry delivery failed, and Supabase health/migrations/RLS/storage, Stripe payment/webhook/entitlement, and authenticated cloud flows remain uncertified. Current local changes add an AI privacy projection and a 16 KiB request-body cap; focused tests, typecheck, and targeted lint pass, but the changed SHA still needs exact-head hosted CI and Preview. Vercel dashboard authentication is needed for project settings and logs. Do not treat historical PR #6/#7 gates below as open PRs.
 
 ## Deployment model
 
@@ -95,18 +95,20 @@ Only intentionally public configuration may use `NEXT_PUBLIC_`.
 
 ## External services
 
-A configuration-gated optional integration does not block merging when:
+A configuration-gated optional integration is not certified merely because:
 
 1. its code and disabled behavior are tested;
 2. missing credentials do not break free routes;
 3. documentation states that live verification has not occurred;
 4. no secret is required at build time.
 
+For this release, exact-head CI and required code review determine whether PR #19 can merge. Provider configuration, authenticated security UAT, and end-to-end certification remain separate gates; a merge does not certify providers or authorize claims of full production readiness. Any automatic main deployment must be checked against the merged SHA.
+
 See `EXTERNAL_INTEGRATIONS.md` for the activation state of Stripe, Supabase, AI and telemetry.
 
 ## Final classification
 
-PR #6 may be marked `READY TO MERGE` only when all of these are true on the final head:
+PR #19 may be marked `READY TO MERGE` when these code checks and repository-required independent review are green on the exact final head:
 
 ```text
 npm ci              PASS
@@ -120,7 +122,7 @@ privacy audit       PASS
 Vercel preview      PASS
 ```
 
-Otherwise the final report must say `NOT READY TO MERGE` and list exact blockers.
+Otherwise the final report must say `NOT READY TO MERGE` and list exact code/review blockers. Provider gates continue to block production certification even if the code is merged.
 
 ## Production policy
 

@@ -1,18 +1,18 @@
 # Production Activation Status
 
-Last verified against public source and production endpoints: 2026-10-01. This update does not claim authenticated provider certification.
+Last verified against public source, current PR Preview, and production endpoints: 2026-10-01. This update does not claim authenticated provider certification.
 
-## Current certification checkpoint (2026-10-01)
+## Current certification checkpoint (updated 2026-10-02)
 
-The deployed main SHA is `067c3d635e45413514850fb7fcab4504822ee216`, also returned by production `/api/version`. GitHub confirms PR #7, #13, and #17 have merged. The baseline main CI run [34925302823](https://github.com/rrahul0904/friendship-wrapped/actions/runs/34925302823) passed on that SHA. Certification fixes are on the local, unpushed branch `codex/threadtales-production-certification`.
+The deployed main SHA is `067c3d635e45413514850fb7fcab4504822ee216`, also returned by production `/api/version`. GitHub confirms PR #7, #13, and #17 have merged. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open against `main`; its latest remotely audited head is `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`. The working candidate includes additional local AI privacy boundary changes that still need commit and exact-head CI/Preview verification.
 
-Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref was last reported inactive; its current health and database state need a connected Supabase account to verify.
+Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref `pkmkynhkgitdslhadupj` failed DNS resolution during the current audit; its health and database state need connected provider access to verify.
 
 The certification branch now passes clean dependency audit (0 vulnerabilities), lint (0 errors; 17 warnings), typecheck, 179 unit tests, and the unchanged performance budget (100,000 messages in 1,146ms on isolated rerun). The optimized Next.js build completed, and all 49 Chromium E2E tests passed against that production build. Separately, the deployed production `/create?demo=1` flow rendered at desktop (1440px) and mobile (390px) with no overflow or page errors. That browser smoke applies to current production main, not the unpushed branch. Public production route verification found `/admin` redirects to `/app?admin=denied`; the verifier follows protected internal redirects and requires eventual login/denial.
 
-GitHub access is now available. Draft [PR #19](https://github.com/rrahul0904/friendship-wrapped/pull/19) is open at candidate SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37`; exact-head CI [36910230791](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36910230791) passed, and Vercel automatically produced a successful Preview at `https://threadtales-qe47xnaik-rrahul0904-5013s-projects.vercel.app`. The Preview version endpoint returns the exact candidate SHA. The Vercel dashboard itself still redirects to login and no Vercel CLI/token/project context is available, so project settings and build/runtime logs cannot be inspected from this session.
+GitHub access is available. Draft PR #19's audited head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` passed exact-head CI [36911136761](https://github.com/rrahul0904/friendship-wrapped/actions/runs/36911136761), and Vercel automatically produced a successful Preview at `https://threadtales-iekpoesmx-rrahul0904-5013s-projects.vercel.app`; Preview `/api/version` reports that exact SHA. All 19 public and 16 protected routes passed read-only checks. The Vercel dashboard, CLI auth, and project context are unavailable, so project settings and build/runtime logs cannot be inspected from this session.
 
-The strict Preview verifier returned all 19 public paths and all 16 protected paths successfully and created a Stripe TEST Checkout Session. It also failed truthfully: AI is disabled and the allowlisted telemetry event was not delivered. No test payment/webhook, authenticated Supabase/RLS/storage path, production change, or merge has occurred.
+The strict Preview verifier at implementation SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37` created a Stripe TEST Checkout Session but failed truthfully: AI is disabled and the allowlisted telemetry event was not delivered. That implementation is the source-identical ancestor of the audited documentation follow-up at `ef7a94b5`. No test payment/webhook, authenticated Supabase/RLS/storage path, production change, or merge has occurred. The current local candidate also adds server-side projection of AI chapter data and a bounded request body; focused regression tests pass but hosted verification is pending.
 
 See [CERTIFICATION_BASELINE.md](CERTIFICATION_BASELINE.md) for the evidence matrix and [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for remaining gates.
 
@@ -69,7 +69,7 @@ Strict mode must prove real remote behavior, not only environment-variable prese
 
 The following Vercel, Stripe, and Supabase account details were captured in the earlier activation wave on 2026-09-01. They are retained as historical handoff context and have not been re-verified in this certification.
 
-### Historical Vercel details
+### Historical Vercel details — superseded by the 2026-10-01 PR #19 Preview audit
 
 Project:
 
@@ -82,7 +82,7 @@ node: 24.x
 Git link: NONE (`link: null`)
 ```
 
-The missing Git link is the reason automatic PR Preview deployment is not occurring. Other Vercel projects in the same account show a GitHub `link`; `threadtales` does not.
+The 2026-09-01 check found no Git link and no automatic PR Preview. This finding is historical: PR #19 later produced successful automatic Preview deployments, including exact audited SHA `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e`.
 
 Current production deployment remains READY:
 
@@ -226,9 +226,9 @@ Browser roles receive no direct table privileges. Telemetry becomes live automat
 
 Strict verification requires actual delivery (`delivered: true`).
 
-## ONE consolidated owner-action checkpoint
+## SUPERSEDED — historical owner-action checklist (2026-09-01)
 
-All machine-resolvable work has been completed without touching unrelated infrastructure. The remaining account actions should be completed together so activation can resume without repeated stops.
+The following checklist records the 2026-09-01 activation attempt. It is not current account truth or the active merge rule. Current provider evidence and owner actions are in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md).
 
 ### ACTION 1 — Vercel Git linkage
 
@@ -252,9 +252,9 @@ Production requires LIVE Stripe secret, LIVE price ID, unique Production entitle
 
 Leave `STRIPE_WEBHOOK_SECRET` unset until the webhook endpoints are created; install each generated signing secret immediately afterward.
 
-### ACTION 3 — Supabase capacity
+### ACTION 3 — Supabase capacity (historical)
 
-Increase the active-project allowance for organization `BruceWayne_RahulSingh` by one slot. The dedicated ThreadTales project itself currently prices at $0/month; creation is blocked by the owner's two-free-project quota.
+The earlier attempt said creating a new project was blocked by the account's free-project quota. The current handoff identifies an existing dedicated ThreadTales project; restore and verify that project instead of creating a duplicate.
 
 Do not delete/pause either unrelated project unless explicitly intended.
 
@@ -262,7 +262,7 @@ Do not delete/pause either unrelated project unless explicitly intended.
 
 Create/authorize a server-side OpenAI API key for ThreadTales and store it directly in Vercel as `OPENAI_API_KEY`. Do not paste the key into chat.
 
-## Automated continuation after those four account actions
+## Historical continuation plan — superseded
 
 Resume without another architecture phase:
 
@@ -291,31 +291,6 @@ create dedicated Supabase project
 → FULLY LIVE
 ```
 
-## Merge rule
+## Current release classification
 
-PR #7 remains open/draft. Do not merge until all of the following are green:
-
-```text
-repository CI                PASS
-automatic Vercel Preview     PASS
-Preview runtime              PASS
-Stripe test Checkout         PASS
-Stripe test payment          PASS
-Stripe webhook               PASS
-entitlement                  PASS
-Stripe live configuration    PASS
-dedicated Supabase project   PASS
-migrations                   PASS
-RLS isolation                PASS
-Auth                         PASS
-story persistence            PASS
-MyYear persistence           PASS
-PetLife cloud/collaboration  PASS
-OpenAI real request          PASS
-telemetry delivery           PASS
-strict integration verifier  PASS
-privacy audit                PASS
-secret scan                  PASS
-```
-
-Current classification: **NOT FULLY LIVE — ONLY ACCOUNT/SECRET-MANAGEMENT GATES REMAIN**.
+Code merge readiness is based on the pushed PR candidate's exact-head CI, independent review, and repository-required checks. Provider access and UAT gates are tracked separately and still block full production certification. The latest audit found no branch protection configured on `main`, but the candidate still requires its new hosted run and review. Production `/api/version` last returned `067c3d635e45413514850fb7fcab4504822ee216`. Current results and owner actions are in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md); certification remains **NOT COMPLETE**.
