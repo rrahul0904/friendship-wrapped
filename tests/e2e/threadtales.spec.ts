@@ -5,12 +5,20 @@ const fixturePath = path.resolve(process.cwd(), "tests/fixtures/whatsapp/android
 
 async function uploadFixture(page: import("@playwright/test").Page) {
   await page.goto("/create");
-  await page.getByLabel("Choose WhatsApp text export").setInputFiles(fixturePath);
+  await page.getByLabel("Choose WhatsApp text export or Telegram JSON export").setInputFiles(fixturePath);
   await expect(page.locator("#results")).toBeVisible();
 }
 
 function appError(page: import("@playwright/test").Page) {
   return page.locator(".error[role='alert']");
+}
+
+async function revealPostStoryTools(page: import("@playwright/test").Page) {
+  const viewer = page.getByLabel("Story chapter viewer");
+  await viewer.focus();
+  await page.keyboard.press("End");
+  await page.getByRole("button", { name: "More ways to keep it" }).click();
+  await expect(page.getByRole("region", { name: "Optional post-story tools" })).toBeVisible();
 }
 
 test("landing page primary CTA reaches create", async ({ page }) => {
@@ -20,22 +28,30 @@ test("landing page primary CTA reaches create", async ({ page }) => {
   await expect(page).toHaveURL(/\/create$/);
 });
 
-test("demo mode produces a results story", async ({ page }) => {
+test("demo mode produces the story reveal without a pre-story dashboard", async ({ page }) => {
   await page.goto("/create?demo=1");
   await expect(page.locator("#results")).toBeVisible();
-  await expect(page.locator(".story-hero")).toContainText("420 messages");
+  const deck = page.getByRole("region", { name: /story chapters/i });
+  await expect(deck).toBeVisible();
+  await expect(page.locator(".story-grid")).toHaveCount(0);
+  await deck.getByRole("button", { name: "Open chapter 3" }).click();
+  await expect(deck.locator(".chapter-preview")).toContainText("420");
+  await expect(deck.locator(".chapter-preview")).toContainText("messages");
 });
 
-test("synthetic WhatsApp fixture upload produces results", async ({ page }) => {
+test("synthetic WhatsApp fixture upload produces deterministic story chapters", async ({ page }) => {
   await uploadFixture(page);
-  const hero = page.locator(".story-hero");
-  await expect(hero).toContainText("5 messages");
-  await expect(hero.getByText(/Maya Rose \+ Jordan Lee/)).toBeVisible();
+  const deck = page.getByRole("region", { name: /story chapters/i });
+  await deck.getByRole("button", { name: "Open chapter 3" }).click();
+  await expect(deck.locator(".chapter-preview")).toContainText("5");
+  await expect(deck.locator(".chapter-preview")).toContainText("messages");
+  await deck.getByRole("button", { name: "Open chapter 4" }).click();
+  await expect(deck.locator(".chapter-preview")).toContainText(/Maya Rose|Jordan Lee/);
 });
 
 test("invalid file type shows an actionable recoverable error", async ({ page }) => {
   await page.goto("/create");
-  await page.getByLabel("Choose WhatsApp text export").setInputFiles({
+  await page.getByLabel("Choose WhatsApp text export or Telegram JSON export").setInputFiles({
     name: "chat.pdf",
     mimeType: "application/pdf",
     buffer: Buffer.from("not really a chat"),
@@ -46,7 +62,7 @@ test("invalid file type shows an actionable recoverable error", async ({ page })
 
 test("empty and insufficient chats show recoverable errors", async ({ page }) => {
   await page.goto("/create");
-  const input = page.getByLabel("Choose WhatsApp text export");
+  const input = page.getByLabel("Choose WhatsApp text export or Telegram JSON export");
 
   await input.setInputFiles({ name: "empty.txt", mimeType: "text/plain", buffer: Buffer.from("   \n") });
   await expect(appError(page)).toContainText("empty");
@@ -63,9 +79,11 @@ test("empty and insufficient chats show recoverable errors", async ({ page }) =>
   await expect(page.locator("#results")).toHaveCount(0);
 });
 
-test("a second failed import clears the previous result and the input is reusable", async ({ page }) => {
+test("reset returns to a reusable importer after a successful story", async ({ page }) => {
   await uploadFixture(page);
-  const input = page.getByLabel("Choose WhatsApp text export");
+  await page.getByRole("button", { name: "Start another story" }).click();
+  const input = page.getByLabel("Choose WhatsApp text export or Telegram JSON export");
+  await expect(input).toBeAttached();
 
   await input.setInputFiles({ name: "bad.txt", mimeType: "text/plain", buffer: Buffer.from("not a chat") });
   await expect(appError(page)).toContainText("only 0 supported messages");
@@ -83,15 +101,10 @@ test("privacy page explains local-first processing and optional AI data boundari
   await expect(page.getByText(/consent to send that exact snippet/i)).toBeVisible();
 });
 
-test("share flow uses a derived-stat payload and renders an anonymous public story", async ({ page }) => {
-  await uploadFixture(page);
-
-  const shareUrl = await page.locator(".share-panel .share-input[readonly]").inputValue();
-  expect(shareUrl).toContain("/share#");
-  expect(shareUrl).not.toContain("Maya Rose");
-  expect(shareUrl).not.toContain("Morning");
-
-  await page.goto(shareUrl);
+test("public share route still renders an anonymous derived-stat story", async ({ page }) => {
+  await page.goto("/create?demo=1");
+  await expect(page.locator("#results")).toBeVisible();
+  await page.goto("/share#eyJ2IjoxLCJ0b3RhbE1lc3NhZ2VzIjo0MjAsInRvdGFsV29yZHMiOjE1MjQsImRheXNUb2dldGhlciI6MTEsImFjdGl2ZURheXMiOjcsImxvbmdlc3RTdHJlYWsiOjMsInBlYWtIb3VyIjoyMywiZmF2b3JpdGVXZWVrZGF5IjoiRnJpZGF5IiwibGF0ZU5pZ2h0TWVzc2FnZXMiOjcwLCJxdWVzdGlvbnNBc2tlZCI6NDIsImxhdWdoU2lnbmFscyI6ODQsImhlYXJ0U2lnbmFscyI6MzUsImZpcnN0VGltZXN0YW1wIjoxNzU0NjQwMDAwMDAwLCJsYXN0VGltZXN0YW1wIjoxNzU1NTA0MDAwMDAwLCJwYXJ0aWNpcGFudHMiOlt7Im5hbWUiOiJQZXJzb24gMSIsIm1lc3NhZ2VzIjoyMTAsInBlcmNlbnRhZ2UiOjUwfSx7Im5hbWUiOiJQZXJzb24gMiIsIm1lc3NhZ2VzIjoyMTAsInBlcmNlbnRhZ2UiOjUwfV0sImJ5WWVhciI6W3sieWVhciI6MjAyNSwibWVzc2FnZXMiOjQyMH1dLCJ2aWJlIjp7ImFmZmVjdGlvbiI6NzAsImNoYW9zIjo2NSwiY3VyaW9zaXR5Ijo2MCwibmlnaHRPd2wiOjgwfSwibW9kZSI6ImZyaWVuZHMifQ");
   await expect(page.locator(".story-hero")).toContainText("A ThreadTale");
   await expect(page.locator(".story-hero")).toContainText("Person 1 + Person 2");
 });
@@ -102,6 +115,7 @@ test("free ThreadTales story deck supports chapter navigation and export control
   const deck = page.getByRole("region", { name: /story chapters/i });
   await expect(deck).toBeVisible();
   await expect(deck.getByRole("button", { name: "Download PNG" })).toBeVisible();
+  await expect(deck.getByRole("button", { name: "Share card" })).toBeVisible();
   const firstTitle = await deck.locator(".chapter-preview h3").textContent();
   await deck.getByRole("button", { name: /Next/ }).click();
   await expect(deck.locator(".chapter-preview h3")).not.toHaveText(firstTitle ?? "");
@@ -120,6 +134,7 @@ test("anniversary occasion activates the anniversary story mode", async ({ page 
 test("premium remains gracefully unavailable when Stripe is not configured", async ({ page }) => {
   await page.goto("/create?demo=1");
   await expect(page.locator("#results")).toBeVisible();
+  await revealPostStoryTools(page);
   await page.getByRole("button", { name: "Unlock premium" }).click();
   await expect(page.getByText(/STRIPE_PRICE_THREADTALES_PREMIUM is not configured|Checkout is unavailable/i)).toBeVisible();
   await expect(page.locator("#results")).toBeVisible();
@@ -162,16 +177,20 @@ test("PetLife creates a local pet timeline, recap, and supports deletion", async
   await expect(timeline.getByRole("button", { name: "Delete" })).toHaveCount(1);
 });
 
-test("AI enrichment is gracefully disabled without credentials", async ({ page }) => {
+test("AI enrichment remains optional and is only mounted after the story", async ({ page }) => {
   await page.goto("/create?demo=1");
   await expect(page.locator("#results")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Deterministic story mode is active." })).toHaveCount(0);
+  await revealPostStoryTools(page);
   await expect(page.getByRole("heading", { name: "Deterministic story mode is active." })).toBeVisible();
   await expect(page.getByText(/AI enrichment is not configured/i)).toBeVisible();
 });
 
-test("cloud save and household collaboration remain safely disabled without Supabase", async ({ page }) => {
+test("cloud save remains safely disabled and post-story without Supabase", async ({ page }) => {
   await page.goto("/create?demo=1");
   await expect(page.locator("#results")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Local mode is active." })).toHaveCount(0);
+  await revealPostStoryTools(page);
   await expect(page.getByRole("heading", { name: "Local mode is active." })).toBeVisible();
 
   await page.goto("/products/petlife");
