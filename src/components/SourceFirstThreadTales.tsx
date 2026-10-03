@@ -14,6 +14,14 @@ const number = (value: number) => new Intl.NumberFormat("en").format(value);
 const replyLabel = (minutes: number | null) => minutes == null ? "not enough data" : minutes < 1 ? "under a minute" : minutes < 60 ? `${Math.round(minutes)} min` : minutes < 1440 ? `${(minutes / 60).toFixed(1)} hr` : `${(minutes / 1440).toFixed(1)} days`;
 const xml = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[char] ?? char));
 
+function makeCardSvg(slide: Slide) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><rect width="1080" height="1920" rx="72" fill="#130f18"/><circle cx="880" cy="260" r="300" fill="#6f4cff" opacity=".28"/><circle cx="160" cy="1610" r="330" fill="#ff7b72" opacity=".18"/><text x="90" y="180" fill="#c7b8ff" font-family="Arial" font-size="32" letter-spacing="6">${xml(slide.eyebrow.toUpperCase())}</text><text x="90" y="390" fill="#fff" font-family="Arial" font-size="70" font-weight="700">${xml(slide.title.slice(0, 34))}</text><text x="90" y="500" fill="#fff" font-family="Arial" font-size="70" font-weight="700">${xml(slide.title.slice(34, 68))}</text><text x="90" y="820" fill="#fff" font-family="Arial" font-size="92" font-weight="700">${xml((slide.value ?? "").slice(0, 34))}</text><text x="90" y="1030" fill="#d8d1de" font-family="Arial" font-size="36">${xml(slide.body.slice(0, 58))}</text><text x="90" y="1090" fill="#d8d1de" font-family="Arial" font-size="36">${xml(slide.body.slice(58, 116))}</text><text x="90" y="1750" fill="#8f8498" font-family="Arial" font-size="28">THREADTALES · PROCESSED LOCALLY</text></svg>`;
+}
+
+function makeCardFile(slide: Slide, chapter: number) {
+  return new File([makeCardSvg(slide)], `threadtales-${chapter}.svg`, { type: "image/svg+xml" });
+}
+
 function buildSlides(stats: ChatStats): Slide[] {
   const people = [...stats.participants].sort((a, b) => b.messages - a.messages);
   const isGroup = people.length > 2;
@@ -185,6 +193,11 @@ export function SourceFirstThreadTales() {
 
   async function share(slide: Slide) {
     const text = [slide.title, slide.value, slide.body, "Made with ThreadTales"].filter(Boolean).join("\n");
+    const file = makeCardFile(slide, index + 1);
+    if (navigator.share && navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ title: "ThreadTales", text, files: [file] }).catch(() => undefined);
+      return;
+    }
     if (navigator.share) {
       await navigator.share({ title: "ThreadTales", text }).catch(() => undefined);
       return;
@@ -193,8 +206,7 @@ export function SourceFirstThreadTales() {
   }
 
   function save(slide: Slide) {
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920"><rect width="1080" height="1920" rx="72" fill="#130f18"/><circle cx="880" cy="260" r="300" fill="#6f4cff" opacity=".28"/><circle cx="160" cy="1610" r="330" fill="#ff7b72" opacity=".18"/><text x="90" y="180" fill="#c7b8ff" font-family="Arial" font-size="32" letter-spacing="6">${xml(slide.eyebrow.toUpperCase())}</text><text x="90" y="390" fill="#fff" font-family="Arial" font-size="70" font-weight="700">${xml(slide.title.slice(0, 34))}</text><text x="90" y="500" fill="#fff" font-family="Arial" font-size="70" font-weight="700">${xml(slide.title.slice(34, 68))}</text><text x="90" y="820" fill="#fff" font-family="Arial" font-size="92" font-weight="700">${xml((slide.value ?? "").slice(0, 34))}</text><text x="90" y="1030" fill="#d8d1de" font-family="Arial" font-size="36">${xml(slide.body.slice(0, 58))}</text><text x="90" y="1090" fill="#d8d1de" font-family="Arial" font-size="36">${xml(slide.body.slice(58, 116))}</text><text x="90" y="1750" fill="#8f8498" font-family="Arial" font-size="28">THREADTALES · PROCESSED LOCALLY</text></svg>`;
-    const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    const url = URL.createObjectURL(new Blob([makeCardSvg(slide)], { type: "image/svg+xml" }));
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = `threadtales-${index + 1}.svg`;
