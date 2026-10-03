@@ -10,6 +10,8 @@ The previous implementation drifted from the original Friendship Wrapped thesis 
    - Original project conversation referenced `mrrplanet.com/p/your-love-page`.
    - Current public Your Love Page product: `https://www.yourlovepage.online/`.
    - Product lesson: one recipient, one emotional outcome, highly specific memories, photos/music, instant one-link sharing, and keepsake value.
+   - Current Love Wrapped is described publicly as a **nine-chapter interactive recap** built from numbers, places, photos, qualities, inside jokes, a song and a final letter.
+   - The commercial model is also instructive: build/preview first, then a **one-time payment** for a permanent published page rather than a subscription-first product.
 2. **Wrapped metaphor**
    - Personalized data becomes a sequence of surprising, shareable story moments rather than an analytics dashboard.
 3. **Friendship Wrapped / ThreadTales**
@@ -27,6 +29,8 @@ ThreadTales is **not** a general story platform. Its core product is:
 
 > Give it one conversation. Get back a personal, emotionally legible story about that relationship, processed locally and worth sending to the other person.
 
+The analytics are raw material. The product is the keepsake.
+
 ### Golden journey
 
 1. Land on one clear promise.
@@ -38,6 +42,7 @@ ThreadTales is **not** a general story platform. Its core product is:
 7. Pair chats and group chats use different editorial questions.
 8. Any chapter can be saved/shared without exposing raw chat.
 9. The final screen is a keepsake/recap, not an upsell dashboard.
+10. Optional personalization (a dedication, selected local lore, cover treatment) happens after the automatic story works, not before the user sees value.
 
 ## Pair chat chapter grammar
 
@@ -52,7 +57,7 @@ ThreadTales is **not** a general story platform. Its core product is:
 9. Balance — how evenly the conversation is carried
 10. Timeline — how volume changes over time
 11. Local lore — optional repeated phrases, never public by default
-12. Closing keepsake
+12. Closing keepsake / optional final note
 
 ## Group chat chapter grammar
 
@@ -67,7 +72,7 @@ ThreadTales is **not** a general story platform. Its core product is:
 9. Participation balance
 10. Timeline
 11. Optional local-only lore
-12. Closing keepsake
+12. Closing keepsake / optional group note
 
 A group is not a pair deck with more names.
 
