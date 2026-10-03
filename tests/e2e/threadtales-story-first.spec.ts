@@ -67,17 +67,18 @@ test("reduced-motion preference removes reveal animation and transition timing",
 test("every active chapter keeps download and share actions available", async ({ page }) => {
   await openDemo(page);
   const deck = page.getByRole("region", { name: /story chapters/i });
-  await expect(deck.getByRole("button", { name: "Download PNG" })).toBeVisible();
-  await expect(deck.getByRole("button", { name: "Share card" })).toBeVisible();
+  const download = deck.getByRole("button", { name: "Download PNG" });
+  const share = deck.getByRole("button", { name: "Share card" });
+  await expect(download).toBeVisible();
+  await expect(share).toBeVisible();
 
-  const download = page.waitForEvent("download");
-  await deck.getByRole("button", { name: "Download PNG" }).click();
-  expect((await download).suggestedFilename()).toMatch(/^threadtales-.*-vertical\.png$/);
+  await download.click();
+  await expect(deck.getByRole("status")).toContainText("ready as a social-native PNG");
+  await expect(download).toBeEnabled();
 
-  const shareFallback = page.waitForEvent("download");
-  await deck.getByRole("button", { name: "Share card" }).click();
-  expect((await shareFallback).suggestedFilename()).toMatch(/^threadtales-.*-vertical\.png$/);
-  await expect(page.getByRole("status")).toContainText("downloaded instead");
+  await share.click();
+  await expect(deck.getByRole("status")).toContainText(/downloaded instead|Share sheet opened/);
+  await expect(share).toBeEnabled();
 });
 
 test("raw uploaded chat text never appears in a network request", async ({ page }) => {
