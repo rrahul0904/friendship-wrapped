@@ -11,7 +11,7 @@ import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { buildThreadTalesLocalLore, type ThreadTalesLocalLore } from "@/platform/threadtales/lore";
 import { LocalLorePanel } from "./LocalLorePanel";
 import { ProcessingReveal } from "./ProcessingReveal";
-import { WrappedStory } from "./WrappedStory";
+import { StoryChapterDeck } from "./StoryChapterDeck";
 
 export function UploadAnalyzer() {
   const [stats, setStats] = useState<ChatStats | null>(null);
@@ -45,7 +45,10 @@ export function UploadAnalyzer() {
       setLore(buildThreadTalesLocalLore(parsed.messages));
       setWarning(parsed.warnings[0] ?? "");
       trackProductEvent("analysis_completed", "threadtales");
-      window.setTimeout(() => document.getElementById("results")?.scrollIntoView({ behavior: "smooth" }), 80);
+      window.setTimeout(() => {
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        document.getElementById("results")?.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      }, 80);
     } catch (cause) {
       if (requestId !== requestRef.current) return;
       setStats(null); setLore(null);
@@ -75,31 +78,35 @@ export function UploadAnalyzer() {
   }
 
   function cancelAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setBusy(false); setStats(null); setLore(null); setWarning(""); setError("Analysis cancelled. You can choose another export whenever you're ready."); }
-  function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; fileRef.current?.focus(); }
+  function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; window.setTimeout(() => fileRef.current?.focus(), 0); }
 
-  return <>
-    <section className="uploader mc-uploader" aria-busy={busy}>
-      <div className={`drop mc-drop ${dragging ? "active" : ""}`} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void handleFile(event.dataTransfer.files[0]); }}>
-        <div className="mc-drop-orb" aria-hidden="true"><span>↥</span></div>
-        <span className="mc-drop-label">Private import</span>
-        <h2>Drop your exported chat here</h2>
-        <p>WhatsApp .txt and single-chat Telegram .json exports are processed locally. Raw messages are not uploaded to ThreadTales by default.</p>
-        <input ref={fileRef} className="file-input" type="file" accept=".txt,.json,text/plain,application/json" aria-label="Choose WhatsApp text export or Telegram JSON export" onChange={(event) => void handleFile(event.target.files?.[0])} disabled={busy}/>
-        <button className="btn btn-primary mc-upload-button" onClick={() => fileRef.current?.click()} disabled={busy}>{busy ? "Reading locally…" : "Choose chat export"}</button>
-        <small className="mc-file-types">WhatsApp .txt · Telegram .json · no raw-chat database</small>
-      </div>
-
-      {busy ? <><ProcessingReveal/><div className="mc-cancel-row"><button className="btn btn-soft" onClick={cancelAnalysis}>Cancel analysis</button></div></> : <div className="controls mc-create-controls">
-        <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label>
-        <label><span>Date interpretation</span><select className="select" value={dateOrder} onChange={(event) => setDateOrder(event.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
-        <button className="btn btn-soft" onClick={() => void analyzeText(makeSampleChat())}>Use demo chat</button>
-      </div>}
-
-      <div className="mc-upload-receipt"><span>◉ Raw messages stay in this browser</span><span>◉ No account required</span><span>◉ You control sharing</span></div>
+  if (stats) {
+    return <section id="results" className="results mc-results mc-story-reveal" aria-live="polite">
+      <div className="mc-story-reveal-bar"><span><i aria-hidden="true"/>Your story is ready</span><button className="btn btn-soft" onClick={resetAnalysis}>Start another story</button></div>
       {warning ? <div className="notice" role="status">{warning}</div> : null}
-      {error ? <div className="error" role="alert" aria-live="polite">{error}</div> : null}
-    </section>
+      <StoryChapterDeck stats={stats} mode={storyMode}/>
+      {lore ? <details className="mc-local-lore-disclosure"><summary>Open local-only lore</summary><p>This extra detail stays on this device unless you explicitly choose to expose it.</p><LocalLorePanel lore={lore}/></details> : null}
+    </section>;
+  }
 
-    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>Your private analysis is ready.</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</section> : null}
-  </>;
+  return <section className="uploader mc-uploader mc-story-import" aria-busy={busy}>
+    <div className={`drop mc-drop ${dragging ? "active" : ""}`} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void handleFile(event.dataTransfer.files[0]); }}>
+      <div className="mc-drop-orb" aria-hidden="true"><span>↥</span></div>
+      <span className="mc-drop-label">Private import</span>
+      <h2>Drop your exported chat here</h2>
+      <p>WhatsApp .txt and single-chat Telegram .json exports are processed locally. Raw messages are not uploaded to ThreadTales by default.</p>
+      <input ref={fileRef} className="file-input" type="file" accept=".txt,.json,text/plain,application/json" aria-label="Choose WhatsApp text export or Telegram JSON export" onChange={(event) => void handleFile(event.target.files?.[0])} disabled={busy}/>
+      <button className="btn btn-primary mc-upload-button" onClick={() => fileRef.current?.click()} disabled={busy}>{busy ? "Reading locally…" : "Choose chat export"}</button>
+      <button className="btn btn-soft mc-demo-button" onClick={() => void analyzeText(makeSampleChat())} disabled={busy}>Try the demo</button>
+      <small className="mc-file-types">WhatsApp .txt · Telegram .json · no raw-chat database</small>
+    </div>
+
+    {busy ? <><ProcessingReveal/><div className="mc-cancel-row"><button className="btn btn-soft" onClick={cancelAnalysis}>Cancel analysis</button></div></> : <details className="mc-import-options"><summary>Story and date options</summary><div className="controls mc-create-controls">
+      <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label>
+      <label><span>Date interpretation</span><select className="select" value={dateOrder} onChange={(event) => setDateOrder(event.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
+    </div></details>}
+
+    <div className="mc-upload-receipt"><span>◉ Raw messages stay in this browser</span><span>◉ No account required</span><span>◉ You control sharing</span></div>
+    {error ? <div className="error" role="alert" aria-live="polite">{error}</div> : null}
+  </section>;
 }
