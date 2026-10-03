@@ -56,13 +56,16 @@ test.describe("Memory Cinema UI", () => {
     }
   });
 
-  test("story controls stay usable on phone and iPad layouts", async ({ page }) => {
+  test("story styling and export controls stay available after the reveal on phone and iPad layouts", async ({ page }) => {
     for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }]) {
       await page.setViewportSize(viewport);
       await page.goto("/create?demo=1");
       await expect(page.locator("#results")).toBeVisible();
       const deck = page.getByRole("region", { name: /story chapters/i });
-      await deck.getByText("Customize the look").click();
+      const viewer = page.getByLabel("Story chapter viewer");
+      await viewer.focus();
+      await page.keyboard.press("End");
+      await deck.getByText("Style and export options").click();
       await expect(deck.getByRole("radiogroup", { name: "Story theme selector" })).toBeVisible();
       await expect(deck.getByRole("radio", { name: "Midnight Free" })).toBeVisible();
       await expect(deck.getByLabel("Export", { exact: true })).toBeVisible();
@@ -74,7 +77,7 @@ test.describe("Memory Cinema UI", () => {
     }
   });
 
-  test("desktop reveal uses one centered 9:16 story canvas instead of dashboard plus Relive duplicate", async ({ page }) => {
+  test("desktop reveal owns the viewport with one centered 9:16 story canvas", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1100 });
     await page.goto("/create?demo=1");
     const results = page.locator("#results");
@@ -89,17 +92,22 @@ test.describe("Memory Cinema UI", () => {
     await expect(results.locator(".story-grid")).toHaveCount(0);
     await expect(results.locator(".mc-cinematic")).toHaveCount(0);
 
+    const resultsBox = await results.boundingBox();
     const deckBox = await deck.boundingBox();
     const canvasBox = await canvas.boundingBox();
     const previewBox = await preview.boundingBox();
+    expect(resultsBox).not.toBeNull();
     expect(deckBox).not.toBeNull();
     expect(canvasBox).not.toBeNull();
     expect(previewBox).not.toBeNull();
-    expect(deckBox!.width).toBeLessThanOrEqual(730);
-    expect(canvasBox!.width).toBeLessThanOrEqual(440);
+    expect(resultsBox!.width).toBeGreaterThan(1300);
+    expect(deckBox!.width).toBeGreaterThan(1300);
+    expect(canvasBox!.width).toBeLessThanOrEqual(470);
     expect(previewBox!.width / previewBox!.height).toBeGreaterThan(0.54);
     expect(previewBox!.width / previewBox!.height).toBeLessThan(0.585);
 
+    const position = await results.evaluate((element) => getComputedStyle(element).position);
+    expect(position).toBe("fixed");
     const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
     expect(overflow).toBeLessThanOrEqual(1);
   });
