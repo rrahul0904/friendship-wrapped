@@ -10,8 +10,7 @@ The previous implementation drifted from the original Friendship Wrapped thesis 
    - Original project conversation referenced `mrrplanet.com/p/your-love-page`.
    - Current public Your Love Page product: `https://www.yourlovepage.online/`.
    - Product lesson: one recipient, one emotional outcome, highly specific memories, photos/music, instant one-link sharing, and keepsake value.
-   - Current Love Wrapped is described publicly as a **nine-chapter interactive recap** built from numbers, places, photos, qualities, inside jokes, a song and a final letter.
-   - The commercial model is also instructive: build/preview first, then a **one-time payment** for a permanent published page rather than a subscription-first product.
+   - Current Love Wrapped is described as nine interactive chapters built from personal moments/numbers, places, photos, qualities, inside jokes, a song, and a final letter. It uses one-time permanent publishing rather than a subscription-first funnel.
 2. **Wrapped metaphor**
    - Personalized data becomes a sequence of surprising, shareable story moments rather than an analytics dashboard.
 3. **Friendship Wrapped / ThreadTales**
@@ -23,26 +22,26 @@ The previous implementation drifted from the original Friendship Wrapped thesis 
 - WhatsWrapped / WeSayWhat / Chat Wrapped — direct competitors used to study metric choices, privacy, pair-vs-group behavior, and user complaints.
 - Instagram Stories — mobile navigation convention.
 
+See `SOURCE_EVIDENCE_MATRIX_2026-10-03.md` for source-by-source findings and the keep/replace/remove matrix.
+
 ## Product contract
 
 ThreadTales is **not** a general story platform. Its core product is:
 
 > Give it one conversation. Get back a personal, emotionally legible story about that relationship, processed locally and worth sending to the other person.
 
-The analytics are raw material. The product is the keepsake.
-
 ### Golden journey
 
 1. Land on one clear promise.
 2. Choose a chat export or launch a demo.
 3. The browser reads the conversation locally.
-4. A short reveal transition builds anticipation.
-5. Enter directly into a full-screen story deck.
-6. Every screen contains one idea, one visual hierarchy, and one emotional beat.
-7. Pair chats and group chats use different editorial questions.
+4. Enter directly into a full-screen story deck.
+5. Every screen contains one measured idea and one emotional beat.
+6. Pair chats and group chats use different editorial questions.
+7. Every story is exactly twelve beats in the current focused candidate.
 8. Any chapter can be saved/shared without exposing raw chat.
-9. The final screen is a keepsake/recap, not an upsell dashboard.
-10. Optional personalization (a dedication, selected local lore, cover treatment) happens after the automatic story works, not before the user sees value.
+9. The chapters intentionally change atmosphere as the story progresses; the deck must not feel like one analytics card repeated twelve times.
+10. The final screen is a keepsake/recap, not an upsell dashboard.
 
 ## Pair chat chapter grammar
 
@@ -51,38 +50,46 @@ The analytics are raw material. The product is the keepsake.
 3. Scale — total messages and active days
 4. Who reaches first — conversation starters
 5. Reply rhythm — median response behavior
-6. Staying power — longest streak / longest silence
-7. Peak chaos — biggest day / late-night pattern
-8. Affection / laughter / questions — measured signals, no psychology claim
-9. Balance — how evenly the conversation is carried
-10. Timeline — how volume changes over time
-11. Local lore — optional repeated phrases, never public by default
-12. Closing keepsake / optional final note
+6. Staying power — longest active-day streak
+7. Longest silence
+8. Peak chaos — biggest day / favorite day / peak hour
+9. Signals — hearts / laughter / questions / late-night messages
+10. Balance — how evenly the conversation is carried
+11. Timeline — how volume changes over time
+12. Closing keepsake
 
 ## Group chat chapter grammar
 
 1. Cover / group span
-2. Total messages / active days
-3. Participation leaderboard
-4. Who starts the most conversations
-5. Fastest / slowest reply rhythm by participant where available
-6. Peak chaos day / time
-7. Late-night behavior
-8. Laughter / hearts / questions at group level
-9. Participation balance
-10. Timeline
-11. Optional local-only lore
-12. Closing keepsake / optional group note
+2. First day
+3. Total messages / active days
+4. Participation leaderboard / cast
+5. Who starts the most conversations
+6. Fastest measured reply rhythm where available
+7. Longest silence
+8. Peak chaos day / time
+9. Group-level hearts / laughter / questions / late-night activity
+10. Participation balance
+11. Timeline
+12. Closing group keepsake
 
-A group is not a pair deck with more names.
+A group is not a pair deck with more names. The focused group deck deliberately uses its extra editorial slot for the cast/participation view instead of copying the pair-specific streak beat.
+
+## Claim-safety contract
+
+- Counts and timings may be framed memorably, but not converted into unsupported psychology.
+- A reply-time result may say how quickly someone replied; it must not claim how much they cared.
+- A conversation-start result may say who initiated measured sessions; it must not say who valued the relationship more.
+- Silence reports duration, not motive.
+- Heart/laughter/question signals are literal measured signals, not sentiment analysis.
 
 ## Privacy contract
 
 - Raw chat is processed in-browser by default.
 - No raw messages in telemetry.
 - No raw messages in share payloads.
-- Participant names and local lore require explicit exposure in any public artifact.
-- Core story generation must not require AI or a server call.
+- Participant names and any future local lore require explicit exposure in public artifacts.
+- Core story generation does not require AI or a server call.
 - Any future cloud/AI feature is outside the golden journey and separately consented.
 
 ## Keep / replace / remove matrix
@@ -102,7 +109,8 @@ A group is not a pair deck with more names.
 - analytics-grid-first results
 - duplicated story/cinematic surfaces
 - generic platform navigation in the reveal experience
-- old chapter taxonomy when it does not distinguish pair vs group
+- old chapter taxonomy that did not sufficiently distinguish pair vs group
+- identical visual treatment for every chapter
 
 ### Remove from the first-session critical path
 
@@ -115,10 +123,20 @@ A group is not a pair deck with more names.
 
 ## Acceptance gates
 
+Automated:
 - Demo enters the real story directly.
-- Pair and group fixtures produce materially different chapter structures.
-- 9:16 mobile-first deck with keyboard/touch navigation.
+- Pair and group fixtures each produce exactly twelve story beats.
+- Pair and group structures are materially different.
+- 9:16 mobile-first deck supports keyboard/touch navigation.
 - No raw-chat network transmission.
-- Share/save works per chapter.
-- Five first-time users: at least four complete the flow without instruction and can name one chapter they would send to the other person.
-- No production promotion from CI alone; exact deployed Preview UAT is required.
+- Share/save is available per chapter.
+- Reduced-motion handling is preserved.
+
+Human:
+- Five first-time users follow `docs/uat/SOURCE_FIRST_FIRST_SESSION_UAT.md`.
+- At least four complete without instruction.
+- At least four name a reveal they would actually send to the other person/group.
+- No unsupported psychological claim is perceived as factual.
+- Exact deployed Preview is reviewed on a real phone before production promotion.
+
+No production promotion from CI alone.
