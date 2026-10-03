@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "test:performance": "vitest run --config vitest.performance.config.ts",
     "test:e2e": "playwright test",
+    "test:e2e:source-first-webkit": "playwright test --config=playwright.source-first.config.ts",
     "verify": "npm run lint && npm run typecheck && npm run test && npm run test:performance",
     "verify:production": "node scripts/verify-production.mjs"
   },
