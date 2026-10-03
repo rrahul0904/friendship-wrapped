@@ -18,29 +18,33 @@ test.describe("reverse-engineering parity browser matrix", () => {
     });
   }
 
-  test("Telegram single-chat JSON imports locally and produces lore without changing the share boundary", async ({ page }) => {
+  test("Telegram single-chat JSON imports locally into the story-first deck and keeps lore explicitly local", async ({ page }) => {
     await page.goto("/create");
     const messages = Array.from({ length: 6 }, (_, index) => ({ type: "message", date: `2026-08-0${index + 1}T12:00:00`, from: index % 2 ? "Telegram A" : "Telegram B", text: index < 3 ? `tiny dragon club forever ${index}` : `ordinary local message ${index}` }));
     await page.getByLabel(/Choose WhatsApp text export or Telegram JSON export/i).setInputFiles({ name: "result.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ messages })) });
     await expect(page.locator("#results")).toBeVisible();
-    await expect(page.locator(".story-hero")).toContainText("6 messages");
+    const deck = page.getByRole("region", { name: /story chapters/i });
+    await expect(deck).toBeVisible();
+    await expect(page.locator(".story-grid")).toHaveCount(0);
+    await expect(page.locator(".share-panel")).toHaveCount(0);
+    const lore = page.locator(".mc-local-lore-disclosure");
+    await expect(lore).toBeVisible();
+    await expect(page.getByRole("region", { name: "Local-only chat lore" })).toBeHidden();
+    await lore.getByText("Open local-only lore").click();
     await expect(page.getByRole("region", { name: "Local-only chat lore" })).toBeVisible();
-    const shareUrl = await page.locator(".share-panel .share-input[readonly]").inputValue();
-    expect(shareUrl).not.toContain("tiny dragon club forever");
   });
 
-  test("story parity controls expose 4:5, themes, premium story set and accessible cinematic playback", async ({ page }) => {
+  test("story parity controls keep export choices while the create reveal stays a single 9:16 surface", async ({ page }) => {
     await page.goto("/create?demo=1");
     const deck = page.getByRole("region", { name: /story chapters/i });
     await expect(deck.getByLabel("Export")).toContainText("4:5 portrait");
-    await expect(deck.getByLabel("Theme")).toContainText("Midnight");
-    await expect(deck.getByLabel("Theme")).toContainText("Sunset");
+    await deck.getByText("Customize the look").click();
+    await expect(deck.getByRole("radiogroup", { name: "Story theme selector" })).toContainText("Midnight");
+    await expect(deck.getByRole("radiogroup", { name: "Story theme selector" })).toContainText("Sunset");
     await expect(deck.getByRole("button", { name: "Share card" })).toBeVisible();
     await expect(deck.getByRole("button", { name: "Premium full story set" })).toBeVisible();
-    const player = page.getByRole("region", { name: "Cinematic story playback" });
-    await expect(player.getByRole("button", { name: "Play", exact: true })).toBeVisible();
-    await expect(player.getByRole("button", { name: "Replay", exact: true })).toBeVisible();
-    await expect(player.getByRole("button", { name: "Full screen", exact: true })).toBeVisible();
+    await expect(deck.locator(".chapter-preview[data-story-aspect='9:16']")).toBeVisible();
+    await expect(page.getByRole("region", { name: "Cinematic story playback" })).toHaveCount(0);
   });
 
   test("MyYear photo bytes remain session-local while previews enrich the experience", async ({ page }) => {
