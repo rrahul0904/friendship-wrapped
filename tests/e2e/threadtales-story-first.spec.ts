@@ -17,13 +17,16 @@ async function expectVerticalStory(page: Page) {
   expect(ratio).toBeLessThan(0.585);
 }
 
-test("desktop create reveals the 9:16 story first and supports keyboard chapter navigation", async ({ page }) => {
+test("desktop create becomes an immersive 9:16 story and supports keyboard navigation", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1100 });
   await openDemo(page);
 
   await expect(page.locator(".story-grid")).toHaveCount(0);
   await expect(page.locator(".mc-cinematic")).toHaveCount(0);
   await expectVerticalStory(page);
+
+  const revealPosition = await page.locator("#results").evaluate((element) => getComputedStyle(element).position);
+  expect(revealPosition).toBe("fixed");
 
   const viewer = page.getByLabel("Story chapter viewer");
   await viewer.focus();
@@ -33,6 +36,7 @@ test("desktop create reveals the 9:16 story first and supports keyboard chapter 
   await page.keyboard.press("End");
   const progress = page.locator(".mc-story-progress button");
   await expect(viewer).toHaveAttribute("data-active-chapter", String(await progress.count()));
+  await expect(page.getByText("Your keepsake is ready")).toBeVisible();
   await page.keyboard.press("Home");
   await expect(viewer).toHaveAttribute("data-active-chapter", "1");
 });
@@ -48,7 +52,7 @@ test.describe("mobile story reveal", () => {
 
     const deck = page.getByRole("region", { name: /story chapters/i });
     const firstTitle = await deck.locator(".chapter-preview h3").textContent();
-    await deck.getByRole("button", { name: /Next/ }).click();
+    await deck.getByRole("button", { name: "Next chapter" }).click();
     await expect(deck.locator(".chapter-preview h3")).not.toHaveText(firstTitle ?? "");
   });
 });
@@ -85,11 +89,11 @@ test("download and share execute through the preserved renderer on a share-safe 
   await expect(share).toBeVisible();
 
   await download.click();
-  await expect(deck.getByRole("status")).toContainText("ready as a social-native PNG");
+  await expect(deck.getByRole("status")).toContainText("Saved as a share-ready PNG");
   await expect(download).toBeEnabled();
 
   await share.click();
-  await expect(deck.getByRole("status")).toContainText(/downloaded instead|Share sheet opened/);
+  await expect(deck.getByRole("status")).toContainText(/saved instead|Share sheet opened/);
   await expect(share).toBeEnabled();
 });
 
