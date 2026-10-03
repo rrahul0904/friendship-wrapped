@@ -6,14 +6,7 @@ import type { ChatStats } from "@/lib/types";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import styles from "@/app/rebuild/rebuild.module.css";
 
-type Slide = {
-  eyebrow: string;
-  title: string;
-  value?: string;
-  body: string;
-  note?: string;
-};
-
+type Slide = { eyebrow: string; title: string; value?: string; body: string; note?: string };
 type Stage = "idle" | "reading" | "story";
 
 const dateLabel = (timestamp: number) => new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(timestamp));
@@ -27,8 +20,10 @@ function buildSlides(stats: ChatStats): Slide[] {
   const names = people.map((person) => person.name).join(isGroup ? ", " : " + ");
   const first = people[0];
   const second = people[1];
-  const fastest = [...people].filter((person) => person.medianReplyMinutes != null).sort((a, b) => (a.medianReplyMinutes ?? Infinity) - (b.medianReplyMinutes ?? Infinity))[0];
   const starter = [...people].sort((a, b) => b.conversationStarts - a.conversationStarts)[0];
+  const fastest = [...people]
+    .filter((person) => person.medianReplyMinutes != null)
+    .sort((a, b) => (a.medianReplyMinutes ?? Infinity) - (b.medianReplyMinutes ?? Infinity))[0];
 
   const slides: Slide[] = [
     {
@@ -88,17 +83,17 @@ function buildSlides(stats: ChatStats): Slide[] {
         value: replyLabel(stats.medianReplyMinutes),
         body: first && second ? `${first.name}: ${replyLabel(first.medianReplyMinutes)} · ${second.name}: ${replyLabel(second.medianReplyMinutes)}` : "Measured from reply gaps in the export.",
         note: "Timing only. No claim about attention or intent."
+      },
+      {
+        eyebrow: "Staying power",
+        title: "You kept coming back.",
+        value: `${number(stats.longestStreak)} days`,
+        body: "Longest run of consecutive active messaging days in this export."
       }
     );
   }
 
   slides.push(
-    {
-      eyebrow: "Staying power",
-      title: "You kept coming back.",
-      value: `${number(stats.longestStreak)} days`,
-      body: "Longest run of consecutive active messaging days in this export."
-    },
     {
       eyebrow: "The quiet stretch",
       title: "And then there was the silence.",
