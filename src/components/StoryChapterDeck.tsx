@@ -153,8 +153,8 @@ export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: Stor
       </div>
 
       <div className="mc-story-primary-actions" aria-label="Chapter actions">
-        <button className="mc-story-action" type="button" onClick={() => void exportCurrent()} disabled={exporting}>↓ Save chapter</button>
-        <button className="mc-story-action mc-story-action-primary" type="button" onClick={() => void shareCurrent()} disabled={exporting}>↗ Share</button>
+        <button className="mc-story-action" aria-label="Download PNG" type="button" onClick={() => void exportCurrent()} disabled={exporting}>↓ Save chapter</button>
+        <button className="mc-story-action mc-story-action-primary" aria-label="Share card" type="button" onClick={() => void shareCurrent()} disabled={exporting}>↗ Share</button>
       </div>
       <p className="mc-story-gesture-hint">Tap the sides, swipe, or use arrow keys</p>
       {message ? <div className="notice mc-export-status" role="status" aria-live="polite">{message}</div> : null}
