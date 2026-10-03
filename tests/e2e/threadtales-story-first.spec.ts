@@ -64,9 +64,21 @@ test("reduced-motion preference removes reveal animation and transition timing",
   expect(motion.transitionDuration).toBe("0s");
 });
 
-test("every active chapter keeps download and share actions available", async ({ page }) => {
+test("download and share execute through the preserved renderer on a share-safe chapter", async ({ page }) => {
   await openDemo(page);
   const deck = page.getByRole("region", { name: /story chapters/i });
+  const progress = deck.locator(".mc-story-progress button");
+  let busiestDayIndex = -1;
+  for (let index = 0; index < await progress.count(); index += 1) {
+    await progress.nth(index).click();
+    if ((await deck.locator(".chapter-preview small").textContent())?.trim() === "busiest day") {
+      busiestDayIndex = index;
+      break;
+    }
+  }
+  expect(busiestDayIndex).toBeGreaterThanOrEqual(0);
+  await expect(deck.locator(".chapter-preview h3")).toHaveText("This day got out of hand.");
+
   const download = deck.getByRole("button", { name: "Download PNG" });
   const share = deck.getByRole("button", { name: "Share card" });
   await expect(download).toBeVisible();
