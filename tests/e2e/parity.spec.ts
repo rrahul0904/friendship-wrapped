@@ -26,7 +26,7 @@ test.describe("reverse-engineering parity browser matrix", () => {
     const deck = page.getByRole("region", { name: /story chapters/i });
     await expect(deck).toBeVisible();
     await expect(page.locator(".story-grid")).toHaveCount(0);
-    await expect(page.locator(".share-panel")).toHaveCount(0);
+    await expect(deck.getByLabel("Export")).toBeVisible();
     const lore = page.locator(".mc-local-lore-disclosure");
     await expect(lore).toBeVisible();
     await expect(page.getByRole("region", { name: "Local-only chat lore" })).toBeHidden();
