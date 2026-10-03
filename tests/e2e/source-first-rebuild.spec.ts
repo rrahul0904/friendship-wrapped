@@ -19,24 +19,30 @@ const groupChat = [
   "2/3/2026, 9:15 AM - Sam: yes 😂",
 ].join("\n");
 
-test("greenfield rebuild enters the story directly from the demo", async ({ page }) => {
+test("greenfield rebuild enters a twelve-beat story directly from the demo", async ({ page }) => {
   await page.goto("/rebuild");
   await expect(page.getByRole("heading", { name: "Your chats already contain a story." })).toBeVisible();
   await page.getByRole("button", { name: "See a demo story" }).click();
-  await expect(page.getByLabel(/Chapter 1 of/)).toBeVisible();
+  await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
   await expect(page.getByRole("button", { name: "Next chapter" })).toBeVisible();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.getByText("Where it starts")).toBeVisible();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByText("The scale")).toBeVisible();
 });
 
-test("pair and group exports produce different editorial openings", async ({ page }) => {
+test("pair and group exports produce different editorial structures", async ({ page }) => {
   await page.goto("/rebuild");
   await page.locator('input[type="file"]').setInputFiles({ name: "pair.txt", mimeType: "text/plain", buffer: Buffer.from(pairChat) });
   await expect(page.getByRole("heading", { name: "This is the story you kept writing." })).toBeVisible();
+  await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
 
   await page.goto("/rebuild");
   await page.locator('input[type="file"]').setInputFiles({ name: "group.txt", mimeType: "text/plain", buffer: Buffer.from(groupChat) });
   await expect(page.getByRole("heading", { name: "This group built a history." })).toBeVisible();
+  await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
+  await page.keyboard.press("End");
+  await expect(page.getByText("Same room. Different eras. Still here.")).toBeVisible();
 });
 
 test("raw chat upload does not create an API transmission", async ({ page }) => {
