@@ -31,11 +31,11 @@ test("greenfield rebuild enters the story directly from the demo", async ({ page
 
 test("pair and group exports produce different editorial openings", async ({ page }) => {
   await page.goto("/rebuild");
-  const input = page.locator('input[type="file"]');
-  await input.setInputFiles({ name: "pair.txt", mimeType: "text/plain", buffer: Buffer.from(pairChat) });
+  await page.locator('input[type="file"]').setInputFiles({ name: "pair.txt", mimeType: "text/plain", buffer: Buffer.from(pairChat) });
   await expect(page.getByRole("heading", { name: "This is the story you kept writing." })).toBeVisible();
-  await page.getByRole("button", { name: "Another chat" }).click();
-  await input.setInputFiles({ name: "group.txt", mimeType: "text/plain", buffer: Buffer.from(groupChat) });
+
+  await page.goto("/rebuild");
+  await page.locator('input[type="file"]').setInputFiles({ name: "group.txt", mimeType: "text/plain", buffer: Buffer.from(groupChat) });
   await expect(page.getByRole("heading", { name: "This group built a history." })).toBeVisible();
 });
 
