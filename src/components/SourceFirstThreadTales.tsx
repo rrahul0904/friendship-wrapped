@@ -27,13 +27,22 @@ function buildSlides(stats: ChatStats): Slide[] {
   const names = people.map((person) => person.name).join(isGroup ? ", " : " + ");
   const first = people[0];
   const second = people[1];
-  const common: Slide[] = [
+  const fastest = [...people].filter((person) => person.medianReplyMinutes != null).sort((a, b) => (a.medianReplyMinutes ?? Infinity) - (b.medianReplyMinutes ?? Infinity))[0];
+  const starter = [...people].sort((a, b) => b.conversationStarts - a.conversationStarts)[0];
+
+  const slides: Slide[] = [
     {
       eyebrow: "Your conversation",
       title: isGroup ? "This group built a history." : "This is the story you kept writing.",
       value: names,
       body: `${dateLabel(stats.firstTimestamp)} → ${dateLabel(stats.lastTimestamp)}`,
       note: "Processed on this device"
+    },
+    {
+      eyebrow: "Where it starts",
+      title: isGroup ? "Every group has a first day." : "Before all the patterns, there was a first message.",
+      value: dateLabel(stats.firstTimestamp),
+      body: `${number(stats.daysTogether)} calendar days separate the first message in this export from the last.`
     },
     {
       eyebrow: "The scale",
@@ -44,7 +53,7 @@ function buildSlides(stats: ChatStats): Slide[] {
   ];
 
   if (isGroup) {
-    common.push(
+    slides.push(
       {
         eyebrow: "The cast",
         title: "Some people carried more of the room.",
@@ -54,13 +63,19 @@ function buildSlides(stats: ChatStats): Slide[] {
       {
         eyebrow: "Who starts it",
         title: "The chat usually wakes up because someone does.",
-        value: first ? `${first.name} · ${number(first.conversationStarts)}` : "—",
+        value: starter ? `${starter.name} · ${number(starter.conversationStarts)}` : "—",
         body: "Conversation starts are counted from measured gaps in the export."
+      },
+      {
+        eyebrow: "Reply rhythm",
+        title: "Somebody tends to answer before the room settles.",
+        value: fastest ? fastest.name : replyLabel(stats.medianReplyMinutes),
+        body: fastest ? `${replyLabel(fastest.medianReplyMinutes)} median measured reply time` : "There is not enough reply-gap data to rank this group.",
+        note: "Timing only. No claim about attention or intent."
       }
     );
   } else {
-    const starter = [...people].sort((a, b) => b.conversationStarts - a.conversationStarts)[0];
-    common.push(
+    slides.push(
       {
         eyebrow: "Who reaches first",
         title: "Someone usually breaks the silence.",
@@ -71,17 +86,24 @@ function buildSlides(stats: ChatStats): Slide[] {
         eyebrow: "Reply rhythm",
         title: "This is the pace you settled into.",
         value: replyLabel(stats.medianReplyMinutes),
-        body: first && second ? `${first.name}: ${replyLabel(first.medianReplyMinutes)} · ${second.name}: ${replyLabel(second.medianReplyMinutes)}` : "Measured from reply gaps in the export."
+        body: first && second ? `${first.name}: ${replyLabel(first.medianReplyMinutes)} · ${second.name}: ${replyLabel(second.medianReplyMinutes)}` : "Measured from reply gaps in the export.",
+        note: "Timing only. No claim about attention or intent."
       }
     );
   }
 
-  common.push(
+  slides.push(
     {
       eyebrow: "Staying power",
       title: "You kept coming back.",
       value: `${number(stats.longestStreak)} days`,
-      body: `Longest active streak · longest quiet spell ${number(stats.longestSilenceDays)} days`
+      body: "Longest run of consecutive active messaging days in this export."
+    },
+    {
+      eyebrow: "The quiet stretch",
+      title: "And then there was the silence.",
+      value: `${number(stats.longestSilenceDays)} days`,
+      body: "Longest measured gap between active chat days. The number says how long, not why."
     },
     {
       eyebrow: "Peak chaos",
@@ -94,7 +116,7 @@ function buildSlides(stats: ChatStats): Slide[] {
       title: "The things that kept showing up.",
       value: `♡ ${number(stats.heartSignals)}   😂 ${number(stats.laughSignals)}`,
       body: `${number(stats.questionsAsked)} questions · ${number(stats.lateNightMessages)} late-night messages`,
-      note: "Counts only. No psychological labels."
+      note: "Counts only. No sentiment or psychological labels."
     },
     {
       eyebrow: isGroup ? "Participation" : "Balance",
@@ -117,7 +139,7 @@ function buildSlides(stats: ChatStats): Slide[] {
     }
   );
 
-  return common;
+  return slides;
 }
 
 export function SourceFirstThreadTales() {
@@ -221,7 +243,7 @@ export function SourceFirstThreadTales() {
     </section>
     <section className={styles.promise} aria-label="What you get">
       <article><strong>One conversation</strong><span>No dashboard maze.</span></article>
-      <article><strong>One story at a time</strong><span>Pair and group chats get different editorial treatment.</span></article>
+      <article><strong>Twelve story beats</strong><span>Pair and group chats get different editorial treatment.</span></article>
       <article><strong>Worth sending</strong><span>Every chapter can become a shareable keepsake.</span></article>
     </section>
   </main>;
