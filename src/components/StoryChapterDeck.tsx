@@ -30,7 +30,6 @@ export function StoryChapterDeck({ stats, mode }: { stats: ChatStats; mode: Stor
 
   useEffect(() => { trackProductEvent("story_viewed", "threadtales", mode); }, [stats, mode]);
   useEffect(() => { let cancelled = false; void validateBrowserPremiumEntitlement().then((valid) => { if (!cancelled) { setPremiumUnlocked(valid); if (valid) setThemeId(config.theme); } }); return () => { cancelled = true; }; }, [config.theme]);
-  useEffect(() => { if (!atEnd) setPostStoryOpen(false); }, [atEnd]);
 
   if (!chapter) return null;
 
