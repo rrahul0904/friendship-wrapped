@@ -71,6 +71,35 @@ test("rebuild honors reduced motion while preserving story navigation", async ({
   await expect(page.getByText("Where it starts")).toBeVisible();
 });
 
+test("share sends the visual keepsake file when the device supports file sharing", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "canShare", { configurable: true, value: (data: ShareData) => Boolean(data.files?.length) });
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (data: ShareData) => {
+        const first = data.files?.[0];
+        sessionStorage.setItem("threadtales-share-receipt", JSON.stringify({
+          fileCount: data.files?.length ?? 0,
+          name: first?.name ?? "",
+          type: first?.type ?? "",
+          size: first?.size ?? 0,
+          text: data.text ?? ""
+        }));
+      }
+    });
+  });
+  await page.goto("/rebuild");
+  await page.locator('input[type="file"]').setInputFiles({ name: "pair.txt", mimeType: "text/plain", buffer: Buffer.from(pairChat) });
+  await expect(page.getByRole("heading", { name: "This is the story you kept writing." })).toBeVisible();
+  await page.getByRole("button", { name: "Share" }).click();
+  const receipt = await page.evaluate(() => JSON.parse(sessionStorage.getItem("threadtales-share-receipt") ?? "{}"));
+  expect(receipt.fileCount).toBe(1);
+  expect(receipt.name).toBe("threadtales-1.svg");
+  expect(receipt.type).toBe("image/svg+xml");
+  expect(receipt.size).toBeGreaterThan(500);
+  expect(receipt.text).not.toContain("sentinel friendship");
+});
+
 test("raw chat upload does not create an API transmission", async ({ page }) => {
   const outbound: string[] = [];
   page.on("request", (request) => {
