@@ -45,6 +45,32 @@ test("pair and group exports produce different editorial structures", async ({ p
   await expect(page.getByText("Same room. Different eras. Still here.")).toBeVisible();
 });
 
+test("mobile rebuild keeps the 9:16 story and controls inside the viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/rebuild");
+  await page.getByRole("button", { name: "See a demo story" }).click();
+  await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
+  const card = page.locator('section[aria-live="polite"]');
+  const box = await card.boundingBox();
+  expect(box).not.toBeNull();
+  expect((box?.x ?? 0) >= 0).toBeTruthy();
+  expect((box?.x ?? 0) + (box?.width ?? 0) <= 390).toBeTruthy();
+  expect((box?.y ?? 0) + (box?.height ?? 0) <= 844).toBeTruthy();
+  await expect(page.getByRole("button", { name: "Next chapter" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("rebuild honors reduced motion while preserving story navigation", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/rebuild");
+  await page.getByRole("button", { name: "See a demo story" }).click();
+  const card = page.locator('section[aria-live="polite"]');
+  await expect(card).toBeVisible();
+  expect(await card.evaluate((element) => getComputedStyle(element).transitionDuration)).toBe("0s");
+  await page.getByRole("button", { name: "Next chapter" }).click();
+  await expect(page.getByText("Where it starts")).toBeVisible();
+});
+
 test("raw chat upload does not create an API transmission", async ({ page }) => {
   const outbound: string[] = [];
   page.on("request", (request) => {
