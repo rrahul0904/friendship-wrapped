@@ -34,7 +34,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <p>{product.tagline}</p>
         <div className="hero-actions">
           {memoryHref ? <Link className="btn btn-primary" href={memoryHref}>Create a MemorySpace →</Link> : <a className="btn btn-primary" href={builderHref}>Open product →</a>}
-          {memoryHref ? <a className="btn btn-soft" href={builderHref}>{builderLabel}</a> : null}
+          {memoryHref ? (builderHref.startsWith("/") ? <Link className="btn btn-soft" href={builderHref}>{builderLabel}</Link> : <a className="btn btn-soft" href={builderHref}>{builderLabel}</a>) : null}
         </div>
         {profile?.family === "MEMORY" ? <p className="notice">This product now has a shared MemorySpace path. Existing local builders remain available during migration; approved memories can move onto the reusable Memory Graph without deleting the current product experience.</p> : null}
         {profile?.family === "LENS" ? <p className="notice">This product is retained as a lens/composer over approved memories rather than creating another isolated copy of them.</p> : null}
