@@ -10,6 +10,7 @@ import { trackProductEvent } from "@/platform/telemetry/client";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { buildThreadTalesLocalLore, type ThreadTalesLocalLore } from "@/platform/threadtales/lore";
 import { LocalLorePanel } from "./LocalLorePanel";
+import { MemoryCandidateReview } from "./MemoryCandidateReview";
 import { ProcessingReveal } from "./ProcessingReveal";
 import { WrappedStory } from "./WrappedStory";
 
@@ -26,6 +27,8 @@ export function UploadAnalyzer() {
   const abortRef = useRef<AbortController | null>(null);
   const requestRef = useRef(0);
   const search = useSearchParams();
+  const memorySpaceId = search.get("memorySpaceId")?.trim() ?? "";
+  const isMemoryFlow = memorySpaceId.length > 0;
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -81,25 +84,28 @@ export function UploadAnalyzer() {
     <section className="uploader mc-uploader" aria-busy={busy}>
       <div className={`drop mc-drop ${dragging ? "active" : ""}`} onDragOver={(event) => { event.preventDefault(); if (!busy) setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={(event) => { event.preventDefault(); setDragging(false); void handleFile(event.dataTransfer.files[0]); }}>
         <div className="mc-drop-orb" aria-hidden="true"><span>↥</span></div>
-        <span className="mc-drop-label">Private import</span>
-        <h2>Drop your exported chat here</h2>
-        <p>WhatsApp .txt and single-chat Telegram .json exports are processed locally. Raw messages are not uploaded to ThreadTales by default.</p>
+        <span className="mc-drop-label">{isMemoryFlow ? "Private memory source" : "Private import"}</span>
+        <h2>{isMemoryFlow ? "Start with the conversation" : "Drop your exported chat here"}</h2>
+        <p>{isMemoryFlow ? "ThreadTales reads the export locally and suggests moments you may want to keep. Nothing is added to the Memory Graph until you approve it." : "WhatsApp .txt and single-chat Telegram .json exports are processed locally. Raw messages are not uploaded to ThreadTales by default."}</p>
         <input ref={fileRef} className="file-input" type="file" accept=".txt,.json,text/plain,application/json" aria-label="Choose WhatsApp text export or Telegram JSON export" onChange={(event) => void handleFile(event.target.files?.[0])} disabled={busy}/>
-        <button className="btn btn-primary mc-upload-button" onClick={() => fileRef.current?.click()} disabled={busy}>{busy ? "Reading locally…" : "Choose chat export"}</button>
+        <button className="btn btn-primary mc-upload-button" onClick={() => fileRef.current?.click()} disabled={busy}>{busy ? "Reading locally…" : isMemoryFlow ? "Find memory candidates" : "Choose chat export"}</button>
         <small className="mc-file-types">WhatsApp .txt · Telegram .json · no raw-chat database</small>
       </div>
 
       {busy ? <><ProcessingReveal/><div className="mc-cancel-row"><button className="btn btn-soft" onClick={cancelAnalysis}>Cancel analysis</button></div></> : <div className="controls mc-create-controls">
-        <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label>
+        {!isMemoryFlow ? <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label> : null}
         <label><span>Date interpretation</span><select className="select" value={dateOrder} onChange={(event) => setDateOrder(event.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
-        <button className="btn btn-soft" onClick={() => void analyzeText(makeSampleChat())}>Use demo chat</button>
+        <button className="btn btn-soft" onClick={() => void analyzeText(makeSampleChat())}>{isMemoryFlow ? "Try with demo memories" : "Use demo chat"}</button>
       </div>}
 
-      <div className="mc-upload-receipt"><span>◉ Raw messages stay in this browser</span><span>◉ No account required</span><span>◉ You control sharing</span></div>
+      <div className="mc-upload-receipt"><span>◉ Raw messages stay in this browser</span><span>◉ No account required</span><span>◉ You control what becomes a memory</span></div>
       {warning ? <div className="notice" role="status">{warning}</div> : null}
       {error ? <div className="error" role="alert" aria-live="polite">{error}</div> : null}
     </section>
 
-    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>Your private analysis is ready.</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</section> : null}
+    {stats ? <section id="results" className="results mc-results" aria-live="polite">
+      <div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>{isMemoryFlow ? "Your private memory candidates are ready." : "Your private analysis is ready."}</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div>
+      {isMemoryFlow ? <MemoryCandidateReview memorySpaceId={memorySpaceId} stats={stats} lore={lore}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}
+    </section> : null}
   </>;
 }
