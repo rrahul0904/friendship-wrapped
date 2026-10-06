@@ -1,11 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { isMemoryIntentKind } from "@/lib/memory-space";
 
 const SOURCE_COPY: Record<string, { title: string; description: string; next: string }> = {
-  "photos-videos": {
-    title: "Start with photos & videos",
-    description: "This MemorySpace is ready for media intake without changing the underlying person, intent, or draft identity.",
-    next: "Next slice: add local photo/video selection, timeline suggestions, and explicit approval before anything becomes a MemoryNode.",
-  },
   manual: {
     title: "Start with a memory",
     description: "This MemorySpace is ready for a manual first memory — a milestone, place, note, date, or story in your own words.",
@@ -15,10 +12,21 @@ const SOURCE_COPY: Record<string, { title: string; description: string; next: st
 
 export default async function MemoryIntakePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ source: string }>;
+  searchParams: Promise<{ memorySpaceId?: string | string[]; intent?: string | string[] }>;
 }) {
   const { source } = await params;
+  const query = await searchParams;
+  const memorySpaceId = typeof query.memorySpaceId === "string" ? query.memorySpaceId.trim() : "";
+  const requestedIntent = typeof query.intent === "string" ? query.intent : null;
+  const intent = isMemoryIntentKind(requestedIntent) ? requestedIntent : "MEMORY_LANE";
+
+  if (source === "photos-videos" && memorySpaceId) {
+    redirect(`/memory/studio?memorySpaceId=${encodeURIComponent(memorySpaceId)}&intent=${encodeURIComponent(intent)}`);
+  }
+
   const copy = SOURCE_COPY[source];
 
   if (!copy) {
@@ -43,7 +51,7 @@ export default async function MemoryIntakePage({
           <strong style={{ display: "block", marginBottom: 8 }}>Implementation boundary</strong>
           <span style={{ color: "rgba(247,243,238,.62)", lineHeight: 1.55 }}>{copy.next}</span>
         </div>
-        <p style={{ marginTop: 28, color: "rgba(247,243,238,.5)", lineHeight: 1.55 }}>No raw media or memory content is uploaded by this handoff page. The local MemorySpace draft remains in this browser.</p>
+        <p style={{ marginTop: 28, color: "rgba(247,243,238,.5)", lineHeight: 1.55 }}>No raw memory content is uploaded by this handoff page. The local MemorySpace draft remains in this browser.</p>
         <Link href="/memory/new" style={{ display: "inline-block", marginTop: 20, color: "inherit" }}>← Back to memory creation</Link>
       </div>
     </main>
