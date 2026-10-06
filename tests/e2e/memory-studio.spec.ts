@@ -23,8 +23,8 @@ test("Memory Studio keeps media, dedication, and soundtrack reference local", as
 
   await expect(page.getByAltText("memory.png").first()).toBeVisible();
   await page.getByLabel("Your dedication").fill("I would choose these memories again.");
-  await page.getByLabel("Song").fill("Our Song");
-  await page.getByLabel("Artist").fill("Our Artist");
+  await page.getByRole("textbox", { name: "Song", exact: true }).fill("Our Song");
+  await page.getByRole("textbox", { name: "Artist", exact: true }).fill("Our Artist");
 
   await expect(page.getByText(/♫ Our Song — Our Artist/)).toBeVisible();
   await page.getByRole("button", { name: /Next/i }).click();
@@ -58,7 +58,7 @@ test("Memory Studio keeps media, dedication, and soundtrack reference local", as
   await page.reload();
   await expect(page.getByAltText("memory.png").first()).toBeVisible();
   await expect(page.getByLabel("Your dedication")).toHaveValue("I would choose these memories again.");
-  await expect(page.getByLabel("Song")).toHaveValue("Our Song");
+  await expect(page.getByRole("textbox", { name: "Song", exact: true })).toHaveValue("Our Song");
 });
 
 test("photo-video MemorySpace start routes directly into the studio", async ({ page }) => {
