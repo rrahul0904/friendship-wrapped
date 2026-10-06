@@ -69,6 +69,8 @@ export function MemoryStoryPreview({ memorySpaceId, intent }: { memorySpaceId: s
     );
   }
 
+  const studioHref = `/memory/studio?memorySpaceId=${encodeURIComponent(memorySpaceId)}&intent=${encodeURIComponent(intent)}`;
+
   return (
     <main className={styles.page}>
       <header className={styles.topbar}>
@@ -108,11 +110,11 @@ export function MemoryStoryPreview({ memorySpaceId, intent }: { memorySpaceId: s
 
       <section className={styles.next}>
         <div>
-          <p className={styles.eyebrow}>What this proves</p>
-          <h2>The same memories now tell a different story for this intent.</h2>
-          <p>This is still a deterministic plan. Photos, video, soundtrack, editing, and final rendering come in the next studio slice.</p>
+          <p className={styles.eyebrow}>Next: Memory Studio</p>
+          <h2>Add the photos, videos, song reference, and words that make this yours.</h2>
+          <p>The graph supplies the structure. The studio adds personal media without turning ThreadTales into a general-purpose video editor.</p>
         </div>
-        <Link className={styles.secondary} href="/memory/new">Create another MemorySpace</Link>
+        <Link className={styles.secondary} href={studioHref}>Open Memory Studio →</Link>
       </section>
     </main>
   );
