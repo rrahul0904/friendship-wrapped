@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { MIN_CHAT_MESSAGES, tooFewMessagesError, validateChatFileMetadata, validateRawChatText } from "@/lib/import-validation";
+import { isMemoryIntentKind, type MemoryIntentKind } from "@/lib/memory-space";
 import { makeSampleChat } from "@/lib/sample";
 import type { ChatStats, DateOrder, StoryMode } from "@/lib/types";
 import { isStoryMode, STORY_MODES } from "@/platform/story/modes";
@@ -28,6 +29,8 @@ export function UploadAnalyzer() {
   const requestRef = useRef(0);
   const search = useSearchParams();
   const memorySpaceId = search.get("memorySpaceId")?.trim() ?? "";
+  const requestedIntent = search.get("intent");
+  const memoryIntent: MemoryIntentKind = isMemoryIntentKind(requestedIntent) ? requestedIntent : "MEMORY_LANE";
   const isMemoryFlow = memorySpaceId.length > 0;
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -105,7 +108,7 @@ export function UploadAnalyzer() {
 
     {stats ? <section id="results" className="results mc-results" aria-live="polite">
       <div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>{isMemoryFlow ? "Your private memory candidates are ready." : "Your private analysis is ready."}</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div>
-      {isMemoryFlow ? <MemoryCandidateReview memorySpaceId={memorySpaceId} stats={stats} lore={lore}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}
+      {isMemoryFlow ? <MemoryCandidateReview memorySpaceId={memorySpaceId} intent={memoryIntent} stats={stats} lore={lore}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}
     </section> : null}
   </>;
 }

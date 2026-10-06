@@ -115,19 +115,40 @@
 
 .footer {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   font-size: 0.82rem;
-  opacity: 0.78;
+}
+
+.footer > div {
+  display: grid;
+  gap: .2rem;
+  opacity: .78;
+}
+
+.preview {
+  flex: 0 0 auto;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: .7rem .9rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.92);
+  color: #111;
+  text-decoration: none;
+  font-weight: 800;
 }
 
 @media (max-width: 760px) {
   .header,
   .footer {
     flex-direction: column;
+    align-items: stretch;
   }
 
   .receipt {
@@ -136,5 +157,9 @@
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .preview {
+    width: 100%;
   }
 }

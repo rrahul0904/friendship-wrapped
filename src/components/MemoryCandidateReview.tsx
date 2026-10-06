@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { MemoryIntentKind } from "@/lib/memory-space";
 import type { ChatStats } from "@/lib/types";
 import type { ThreadTalesLocalLore } from "@/platform/threadtales/lore";
 import {
@@ -18,6 +20,7 @@ import styles from "./MemoryCandidateReview.module.css";
 
 interface MemoryCandidateReviewProps {
   memorySpaceId: string;
+  intent: MemoryIntentKind;
   stats: ChatStats;
   lore: ThreadTalesLocalLore | null;
 }
@@ -48,7 +51,7 @@ function readReview(memorySpaceId: string): Record<string, MemoryDecision> {
   }
 }
 
-export function MemoryCandidateReview({ memorySpaceId, stats, lore }: MemoryCandidateReviewProps) {
+export function MemoryCandidateReview({ memorySpaceId, intent, stats, lore }: MemoryCandidateReviewProps) {
   const candidates = useMemo(
     () => buildConversationMemoryCandidates(memorySpaceId, stats, lore),
     [memorySpaceId, stats, lore],
@@ -91,6 +94,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats, lore }: MemoryCand
 
   const reviewedCount = Object.keys(decisions).length;
   const keptCount = graph.nodes.length;
+  const storyHref = `/memory/story?memorySpaceId=${encodeURIComponent(memorySpaceId)}&intent=${encodeURIComponent(intent)}`;
 
   return (
     <section className={styles.wrap} aria-labelledby="memory-candidate-title">
@@ -147,8 +151,11 @@ export function MemoryCandidateReview({ memorySpaceId, stats, lore }: MemoryCand
       </div>
 
       <div className={styles.footer}>
-        <span>Raw chat stays local. Only memories you explicitly keep are written to this local Memory Graph.</span>
-        <strong>{keptCount > 0 ? "Your graph has started." : "Keep at least one moment to start the graph."}</strong>
+        <div>
+          <span>Raw chat stays local. Only memories you explicitly keep are written to this local Memory Graph.</span>
+          <strong>{keptCount > 0 ? "Your graph has started." : "Keep at least one moment to start the graph."}</strong>
+        </div>
+        {keptCount > 0 ? <Link className={styles.preview} href={storyHref}>Preview this story →</Link> : null}
       </div>
     </section>
   );
