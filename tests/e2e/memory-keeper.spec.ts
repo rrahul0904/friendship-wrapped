@@ -55,7 +55,7 @@ test("manual child memory becomes reusable graph data", async ({ page }) => {
   await expect(page).toHaveURL(/\/memory\/intake\/manual\?/);
   await page.getByLabel("Memory title").fill("First day of school");
   await page.getByLabel("Kind").selectOption("MILESTONE");
-  await page.getByText("What do you want to remember?").locator("..").getByRole("textbox").fill("She walked in nervous and came out smiling.");
+  await page.getByLabel("What do you want to remember?").fill("She walked in nervous and came out smiling.");
   await page.getByRole("button", { name: "Keep this memory" }).click();
   await expect(page.getByText("Memory kept in this Memory Graph.")).toBeVisible();
   await page.getByRole("link", { name: /Open memory home/i }).first().click();
