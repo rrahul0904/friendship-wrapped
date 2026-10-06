@@ -1,4 +1,4 @@
-import type { MemoryIntentKind } from "./memory-space";
+import { isMemoryIntentKind, type MemoryIntentKind } from "./memory-space";
 
 export type MemoryMediaKind = "IMAGE" | "VIDEO";
 
@@ -85,7 +85,7 @@ export function isMemoryStudioDraft(value: unknown): value is MemoryStudioDraft 
   return (
     draft.schemaVersion === 1 &&
     typeof draft.memorySpaceId === "string" &&
-    typeof draft.intent === "string" &&
+    isMemoryIntentKind(draft.intent) &&
     typeof draft.dedication === "string" &&
     Boolean(draft.soundtrack) &&
     draft.soundtrack?.mode === "REFERENCE" &&
