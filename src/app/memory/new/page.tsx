@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -50,17 +51,22 @@ export default function NewMemoryPage() {
   const [showAllIntents, setShowAllIntents] = useState(false);
 
   useEffect(() => {
+    let restored: MemorySpaceDraft | null = null;
     try {
       const stored = window.localStorage.getItem(MEMORY_DRAFT_STORAGE_KEY);
       if (stored) {
         const parsed: unknown = JSON.parse(stored);
-        if (isMemorySpaceDraft(parsed)) setDraft(parsed);
+        if (isMemorySpaceDraft(parsed)) restored = parsed;
       }
     } catch {
       window.localStorage.removeItem(MEMORY_DRAFT_STORAGE_KEY);
-    } finally {
-      setHydrated(true);
     }
+
+    const timer = window.setTimeout(() => {
+      if (restored) setDraft(restored);
+      setHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -135,7 +141,7 @@ export default function NewMemoryPage() {
     <main className={styles.page}>
       <div className={styles.ambient} aria-hidden="true" />
       <header className={styles.topbar}>
-        <a className={styles.brand} href="/">ThreadTales</a>
+        <Link className={styles.brand} href="/">ThreadTales</Link>
         <button className={styles.restart} type="button" onClick={restart}>Start over</button>
       </header>
 
