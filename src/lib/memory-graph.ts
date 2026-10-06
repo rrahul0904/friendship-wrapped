@@ -1,3 +1,4 @@
+import type { MemoryProductTemplate } from "./memory-platform";
 import type { ChatStats } from "./types";
 
 export type MemoryCandidateKind =
@@ -10,7 +11,19 @@ export type MemoryCandidateKind =
   | "SHARED_LANGUAGE"
   | "RELATIONSHIP_ERA";
 
+export type MemoryNodeKind =
+  | MemoryCandidateKind
+  | "MANUAL_MEMORY"
+  | "MILESTONE"
+  | "PHOTO_VIDEO"
+  | "PLACE"
+  | "SONG"
+  | "PERSON"
+  | "PROJECT"
+  | "DOCUMENT";
+
 export type MemoryCandidateStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type MemoryNodeSource = "CONVERSATION_DERIVED" | "MANUAL" | "MEDIA_METADATA" | "LEGACY_PRODUCT";
 
 export interface MemoryCandidate {
   schemaVersion: 1;
@@ -29,12 +42,17 @@ export interface MemoryNode {
   schemaVersion: 1;
   id: string;
   memorySpaceId: string;
-  kind: MemoryCandidateKind;
+  kind: MemoryNodeKind;
   title: string;
   summary: string;
   occurredAt: number | null;
-  sourceCandidateId: string;
+  sourceCandidateId?: string;
+  source?: MemoryNodeSource;
+  productTemplate?: MemoryProductTemplate;
   facts: Record<string, string | number | null>;
+  people?: string;
+  place?: string;
+  extra?: string;
   approvedAt: string;
 }
 
@@ -43,6 +61,32 @@ export interface MemoryGraph {
   memorySpaceId: string;
   nodes: MemoryNode[];
   updatedAt: string;
+}
+
+export interface DirectMemoryNodeInput {
+  id: string;
+  memorySpaceId: string;
+  kind: Exclude<MemoryNodeKind, MemoryCandidateKind> | MemoryNodeKind;
+  title: string;
+  summary?: string;
+  occurredAt?: number | null;
+  source: Exclude<MemoryNodeSource, "CONVERSATION_DERIVED">;
+  productTemplate?: MemoryProductTemplate;
+  facts?: Record<string, string | number | null>;
+  people?: string;
+  place?: string;
+  extra?: string;
+}
+
+export interface LegacyWorldMemoryInput {
+  id: string;
+  date: string;
+  title: string;
+  detail?: string;
+  people?: string;
+  place?: string;
+  extra?: string;
+  kind: string;
 }
 
 export const MEMORY_GRAPH_STORAGE_PREFIX = "threadtales:memory-graph:v1:";
@@ -57,6 +101,21 @@ function formatDate(timestamp: number) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(timestamp));
+}
+
+function parseDateAtNoon(date: string): number | null {
+  const timestamp = Date.parse(`${date}T12:00:00`);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function kindFromLegacy(kind: string): MemoryNodeKind {
+  const value = kind.toLowerCase();
+  if (value.includes("milestone") || value.includes("first") || value.includes("growth")) return "MILESTONE";
+  if (value.includes("place") || value.includes("trip") || value.includes("move") || value.includes("room")) return "PLACE";
+  if (value.includes("song")) return "SONG";
+  if (value.includes("person") || value.includes("parent") || value.includes("partner") || value.includes("sibling")) return "PERSON";
+  if (value.includes("project") || value.includes("renovation")) return "PROJECT";
+  return "MANUAL_MEMORY";
 }
 
 export function buildConversationMemoryCandidates(
@@ -204,6 +263,7 @@ export function approveCandidateIntoGraph(
     summary: candidate.summary,
     occurredAt: candidate.occurredAt,
     sourceCandidateId: candidate.id,
+    source: "CONVERSATION_DERIVED",
     facts: { ...candidate.facts },
     approvedAt,
   };
@@ -211,6 +271,69 @@ export function approveCandidateIntoGraph(
   return { ...graph, nodes: [...graph.nodes, node], updatedAt: approvedAt };
 }
 
+export function createDirectMemoryNode(input: DirectMemoryNodeInput, now = new Date()): MemoryNode {
+  return {
+    schemaVersion: 1,
+    id: input.id,
+    memorySpaceId: input.memorySpaceId,
+    kind: input.kind,
+    title: input.title.trim(),
+    summary: input.summary?.trim() || "Memory added by you.",
+    occurredAt: input.occurredAt ?? null,
+    source: input.source,
+    productTemplate: input.productTemplate,
+    facts: { ...(input.facts ?? {}) },
+    people: input.people?.trim() || undefined,
+    place: input.place?.trim() || undefined,
+    extra: input.extra?.trim() || undefined,
+    approvedAt: now.toISOString(),
+  };
+}
+
+export function upsertMemoryNode(graph: MemoryGraph, node: MemoryNode, now = new Date()): MemoryGraph {
+  if (node.memorySpaceId !== graph.memorySpaceId) throw new Error("Memory node belongs to a different MemorySpace.");
+  const exists = graph.nodes.some((item) => item.id === node.id);
+  const nodes = exists
+    ? graph.nodes.map((item) => item.id === node.id ? node : item)
+    : [...graph.nodes, node];
+  return { ...graph, nodes, updatedAt: now.toISOString() };
+}
+
+export function removeMemoryNode(graph: MemoryGraph, nodeId: string, now = new Date()): MemoryGraph {
+  return { ...graph, nodes: graph.nodes.filter((node) => node.id !== nodeId), updatedAt: now.toISOString() };
+}
+
+export function legacyWorldEventToMemoryNode({
+  memorySpaceId,
+  productTemplate,
+  event,
+  now = new Date(),
+}: {
+  memorySpaceId: string;
+  productTemplate: MemoryProductTemplate;
+  event: LegacyWorldMemoryInput;
+  now?: Date;
+}): MemoryNode {
+  return createDirectMemoryNode({
+    id: `${memorySpaceId}:legacy:${event.id}`,
+    memorySpaceId,
+    kind: kindFromLegacy(event.kind),
+    title: event.title,
+    summary: event.detail || event.extra || `${event.kind} added in ${productTemplate.toLowerCase()}.`,
+    occurredAt: parseDateAtNoon(event.date),
+    source: "LEGACY_PRODUCT",
+    productTemplate,
+    facts: { legacyKind: event.kind, legacyDate: event.date },
+    people: event.people,
+    place: event.place,
+    extra: event.extra,
+  }, now);
+}
+
 export function memoryGraphStorageKey(memorySpaceId: string) {
   return `${MEMORY_GRAPH_STORAGE_PREFIX}${memorySpaceId}`;
+}
+
+export function legacyProductMemorySpaceId(productSlug: string) {
+  return `product:${productSlug}:local`;
 }
