@@ -10,6 +10,7 @@ import { trackProductEvent } from "@/platform/telemetry/client";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { buildThreadTalesLocalLore, type ThreadTalesLocalLore } from "@/platform/threadtales/lore";
 import { LocalLorePanel } from "./LocalLorePanel";
+import { MemoryCandidateReview } from "./MemoryCandidateReview";
 import { ProcessingReveal } from "./ProcessingReveal";
 import { WrappedStory } from "./WrappedStory";
 
@@ -26,6 +27,7 @@ export function UploadAnalyzer() {
   const abortRef = useRef<AbortController | null>(null);
   const requestRef = useRef(0);
   const search = useSearchParams();
+  const memorySpaceId = search.get("memorySpaceId");
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -90,7 +92,7 @@ export function UploadAnalyzer() {
       </div>
 
       {busy ? <><ProcessingReveal/><div className="mc-cancel-row"><button className="btn btn-soft" onClick={cancelAnalysis}>Cancel analysis</button></div></> : <div className="controls mc-create-controls">
-        <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label>
+        {!memorySpaceId ? <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label> : null}
         <label><span>Date interpretation</span><select className="select" value={dateOrder} onChange={(event) => setDateOrder(event.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
         <button className="btn btn-soft" onClick={() => void analyzeText(makeSampleChat())}>Use demo chat</button>
       </div>}
@@ -100,6 +102,6 @@ export function UploadAnalyzer() {
       {error ? <div className="error" role="alert" aria-live="polite">{error}</div> : null}
     </section>
 
-    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>Your private analysis is ready.</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</section> : null}
+    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>{memorySpaceId ? "Your private memory candidates are ready." : "Your private analysis is ready."}</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div>{memorySpaceId ? <MemoryCandidateReview memorySpaceId={memorySpaceId} stats={stats}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}</section> : null}
   </>;
 }
