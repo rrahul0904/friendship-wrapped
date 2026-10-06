@@ -58,9 +58,14 @@ export function MemoryCandidateReview({ memorySpaceId, stats, lore }: MemoryCand
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    setGraph(readGraph(memorySpaceId));
-    setDecisions(readReview(memorySpaceId));
-    setLoaded(true);
+    const restoredGraph = readGraph(memorySpaceId);
+    const restoredDecisions = readReview(memorySpaceId);
+    const timer = window.setTimeout(() => {
+      setGraph(restoredGraph);
+      setDecisions(restoredDecisions);
+      setLoaded(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [memorySpaceId]);
 
   function decide(candidateId: string, decision: MemoryDecision) {
