@@ -6,6 +6,7 @@ import { MemoryLensPanel } from "@/components/MemoryLensPanel";
 import { MyYearCalendarImport } from "@/components/MyYearCalendarImport";
 import { MyYearBuilder } from "@/components/MyYearBuilder";
 import { PetLifeBuilder } from "@/components/PetLifeBuilder";
+import { PetLifeMemoryGraphBridge } from "@/components/PetLifeMemoryGraphBridge";
 import { PetLifeSharedMemoryPanel } from "@/components/PetLifeSharedMemoryPanel";
 import { WorldBuilder } from "@/components/WorldBuilder";
 import { memoryProfileForSlug, newMemoryHrefForProduct } from "@/lib/memory-platform";
@@ -42,7 +43,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       {profile?.family === "LENS" && profile.lens ? <section className="shell section" style={{paddingTop:20}}><MemoryLensPanel lens={profile.lens}/></section> : null}
       {product.slug === "myyear" ? <section id="myyear-builder" className="shell section" style={{paddingTop:20}}><MyYearBuilder/><MyYearCalendarImport/></section> : null}
-      {product.slug === "petlife" ? <section id="petlife-builder" className="shell section" style={{paddingTop:20}}><PetLifeBuilder/><PetLifeSharedMemoryPanel/></section> : null}
+      {product.slug === "petlife" ? <section id="petlife-builder" className="shell section" style={{paddingTop:20}}><PetLifeMemoryGraphBridge/><PetLifeBuilder/><PetLifeSharedMemoryPanel/></section> : null}
       {isWorldSlug(product.slug) ? <section className="shell section" style={{paddingTop:20}}><WorldBuilder slug={product.slug}/></section> : null}
 
       <section className="shell section" style={{paddingTop:20}}>
