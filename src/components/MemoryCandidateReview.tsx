@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   approveCandidateIntoGraph,
@@ -10,6 +11,7 @@ import {
   type MemoryCandidate,
   type MemoryGraph,
 } from "@/lib/memory-graph";
+import { memorySpaceHomeHref } from "@/lib/memory-platform";
 import type { ChatStats } from "@/lib/types";
 
 function isStoredGraph(value: unknown, memorySpaceId: string): value is MemoryGraph {
@@ -34,7 +36,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
         const parsed: unknown = JSON.parse(stored);
         if (!isStoredGraph(parsed, memorySpaceId)) return;
         setGraph(parsed);
-        const approvedIds = new Set(parsed.nodes.map((node) => node.sourceCandidateId));
+        const approvedIds = new Set(parsed.nodes.map((node) => node.sourceCandidateId).filter(Boolean));
         setCandidates((current) => current.map((candidate) =>
           approvedIds.has(candidate.id) ? { ...candidate, status: "APPROVED" as const } : candidate,
         ));
@@ -94,7 +96,10 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
         ))}
       </div>
 
-      <p className="notice">This slice stores only approved derived memory nodes in local browser storage. Raw chat text is not copied into the Memory Graph.</p>
+      <div className="premium-actions">
+        <Link className="btn btn-primary" href={memorySpaceHomeHref(memorySpaceId)}>Open MemorySpace →</Link>
+      </div>
+      <p className="notice">Only approved derived nodes enter the Memory Graph. Raw chat text is not copied into the graph.</p>
     </section>
   );
 }
