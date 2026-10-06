@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { MemoryLensPanel } from "@/components/MemoryLensPanel";
 import { MyYearCalendarImport } from "@/components/MyYearCalendarImport";
 import { MyYearBuilder } from "@/components/MyYearBuilder";
 import { PetLifeBuilder } from "@/components/PetLifeBuilder";
@@ -36,9 +37,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {memoryHref ? <a className="btn btn-soft" href={builderHref}>{builderLabel}</a> : null}
         </div>
         {profile?.family === "MEMORY" ? <p className="notice">This product now has a shared MemorySpace path. Existing local builders remain available during migration; approved memories can move onto the reusable Memory Graph without deleting the current product experience.</p> : null}
-        {profile?.family === "LENS" ? <p className="notice">This product is being retained as a lens/composer over approved memories rather than becoming another isolated memory store.</p> : null}
+        {profile?.family === "LENS" ? <p className="notice">This product is retained as a lens/composer over approved memories rather than creating another isolated copy of them.</p> : null}
       </section>
 
+      {profile?.family === "LENS" && profile.lens ? <section className="shell section" style={{paddingTop:20}}><MemoryLensPanel lens={profile.lens}/></section> : null}
       {product.slug === "myyear" ? <section id="myyear-builder" className="shell section" style={{paddingTop:20}}><MyYearBuilder/><MyYearCalendarImport/></section> : null}
       {product.slug === "petlife" ? <section id="petlife-builder" className="shell section" style={{paddingTop:20}}><PetLifeBuilder/><PetLifeSharedMemoryPanel/></section> : null}
       {isWorldSlug(product.slug) ? <section className="shell section" style={{paddingTop:20}}><WorldBuilder slug={product.slug}/></section> : null}
