@@ -2,11 +2,17 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  MEMORY_SPACE_INDEX_KEY,
+  createMemorySpaceManifest,
+  memorySpaceStorageKey,
+} from "@/lib/memory-platform";
 import {
   MEMORY_DRAFT_STORAGE_KEY,
   MEMORY_INTENTS,
   RELATIONSHIPS,
+  draftForProductSlug,
   isMemorySpaceDraft,
   newMemorySpaceDraft,
   recommendedIntents,
@@ -44,19 +50,36 @@ function freshDraft() {
   return newMemorySpaceDraft(createId());
 }
 
+function indexMemorySpace(memorySpaceId: string) {
+  try {
+    const raw = window.localStorage.getItem(MEMORY_SPACE_INDEX_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : [];
+    const ids = Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+    if (!ids.includes(memorySpaceId)) window.localStorage.setItem(MEMORY_SPACE_INDEX_KEY, JSON.stringify([...ids, memorySpaceId]));
+  } catch {
+    window.localStorage.setItem(MEMORY_SPACE_INDEX_KEY, JSON.stringify([memorySpaceId]));
+  }
+}
+
 export default function NewMemoryPage() {
   const router = useRouter();
+  const search = useSearchParams();
   const [draft, setDraft] = useState<MemorySpaceDraft>(() => freshDraft());
   const [hydrated, setHydrated] = useState(false);
   const [showAllIntents, setShowAllIntents] = useState(false);
 
   useEffect(() => {
+    const requestedTemplate = search.get("template");
     let restored: MemorySpaceDraft | null = null;
     try {
-      const stored = window.localStorage.getItem(MEMORY_DRAFT_STORAGE_KEY);
-      if (stored) {
-        const parsed: unknown = JSON.parse(stored);
-        if (isMemorySpaceDraft(parsed)) restored = parsed;
+      if (requestedTemplate) {
+        restored = draftForProductSlug(createId(), requestedTemplate);
+      } else {
+        const stored = window.localStorage.getItem(MEMORY_DRAFT_STORAGE_KEY);
+        if (stored) {
+          const parsed: unknown = JSON.parse(stored);
+          if (isMemorySpaceDraft(parsed)) restored = parsed;
+        }
       }
     } catch {
       window.localStorage.removeItem(MEMORY_DRAFT_STORAGE_KEY);
@@ -67,7 +90,7 @@ export default function NewMemoryPage() {
       setHydrated(true);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [search]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -92,10 +115,18 @@ export default function NewMemoryPage() {
     [recommendedKinds],
   );
 
+  const availableSources = useMemo(
+    () => draft.relationshipType === "PET" || draft.relationshipType === "HOME"
+      ? SOURCES.filter((source) => source.kind !== "CONVERSATION")
+      : SOURCES,
+    [draft.relationshipType],
+  );
+
   function chooseRelationship(relationshipType: RelationshipType) {
     setDraft((current) => ({
       ...current,
       relationshipType,
+      productTemplate: null,
       intent: null,
       step: "INTENT",
     }));
@@ -113,11 +144,22 @@ export default function NewMemoryPage() {
   }
 
   function chooseSource(source: MemorySourceKind) {
+    if (!draft.relationshipType) return;
     const completed: MemorySpaceDraft = { ...draft, source, step: "SOURCE", updatedAt: new Date().toISOString() };
     const href = sourceIntakeHref(completed);
     if (!href) return;
+
+    const manifest = createMemorySpaceManifest({
+      id: completed.id,
+      name: completed.name,
+      relationshipType: completed.relationshipType,
+      productTemplate: completed.productTemplate ?? undefined,
+    });
+
     setDraft(completed);
     window.localStorage.setItem(MEMORY_DRAFT_STORAGE_KEY, JSON.stringify(completed));
+    window.localStorage.setItem(memorySpaceStorageKey(completed.id), JSON.stringify(manifest));
+    indexMemorySpace(completed.id);
     router.push(href);
   }
 
@@ -161,8 +203,8 @@ export default function NewMemoryPage() {
         {draft.step === "RELATIONSHIP" && (
           <div className={styles.stage}>
             <p className={styles.eyebrow}>Create a memory home</p>
-            <h1>Who is this for?</h1>
-            <p className={styles.lede}>Start with the person or group. Their memories can keep growing here for years.</p>
+            <h1>Who or what is this for?</h1>
+            <p className={styles.lede}>Start with the subject. The same MemorySpace can keep growing for years while ThreadTales creates different stories from it.</p>
             <div className={styles.grid}>
               {RELATIONSHIPS.map((relationship) => (
                 <button
@@ -181,9 +223,9 @@ export default function NewMemoryPage() {
 
         {draft.step === "INTENT" && draft.relationshipType && (
           <div className={styles.stage}>
-            <p className={styles.eyebrow}>Make something meaningful</p>
-            <h1>What are you trying to say?</h1>
-            <p className={styles.lede}>The memories stay the same. ThreadTales changes the way the story is told for this moment.</p>
+            <p className={styles.eyebrow}>{draft.productTemplate ? `${draft.productTemplate.toLowerCase()} · ` : ""}Make something meaningful</p>
+            <h1>What are you trying to create?</h1>
+            <p className={styles.lede}>The memories stay reusable. The intent changes how ThreadTales composes them for this moment.</p>
             <div className={styles.grid}>
               {recommended.map((intent) => (
                 <button
@@ -227,7 +269,7 @@ export default function NewMemoryPage() {
           <div className={`${styles.stage} ${styles.narrow}`}>
             <p className={styles.eyebrow}>Give this memory home a name</p>
             <h1>What should we call it?</h1>
-            <p className={styles.lede}>A name you will recognize years from now — a person, family, or group.</p>
+            <p className={styles.lede}>A name you will recognize years from now — a person, family, pet, home, group, or chapter of your own life.</p>
             <form onSubmit={submitName} className={styles.form}>
               <label htmlFor="memory-name">MemorySpace name</label>
               <input
@@ -236,7 +278,7 @@ export default function NewMemoryPage() {
                 maxLength={80}
                 value={draft.name}
                 onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-                placeholder="Anjali · Our family · College crew"
+                placeholder="Anjali · My daughter · Bruno · Our home · College crew"
               />
               <button className={styles.primary} disabled={!draft.name.trim()} type="submit">Continue</button>
             </form>
@@ -247,9 +289,9 @@ export default function NewMemoryPage() {
           <div className={styles.stage}>
             <p className={styles.eyebrow}>{draft.name || "Your memory"}</p>
             <h1>Where should we start?</h1>
-            <p className={styles.lede}>You can add every kind of memory later. Pick the easiest place to begin today.</p>
+            <p className={styles.lede}>You can add more sources later. Pick the easiest place to begin today.</p>
             <div className={styles.sourceGrid}>
-              {SOURCES.map((source) => (
+              {availableSources.map((source) => (
                 <button
                   key={source.kind}
                   type="button"
@@ -261,7 +303,7 @@ export default function NewMemoryPage() {
                 </button>
               ))}
             </div>
-            <p className={styles.privacy}>Your draft is saved only in this browser during this first slice. Raw conversation content is not sent anywhere by this flow.</p>
+            <p className={styles.privacy}>The MemorySpace manifest is stored locally first. Raw conversation and selected media bytes are not uploaded by this creation flow.</p>
           </div>
         )}
       </section>
