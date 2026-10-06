@@ -12,13 +12,13 @@ import type { PetMemory, PetProfile } from "@/products/petlife/model";
 
 const PETLIFE_LOCAL_KEY = "story-platform:petlife:v1";
 
-type PetLifeState = { profile: PetProfile | null; memories: PetMemory[] };
+type PetLifeState = { profile: PetProfile; memories: PetMemory[] };
 
 function readPetLifeState(): PetLifeState | null {
   try {
     const raw = window.localStorage.getItem(PETLIFE_LOCAL_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PetLifeState>;
+    const parsed = JSON.parse(raw) as { profile?: PetProfile | null; memories?: PetMemory[] };
     if (!parsed.profile?.id || !Array.isArray(parsed.memories)) return null;
     return { profile: parsed.profile, memories: parsed.memories };
   } catch {
