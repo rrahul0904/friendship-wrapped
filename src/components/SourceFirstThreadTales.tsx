@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MIN_CHAT_MESSAGES, tooFewMessagesError, validateChatFileMetadata, validateRawChatText } from "@/lib/import-validation";
 import { makeSampleChat } from "@/lib/sample";
 import type { ChatStats } from "@/lib/types";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
@@ -109,7 +110,9 @@ async function makeCardFile(slide: Slide, chapter: number) {
 function buildSlides(stats: ChatStats): Slide[] {
   const people = [...stats.participants].sort((a, b) => b.messages - a.messages);
   const isGroup = people.length > 2;
-  const names = people.map((person) => person.name).join(isGroup ? ", " : " + ");
+  const names = isGroup
+    ? `${people.slice(0, 4).map((person) => person.name).join(", ")}${people.length > 4 ? ` +${people.length - 4} more` : ""}`
+    : people.map((person) => person.name).join(" + ");
   const first = people[0];
   const second = people[1];
   const starter = [...people].sort((a, b) => b.conversationStarts - a.conversationStarts)[0];
@@ -188,6 +191,7 @@ export function SourceFirstThreadTales() {
     setIndex(0);
     try {
       const [parsed] = await Promise.all([analyzeThreadTaleInput({ name, type, size: new Blob([text]).size, text }, "auto"), new Promise((resolve) => window.setTimeout(resolve, 2100))]);
+      if (parsed.messages.length < MIN_CHAT_MESSAGES) throw new Error(tooFewMessagesError(parsed.messages.length));
       setStats(parsed.stats);
       setStage("story");
     } catch (cause) {
@@ -199,9 +203,21 @@ export function SourceFirstThreadTales() {
 
   async function choose(file?: File) {
     if (!file) return;
-    if (!/\.(txt|json)$/i.test(file.name)) { setError("Choose a WhatsApp .txt or single-chat Telegram .json export."); return; }
-    await analyze(await file.text(), file.name, file.type || (file.name.toLowerCase().endsWith(".json") ? "application/json" : "text/plain"));
-    if (fileRef.current) fileRef.current.value = "";
+    setError("");
+    const metadataError = validateChatFileMetadata(file);
+    if (metadataError) { setError(metadataError); if (fileRef.current) fileRef.current.value = ""; return; }
+    try {
+      const text = await file.text();
+      const textError = validateRawChatText(text);
+      if (textError) { setError(textError); return; }
+      await analyze(text, file.name, file.type || (file.name.toLowerCase().endsWith(".json") ? "application/json" : "text/plain"));
+    } catch {
+      setStats(null);
+      setStage("idle");
+      setError("I couldn't read that file. Please export a supported single chat and try again.");
+    } finally {
+      if (fileRef.current) fileRef.current.value = "";
+    }
   }
 
   async function share(slide: Slide) {
@@ -251,5 +267,5 @@ export function SourceFirstThreadTales() {
     </main>;
   }
 
-  return <main className={styles.landing}><div className={styles.glow} aria-hidden="true"/><section className={styles.hero}><p className={styles.eyebrow}>ThreadTales</p><h1>Your chats already contain a story.</h1><p className={styles.lead}>Choose one conversation. ThreadTales reads it on this device and turns the history into twelve private, swipeable keepsake chapters.</p><div className={styles.actions}><input ref={fileRef} className={styles.hiddenInput} type="file" accept=".txt,.json,text/plain,application/json" onChange={(event) => void choose(event.target.files?.[0])}/><button className={styles.primary} onClick={() => fileRef.current?.click()}>Choose a chat export</button><button className={styles.demoAction} onClick={() => void analyze(makeSampleChat())}>See a demo first →</button></div><details className={styles.privacyDetails}><summary>● Processed on this device</summary><p>Raw messages stay in browser memory. No account is required and the core story does not need AI. Shared cards contain only the derived chapter you choose.</p></details>{error ? <p className={styles.error} role="alert">{error}</p> : null}</section></main>;
+  return <main className={styles.landing}><div className={styles.glow} aria-hidden="true"/><section className={styles.hero}><p className={styles.eyebrow}>ThreadTales</p><h1>Your chats already contain a story.</h1><p className={styles.lead}>Choose one conversation. ThreadTales reads it on this device and turns the history into twelve private, swipeable keepsake chapters.</p><div className={styles.actions}><input ref={fileRef} className={styles.hiddenInput} type="file" accept=".txt,.json,text/plain,application/json" aria-label="Choose WhatsApp text export or Telegram JSON export" onChange={(event) => void choose(event.target.files?.[0])}/><button className={styles.primary} onClick={() => fileRef.current?.click()}>Choose a chat export</button><button className={styles.demoAction} onClick={() => void analyze(makeSampleChat())}>See a demo first →</button></div><details className={styles.privacyDetails}><summary>● Processed on this device</summary><p>Raw messages stay in browser memory. No account is required and the core story does not need AI. Shared cards contain only the derived chapter you choose.</p></details>{error ? <p className={styles.error} role="alert">{error}</p> : null}</section></main>;
 }
