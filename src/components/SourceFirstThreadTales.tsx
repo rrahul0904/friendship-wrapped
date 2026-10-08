@@ -164,7 +164,6 @@ export function SourceFirstThreadTales() {
 
   useEffect(() => {
     if (stage !== "reading") return;
-    setProcessingIndex(0);
     const timer = window.setInterval(() => setProcessingIndex((current) => Math.min(current + 1, PROCESSING_STEPS.length - 1)), 520);
     return () => window.clearInterval(timer);
   }, [stage]);
@@ -182,6 +181,7 @@ export function SourceFirstThreadTales() {
   }, [next, previous, slides.length, stage]);
 
   async function analyze(text: string, name = "threadtales-demo.txt", type = "text/plain") {
+    setProcessingIndex(0);
     setStage("reading");
     setError("");
     setShareStatus("");
