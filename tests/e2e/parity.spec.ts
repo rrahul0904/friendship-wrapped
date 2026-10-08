@@ -23,7 +23,7 @@ test.describe("reverse-engineering parity browser matrix", () => {
     await expect(card).toHaveAttribute("data-kind", "beginning");
     await page.keyboard.press("ArrowRight");
     await expect(card).toHaveAttribute("data-kind", "scale");
-    await expect(card).toContainText("6");
+    await expect(card).toContainText("active days");
   });
 
   test("source-first artifact controls replace theme and cinematic workbench controls", async ({ page }) => {
