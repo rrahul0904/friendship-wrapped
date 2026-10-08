@@ -19,8 +19,9 @@ test.describe("reverse-engineering parity browser matrix", () => {
     const card = page.getByTestId("threadtales-story-card");
     await expect(card).toContainText("Telegram A");
     await expect(card).not.toContainText("tiny dragon club forever");
-    await page.getByRole("button", { name: "Next chapter" }).click();
-    await page.getByRole("button", { name: "Next chapter" }).click();
+    await page.keyboard.press("ArrowRight");
+    await expect(card).toHaveAttribute("data-kind", "beginning");
+    await page.keyboard.press("ArrowRight");
     await expect(card).toHaveAttribute("data-kind", "scale");
     await expect(card).toContainText("6");
   });
