@@ -3,9 +3,9 @@ import { SourceFirstThreadTales } from "@/components/SourceFirstThreadTales";
 
 export const metadata: Metadata = {
   title: "ThreadTales — your chats, turned into a story",
-  description: "Turn one private conversation into a local-first, swipeable keepsake story."
+  description: "A private, local-first conversation recap built as a swipeable keepsake."
 };
 
-export default function CreatePage() {
+export default function ThreadTalesRebuildPage() {
   return <SourceFirstThreadTales/>;
 }
