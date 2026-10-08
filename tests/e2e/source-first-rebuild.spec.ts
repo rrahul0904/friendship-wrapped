@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 const pairChat = [
   "2/3/2026, 9:10 AM - Maya: hello from the sentinel friendship",
@@ -19,7 +19,7 @@ const groupChat = [
   "2/3/2026, 9:15 AM - Sam: yes 😂",
 ].join("\n");
 
-async function openPair(page: Parameters<typeof test>[0] extends never ? never : any) {
+async function openPair(page: Page) {
   await page.goto("/create");
   await page.locator('input[type="file"]').setInputFiles({ name: "pair.txt", mimeType: "text/plain", buffer: Buffer.from(pairChat) });
   await expect(page.getByRole("heading", { name: "This is the story you kept writing." })).toBeVisible();
