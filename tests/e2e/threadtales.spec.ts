@@ -10,7 +10,7 @@ async function uploadFixture(page: Page) {
 }
 
 function appError(page: Page) {
-  return page.getByRole("alert");
+  return page.locator('p[role="alert"]');
 }
 
 test("landing page primary CTA reaches create", async ({ page }) => {
