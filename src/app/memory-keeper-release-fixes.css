@@ -1,0 +1,24 @@
+/* Memory Keeper release fixes.
+ * The shared Memory Graph migration notice is an extra direct child of
+ * product-workspace. Keep it full-width and preserve the intended desktop
+ * foundation/editor two-column layout without depending on div ordinals.
+ */
+@media (min-width: 960px) {
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice {
+    grid-column: 1 / -1;
+  }
+
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice + .builder-card {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice + .builder-card .builder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice + .builder-card + .builder-card {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
