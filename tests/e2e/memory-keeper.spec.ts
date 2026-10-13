@@ -33,7 +33,7 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   expect(graph).not.toContain("chatMessages");
 
   await page.getByRole("link", { name: /Open MemorySpace/i }).click();
-  await expect(page.getByRole("heading", { name: "Anjali" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Anjali", level: 2 })).toBeVisible();
   await expect(page.getByText(/1 approved memory/i)).toBeVisible();
   await expect(page.getByText("Intent Composer")).toBeVisible();
   await page.getByLabel("Story intent").selectOption("ANNIVERSARY");
