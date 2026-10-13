@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "project": {
+    "name": "ThreadTales",
+    "repository": "rrahul0904/friendship-wrapped",
+    "pilot": "reverse-engineering-os",
+    "status": "UAT",
+    "currentStage": "uat",
+    "sourceBranch": "rebuild/source-first-threadtales",
+    "sourceHead": "47220626354b048f9b90a86bb251f11ff181ee14",
+    "verifiedCodeSha": "e210afed8d96e4811062534d4fe6dc2d021ed85f"
+  },
+  "productThesis": "Give ThreadTales one private conversation and return a locally processed, emotionally legible twelve-beat story that is worth sending to the other person or group without exposing raw chat.",
+  "canonicalSources": [
+    "docs/reverse-engineering/SOURCE_FIRST_REBUILD_2026-10-03.md",
+    "docs/reverse-engineering/SOURCE_EVIDENCE_MATRIX_2026-10-03.md",
+    "https://www.yourlovepage.online/"
+  ],
+  "primaryWorkflow": [
+    "land on one clear promise",
+    "choose a chat export or demo",
+    "parse and analyze locally in the browser",
+    "enter the full-screen 9:16 story deck",
+    "navigate exactly twelve measured story beats",
+    "share or save a chapter without raw chat",
+    "finish on a keepsake rather than an upsell dashboard"
+  ],
+  "capabilities": [
+    {"name":"local chat parsing and deterministic analysis","classification":"MATCH","status":"implemented"},
+    {"name":"pair-vs-group editorial grammar","classification":"MATCH","status":"implemented"},
+    {"name":"twelve-beat mobile-first story reveal","classification":"MATCH","status":"implemented"},
+    {"name":"privacy-safe per-chapter keepsake sharing","classification":"MATCH","status":"implemented"},
+    {"name":"first-time-user pacing and emotional hierarchy","classification":"IMPROVE","status":"uat-required"},
+    {"name":"premium/cloud/AI surfaces in first-session journey","classification":"OMIT","status":"excluded"}
+  ],
+  "stages": {
+    "discover": {"status":"passed","evidence":[{"kind":"path","ref":"docs/reverse-engineering/SOURCE_FIRST_REBUILD_2026-10-03.md"}]},
+    "understand": {"status":"passed","evidence":[{"kind":"path","ref":"docs/reverse-engineering/SOURCE_FIRST_REBUILD_2026-10-03.md"}]},
+    "analyze": {"status":"passed","evidence":[{"kind":"path","ref":"docs/reverse-engineering/SOURCE_EVIDENCE_MATRIX_2026-10-03.md"}]},
+    "reconstruct": {"status":"passed","evidence":[{"kind":"path","ref":"docs/reverse-engineering/SOURCE_FIRST_REBUILD_2026-10-03.md"}]},
+    "architect": {"status":"partial","evidence":[{"kind":"path","ref":"docs/reverse-engineering/SOURCE_FIRST_REBUILD_2026-10-03.md"}]},
+    "implement": {"status":"passed","evidence":[{"kind":"sha","ref":"e210afed8d96e4811062534d4fe6dc2d021ed85f"}]},
+    "execute": {"status":"passed","evidence":[{"kind":"run","ref":"GitHub Actions 37151154232"}]},
+    "test": {"status":"passed","evidence":[{"kind":"run","ref":"GitHub Actions 37151154232"}]},
+    "uat": {"status":"blocked","evidence":[{"kind":"path","ref":"docs/uat/SOURCE_FIRST_FIRST_SESSION_UAT.md"}]},
+    "build": {"status":"passed","evidence":[{"kind":"run","ref":"GitHub Actions 37151154232"}]},
+    "deploy": {"status":"partial","evidence":[{"kind":"url","ref":"https://threadtales-az5e9shht-rrahul0904-5013s-projects.vercel.app/rebuild"}]},
+    "compare": {"status":"partial","evidence":[{"kind":"path","ref":"docs/reverse-engineering/SOURCE_EVIDENCE_MATRIX_2026-10-03.md"}]},
+    "prove": {"status":"partial","evidence":[{"kind":"sha","ref":"e210afed8d96e4811062534d4fe6dc2d021ed85f"}]}
+  },
+  "completionGate": {
+    "requiredPassedStages": ["discover","understand","analyze","reconstruct","architect","implement","execute","test","uat","build","deploy","compare","prove"],
+    "rule": "PROJECT_STATUS may be COMPLETE only when every required stage is passed."
+  },
+  "nextAction": "Run the five-person first-session UAT and real-device native sharing check, fix any pacing/trust/keepsake failures, then rerun exact-head verification before promotion."
+}
