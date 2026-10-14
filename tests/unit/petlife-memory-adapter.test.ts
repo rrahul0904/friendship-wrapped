@@ -33,17 +33,17 @@ describe("PetLife Memory Graph bridge", () => {
     });
     localStorageMock.setItem(memoryGraphStorageKey(memorySpaceId), JSON.stringify({ ...graph, nodes: [manual] }));
 
-    syncPetLifeMemoryGraph(
+    expect(syncPetLifeMemoryGraph(
       { id: "pet-1", name: "Mochi", species: "Cat" },
       [{ id: "pet-event-1", petId: "pet-1", type: "memory", date: "2026-05-02", title: "Sunny window nap", photoCount: 0 }],
-    );
+    )).toBe("synced");
 
     const synced = JSON.parse(localStorageMock.getItem(memoryGraphStorageKey(memorySpaceId)) ?? "{}") as { nodes: Array<{ id: string; title: string }> };
     expect(synced.nodes.map((node) => node.id)).toContain(manual.id);
     expect(synced.nodes.map((node) => node.title)).toContain("A memory I added myself");
     expect(synced.nodes.map((node) => node.title)).toContain("Sunny window nap");
 
-    clearPetLifeMemoryGraph();
+    expect(clearPetLifeMemoryGraph()).toBe("preserved");
     const afterClear = JSON.parse(localStorageMock.getItem(memoryGraphStorageKey(memorySpaceId)) ?? "{}") as { nodes: Array<{ id: string }> };
     expect(afterClear.nodes.map((node) => node.id)).toEqual([manual.id]);
     expect(localStorageMock.getItem(memorySpaceStorageKey(memorySpaceId))).not.toBeNull();
@@ -55,8 +55,8 @@ describe("PetLife Memory Graph bridge", () => {
     const corrupt = JSON.stringify({ schemaVersion: 1, memorySpaceId: PETLIFE_SHARED_MEMORY_SPACE_ID, nodes: [{ kind: "BROKEN" }] });
     localStorageMock.setItem(memoryGraphStorageKey(PETLIFE_SHARED_MEMORY_SPACE_ID), corrupt);
 
-    syncPetLifeMemoryGraph({ id: "pet-1", name: "Mochi", species: "Cat" }, []);
-    clearPetLifeMemoryGraph();
+    expect(syncPetLifeMemoryGraph({ id: "pet-1", name: "Mochi", species: "Cat" }, [])).toBe("recovery-needed");
+    expect(clearPetLifeMemoryGraph()).toBe("recovery-needed");
 
     expect(localStorageMock.getItem(memoryGraphStorageKey(PETLIFE_SHARED_MEMORY_SPACE_ID))).toBe(corrupt);
   });
