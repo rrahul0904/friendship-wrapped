@@ -1,7 +1,7 @@
 # Current architecture (production baseline)
 
 **Baseline SHA:** `8859495cd9062eb2a6a842c80a75639453d61026` (main and production).  
-**Status:** verified source-first production release; MemorySpace work is an open PR candidate, not deployed. PR #25 head `abe1268` passed hosted CI run `38501788837`; its Vercel Preview check was rate-limited. The current follow-up `3be1f81` adds recovery-preserving graph validation and a lens identity guard and passes local build/browser suites; its hosted CI is pending.
+**Status as of 2026-10-14:** production still serves the source-first release. PR #25 follow-up `433bf4ae47d8d5b633715310ee7ff444f6e4e03d` has local tests/build green; exact-head CI run `38610233469` passed, including Chromium and WebKit/iPhone. Exact-SHA Preview `7073001489` serves candidate `433bf4a`; route smoke passes. MemorySpace remains unmerged and is not a production capability.
 
 ## Runtime map
 
@@ -56,7 +56,7 @@ Open PRs #25–#28 introduce a separate, not-yet-production branch of the archit
   -> /memory/[id] -> intent story / local studio (stacked PRs #27/#28)
 ```
 
-The initial PR #25 candidate failed because canonical source-first `/create` did not branch into `UploadAnalyzer` for `memorySpaceId`. The integrated PR candidate preserves main's metadata and bare source-first route while routing an exact valid local MemorySpace manifest to candidate review. Hosted CI passed on `abe1268`. The current follow-up validates stored manifests and graph nodes, rejects unknown/stale IDs, preserves malformed graph bytes for explicit recovery, and ensures the LifeMap/MyYear lens pairs manifests with their indexed IDs. Local static, unit, build, Chromium, and WebKit/iPhone checks pass; hosted verification of this follow-up is pending. The Vercel check remains rate-limited, so no current Preview exists. Do not describe MemorySpace, Memory Graph, story composer, or Memory Studio as deployed features until a fresh Preview, review, merge, and production SHA prove them.
+The initial PR #25 candidate failed because canonical source-first `/create` did not branch into `UploadAnalyzer` for `memorySpaceId`. The integrated candidate preserves main's metadata and bare source-first route while routing an exact valid local MemorySpace manifest to candidate review. Current follow-ups reject stale IDs, preserve malformed graph bytes for explicit recovery, and pair lens manifests with their indexed IDs. Commit `6286c32` additionally prevents candidate identity collisions on later imports, preserves non-legacy approved nodes when old products sync/reset their mirrors, and blocks automatic writes to unreadable graphs. Local lint, typecheck, 192 unit tests, three performance tests, production build, and 15 related production-mode Chromium tests pass. CI run `38610233469` passed on `433bf4a`; independent re-review found no actionable issues. Preview `7073001489` is reachable, its `/api/version` matches `433bf4a`, and the key route smoke passes. Do not describe MemorySpace, Memory Graph, or these changes as deployed until an exact-SHA Preview, review, merge, and production SHA prove them.
 
 ## Service state
 
