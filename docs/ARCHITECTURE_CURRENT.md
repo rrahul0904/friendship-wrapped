@@ -1,7 +1,7 @@
 # Current architecture (production baseline)
 
 **Baseline SHA:** `8859495cd9062eb2a6a842c80a75639453d61026` (main and production).  
-**Status:** verified source-first production release; MemorySpace work is an open PR candidate, not deployed. PR #25's integrated head `7bda9e5` passed hosted CI run `38499976718`; its Vercel Preview check was rate-limited. The newer local deletion, manifest/graph validation, stale-ID guards, and expanded privacy tests pass the current local production build and browser suites; hosted CI and a fresh Preview are pending.
+**Status:** verified source-first production release; MemorySpace work is an open PR candidate, not deployed. PR #25 head `abe1268` passed hosted CI run `38501788837`; its Vercel Preview check was rate-limited. The current follow-up `3be1f81` adds recovery-preserving graph validation and a lens identity guard and passes local build/browser suites; its hosted CI is pending.
 
 ## Runtime map
 
@@ -56,7 +56,7 @@ Open PRs #25–#28 introduce a separate, not-yet-production branch of the archit
   -> /memory/[id] -> intent story / local studio (stacked PRs #27/#28)
 ```
 
-The initial PR #25 candidate failed because canonical source-first `/create` did not branch into `UploadAnalyzer` for `memorySpaceId`. The integrated PR candidate preserves main's metadata and bare source-first route while routing an exact valid local MemorySpace manifest to candidate review. Hosted Chromium/WebKit CI passed on an older candidate. The current local follow-up validates stored manifests and graph nodes, rejects unknown/stale IDs before intake, and adds confirmed local deletion; local static, unit, build, Chromium, and WebKit/iPhone checks pass. The Vercel check was rate-limited, so no current Preview exists, and hosted verification of this latest candidate is pending. Do not describe MemorySpace, Memory Graph, story composer, or Memory Studio as deployed features until a fresh Preview, review, merge, and production SHA prove them.
+The initial PR #25 candidate failed because canonical source-first `/create` did not branch into `UploadAnalyzer` for `memorySpaceId`. The integrated PR candidate preserves main's metadata and bare source-first route while routing an exact valid local MemorySpace manifest to candidate review. Hosted CI passed on `abe1268`. The current follow-up validates stored manifests and graph nodes, rejects unknown/stale IDs, preserves malformed graph bytes for explicit recovery, and ensures the LifeMap/MyYear lens pairs manifests with their indexed IDs. Local static, unit, build, Chromium, and WebKit/iPhone checks pass; hosted verification of this follow-up is pending. The Vercel check remains rate-limited, so no current Preview exists. Do not describe MemorySpace, Memory Graph, story composer, or Memory Studio as deployed features until a fresh Preview, review, merge, and production SHA prove them.
 
 ## Service state
 
