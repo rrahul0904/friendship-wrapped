@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import {
   createDirectMemoryNode,
   createEmptyMemoryGraph,
+  isMemoryGraph,
   memoryGraphStorageKey,
   upsertMemoryNode,
   type MemoryGraph,
@@ -22,10 +23,9 @@ function loadGraph(memorySpaceId: string): MemoryGraph {
   try {
     const raw = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
     if (!raw) return createEmptyMemoryGraph(memorySpaceId);
-    const parsed = JSON.parse(raw) as Partial<MemoryGraph>;
-    if (parsed.schemaVersion === 1 && parsed.memorySpaceId === memorySpaceId && Array.isArray(parsed.nodes)) {
-      return parsed as MemoryGraph;
-    }
+    const parsed: unknown = JSON.parse(raw);
+    if (isMemoryGraph(parsed, memorySpaceId)) return parsed;
+    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
   } catch {
     window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
   }
@@ -43,6 +43,7 @@ export function MemoryIntakeClient({ source }: { source: "manual" | "photos-vide
   const memorySpaceId = search.get("memorySpaceId") ?? "";
   const [manifest, setManifest] = useState<MemorySpaceManifest | null>(null);
   const [graph, setGraph] = useState<MemoryGraph | null>(null);
+  const [spaceChecked, setSpaceChecked] = useState(false);
   const [message, setMessage] = useState("");
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -56,16 +57,21 @@ export function MemoryIntakeClient({ source }: { source: "manual" | "photos-vide
   useEffect(() => {
     if (!memorySpaceId) return;
     const timer = window.setTimeout(() => {
+      let validManifest = false;
       try {
         const rawManifest = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
         if (rawManifest) {
           const parsed: unknown = JSON.parse(rawManifest);
-          if (isMemorySpaceManifest(parsed)) setManifest(parsed);
+          if (isMemorySpaceManifest(parsed) && parsed.id === memorySpaceId) {
+            setManifest(parsed);
+            validManifest = true;
+          }
         }
       } catch {
         window.localStorage.removeItem(memorySpaceStorageKey(memorySpaceId));
       }
-      setGraph(loadGraph(memorySpaceId));
+      if (validManifest) setGraph(loadGraph(memorySpaceId));
+      setSpaceChecked(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [memorySpaceId]);
@@ -137,7 +143,8 @@ export function MemoryIntakeClient({ source }: { source: "manual" | "photos-vide
     return <div className="notice">This intake needs a MemorySpace. <Link href="/memory/new">Create one first.</Link></div>;
   }
 
-  if (!graph) return <div className="notice">Opening your local MemorySpace…</div>;
+  if (!spaceChecked) return <div className="notice">Opening your local MemorySpace…</div>;
+  if (!manifest || !graph) return <div className="notice" role="status">This MemorySpace is not available in this browser. Nothing was saved. <Link href="/memory/new">Create a MemorySpace here</Link>.</div>;
 
   return (
     <div className="product-builder" data-memory-intake={source}>

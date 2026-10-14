@@ -52,6 +52,10 @@ export interface MemorySpaceManifest {
   updatedAt: string;
 }
 
+const MEMORY_SUBJECT_TYPES = new Set<MemorySubjectType>(["SELF", "PERSON", "RELATIONSHIP", "GROUP", "FAMILY", "PET", "HOME"]);
+const MEMORY_PRODUCT_TEMPLATES = new Set<MemoryProductTemplate>(["MEMORY_KEEPER", "FRIENDSHIP", "RELATIONSHIP", "BABYSTORY", "FAMILYTREE", "PETLIFE", "HOMESTORY"]);
+const MEMORY_RELATIONSHIP_TYPES = new Set<MemoryRelationshipType>(["PARTNER", "CHILD", "PARENT", "FRIEND", "FAMILY_GROUP", "PET", "HOME", "SELF", "OTHER"]);
+
 export const MEMORY_SPACE_STORAGE_PREFIX = "threadtales:memory-space:v1:";
 export const MEMORY_SPACE_INDEX_KEY = "threadtales:memory-space-index:v1";
 
@@ -179,12 +183,13 @@ export function isMemorySpaceManifest(value: unknown): value is MemorySpaceManif
   return (
     manifest.schemaVersion === 1 &&
     typeof manifest.id === "string" &&
-    manifest.id.length > 0 &&
+    manifest.id.length > 0 && manifest.id.length <= 128 &&
     typeof manifest.name === "string" &&
-    typeof manifest.subjectType === "string" &&
-    typeof manifest.productTemplate === "string" &&
-    typeof manifest.createdAt === "string" &&
-    typeof manifest.updatedAt === "string"
+    MEMORY_SUBJECT_TYPES.has(manifest.subjectType as MemorySubjectType) &&
+    MEMORY_PRODUCT_TEMPLATES.has(manifest.productTemplate as MemoryProductTemplate) &&
+    (manifest.relationshipType === undefined || MEMORY_RELATIONSHIP_TYPES.has(manifest.relationshipType)) &&
+    typeof manifest.createdAt === "string" && Number.isFinite(Date.parse(manifest.createdAt)) &&
+    typeof manifest.updatedAt === "string" && Number.isFinite(Date.parse(manifest.updatedAt))
   );
 }
 

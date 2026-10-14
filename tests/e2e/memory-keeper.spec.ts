@@ -5,9 +5,32 @@ test("the default create route stays source-first while MemorySpace selects cand
   await page.goto("/create");
   await expect(page.getByRole("heading", { name: "Your chats already contain a story." })).toBeVisible();
 
+  await page.evaluate(() => {
+    const now = new Date().toISOString();
+    window.localStorage.setItem("threadtales:memory-space:v1:memory-space-test", JSON.stringify({
+      schemaVersion: 1,
+      id: "memory-space-test",
+      name: "Test space",
+      subjectType: "RELATIONSHIP",
+      productTemplate: "RELATIONSHIP",
+      relationshipType: "PARTNER",
+      createdAt: now,
+      updatedAt: now,
+    }));
+  });
   await page.goto("/create?memorySpaceId=memory-space-test");
   await expect(page.getByRole("heading", { name: /Add a conversation to your memory home/i })).toBeVisible();
   await expect(page.getByRole("button", { name: "Use demo chat" })).toBeVisible();
+
+  await page.goto("/create?memorySpaceId=missing-space");
+  await expect(page.getByText(/This MemorySpace is not available in this browser/i)).toBeVisible();
+  await expect(page.getByLabel(/Choose WhatsApp text export or Telegram JSON export/i)).toHaveCount(0);
+  await page.goto("/memory/intake/manual?memorySpaceId=missing-space");
+  await expect(page.getByText(/This MemorySpace is not available in this browser/i)).toBeVisible();
+  await expect(page.getByLabel("Memory title")).toHaveCount(0);
+  await page.goto("/memory/missing-space");
+  await expect(page.getByText(/This MemorySpace is not available in this browser/i)).toBeVisible();
+  expect(await page.evaluate(() => Object.keys(window.localStorage).filter((key) => key.startsWith("threadtales:memory-graph:v1:")))).toHaveLength(0);
 });
 
 test("Memory Keeper creates a relationship-intent space, approves chat memories, and composes a story", async ({ page }) => {
@@ -24,14 +47,24 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   await page.getByRole("button", { name: /Conversation/i }).click();
 
   await expect(page).toHaveURL(/\/create\?memorySpaceId=/);
-  const outboundRequests: string[] = [];
-  page.on("request", (request) => outboundRequests.push(`${request.url()} ${request.postData() ?? ""}`));
+  const outboundRequests: Array<{ url: string; body: string }> = [];
+  page.on("request", (request) => outboundRequests.push({ url: request.url(), body: request.postData() ?? "" }));
   await page.getByLabel(/Choose WhatsApp text export or Telegram JSON export/i).setInputFiles(
     path.resolve(process.cwd(), "tests/fixtures/whatsapp/ios-mdy.txt"),
   );
   await expect(page.getByRole("heading", { name: "We found moments worth reviewing." })).toBeVisible();
   await expect(page.locator(".story-hero")).toHaveCount(0);
-  expect(outboundRequests.join("\n")).not.toContain("made it home");
+  const outboundPayloads = outboundRequests.map((request) => `${request.url} ${request.body}`).join("\n");
+  for (const canary of ["Maya Rose", "Jordan Lee", "Morning", "Coffee?", "Dinner later", "yes please", "made it home"]) {
+    expect(outboundPayloads).not.toContain(canary);
+  }
+  const telemetryPayloads = outboundRequests
+    .filter((request) => request.url.endsWith("/api/telemetry"))
+    .map((request) => JSON.parse(request.body) as Record<string, unknown>);
+  expect(telemetryPayloads.length).toBeGreaterThan(0);
+  for (const payload of telemetryPayloads) {
+    expect(Object.keys(payload).sort()).toEqual(["event", "product"]);
+  }
 
   const firstCandidate = page.locator("[data-memory-candidate]").first();
   await firstCandidate.getByRole("button", { name: "Keep" }).click();
@@ -99,7 +132,7 @@ test("manual child memory becomes reusable graph data", async ({ page }) => {
   await page.getByRole("button", { name: "Keep this memory" }).click();
   await expect(page.getByText("Memory kept in this Memory Graph.")).toBeVisible();
   await page.getByRole("link", { name: /Open memory home/i }).first().click();
-  await expect(page.getByRole("heading", { name: "My daughter" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "My daughter" }).first()).toBeVisible();
   await expect(page.getByText("First day of school")).toBeVisible();
 });
 

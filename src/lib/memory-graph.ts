@@ -63,6 +63,59 @@ export interface MemoryGraph {
   updatedAt: string;
 }
 
+const MEMORY_CANDIDATE_KINDS = new Set<MemoryCandidateKind>([
+  "BEGINNING", "MESSAGE_SCALE", "LONGEST_STREAK", "LONGEST_SILENCE", "PEAK_DAY",
+  "LATE_NIGHT_RHYTHM", "SHARED_LANGUAGE", "RELATIONSHIP_ERA",
+]);
+const MEMORY_NODE_KINDS = new Set<MemoryNodeKind>([
+  ...MEMORY_CANDIDATE_KINDS,
+  "MANUAL_MEMORY", "MILESTONE", "PHOTO_VIDEO", "PLACE", "SONG", "PERSON", "PROJECT", "DOCUMENT",
+]);
+const MEMORY_NODE_SOURCES = new Set<MemoryNodeSource>([
+  "CONVERSATION_DERIVED", "MANUAL", "MEDIA_METADATA", "LEGACY_PRODUCT",
+]);
+const MEMORY_PRODUCT_TEMPLATES = new Set<MemoryProductTemplate>([
+  "MEMORY_KEEPER", "FRIENDSHIP", "RELATIONSHIP", "BABYSTORY", "FAMILYTREE", "PETLIFE", "HOMESTORY",
+]);
+
+function isTimestamp(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && Number.isFinite(Date.parse(value));
+}
+
+function isFactMap(value: unknown): value is Record<string, string | number | null> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value) &&
+    Object.values(value as Record<string, unknown>).every((item) =>
+      item === null || typeof item === "string" || (typeof item === "number" && Number.isFinite(item)),
+    );
+}
+
+function isMemoryNode(value: unknown, memorySpaceId: string): value is MemoryNode {
+  if (!value || typeof value !== "object") return false;
+  const node = value as Partial<MemoryNode>;
+  return node.schemaVersion === 1 &&
+    typeof node.id === "string" && node.id.length > 0 &&
+    node.memorySpaceId === memorySpaceId &&
+    typeof node.kind === "string" && MEMORY_NODE_KINDS.has(node.kind as MemoryNodeKind) &&
+    typeof node.title === "string" && typeof node.summary === "string" &&
+    (node.occurredAt === null || (typeof node.occurredAt === "number" && Number.isFinite(node.occurredAt))) &&
+    (node.sourceCandidateId === undefined || (typeof node.sourceCandidateId === "string" && node.sourceCandidateId.length > 0)) &&
+    (node.source === undefined || (typeof node.source === "string" && MEMORY_NODE_SOURCES.has(node.source as MemoryNodeSource))) &&
+    (node.productTemplate === undefined || (typeof node.productTemplate === "string" && MEMORY_PRODUCT_TEMPLATES.has(node.productTemplate))) &&
+    isFactMap(node.facts) &&
+    (node.people === undefined || typeof node.people === "string") &&
+    (node.place === undefined || typeof node.place === "string") &&
+    (node.extra === undefined || typeof node.extra === "string") &&
+    isTimestamp(node.approvedAt);
+}
+
+export function isMemoryGraph(value: unknown, memorySpaceId: string): value is MemoryGraph {
+  if (!value || typeof value !== "object") return false;
+  const graph = value as Partial<MemoryGraph>;
+  return graph.schemaVersion === 1 && graph.memorySpaceId === memorySpaceId &&
+    Array.isArray(graph.nodes) && graph.nodes.every((node) => isMemoryNode(node, memorySpaceId)) &&
+    isTimestamp(graph.updatedAt);
+}
+
 export interface DirectMemoryNodeInput {
   id: string;
   memorySpaceId: string;

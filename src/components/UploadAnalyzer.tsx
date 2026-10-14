@@ -9,6 +9,8 @@ import { isStoryMode, STORY_MODES } from "@/platform/story/modes";
 import { trackProductEvent } from "@/platform/telemetry/client";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { buildThreadTalesLocalLore, type ThreadTalesLocalLore } from "@/platform/threadtales/lore";
+import { isMemorySpaceManifest, memorySpaceStorageKey } from "@/lib/memory-platform";
+import Link from "next/link";
 import { LocalLorePanel } from "./LocalLorePanel";
 import { MemoryCandidateReview } from "./MemoryCandidateReview";
 import { ProcessingReveal } from "./ProcessingReveal";
@@ -28,6 +30,28 @@ export function UploadAnalyzer() {
   const requestRef = useRef(0);
   const search = useSearchParams();
   const memorySpaceId = search.get("memorySpaceId");
+  const [memorySpaceAccess, setMemorySpaceAccess] = useState<{ id: string | null; status: "checking" | "valid" | "invalid" }>(() => ({
+    id: memorySpaceId,
+    status: memorySpaceId ? "checking" : "valid",
+  }));
+
+  useEffect(() => {
+    if (!memorySpaceId) return;
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
+        const parsed: unknown = raw ? JSON.parse(raw) : null;
+        setMemorySpaceAccess({ id: memorySpaceId, status: isMemorySpaceManifest(parsed) && parsed.id === memorySpaceId ? "valid" : "invalid" });
+      } catch {
+        setMemorySpaceAccess({ id: memorySpaceId, status: "invalid" });
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [memorySpaceId]);
+
+  const memorySpaceStatus = memorySpaceAccess.id === memorySpaceId
+    ? memorySpaceAccess.status
+    : memorySpaceId ? "checking" : "valid";
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -78,6 +102,14 @@ export function UploadAnalyzer() {
 
   function cancelAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setBusy(false); setStats(null); setLore(null); setWarning(""); setError("Analysis cancelled. You can choose another export whenever you're ready."); }
   function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; fileRef.current?.focus(); }
+
+  if (memorySpaceId && memorySpaceStatus !== "valid") {
+    return <div className="notice" role="status">
+      {memorySpaceStatus === "checking"
+        ? "Opening your local MemorySpace…"
+        : <>This MemorySpace is not available in this browser. No conversation was analyzed or saved. <Link href="/memory/new">Create a MemorySpace here</Link>.</>}
+    </div>;
+  }
 
   return <>
     <section className="uploader mc-uploader" aria-busy={busy}>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { memoryGraphStorageKey, type MemoryGraph, type MemoryNode } from "@/lib/memory-graph";
+import { isMemoryGraph, memoryGraphStorageKey, type MemoryGraph, type MemoryNode } from "@/lib/memory-graph";
 import {
   MEMORY_SPACE_INDEX_KEY,
   isMemorySpaceManifest,
@@ -25,10 +25,10 @@ function loadSpaces(): LoadedSpace[] {
       const rawGraph = window.localStorage.getItem(memoryGraphStorageKey(id));
       if (!rawManifest || !rawGraph) continue;
       const manifestValue: unknown = JSON.parse(rawManifest);
-      const graphValue = JSON.parse(rawGraph) as Partial<MemoryGraph>;
+      const graphValue: unknown = JSON.parse(rawGraph);
       if (!isMemorySpaceManifest(manifestValue)) continue;
-      if (graphValue.schemaVersion !== 1 || graphValue.memorySpaceId !== id || !Array.isArray(graphValue.nodes)) continue;
-      spaces.push({ manifest: manifestValue, graph: graphValue as MemoryGraph });
+      if (!isMemoryGraph(graphValue, id)) continue;
+      spaces.push({ manifest: manifestValue, graph: graphValue });
     }
     return spaces;
   } catch {

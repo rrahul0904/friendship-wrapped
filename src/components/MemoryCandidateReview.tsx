@@ -7,18 +7,13 @@ import {
   buildConversationMemoryCandidates,
   createEmptyMemoryGraph,
   decideMemoryCandidate,
+  isMemoryGraph,
   memoryGraphStorageKey,
   type MemoryCandidate,
   type MemoryGraph,
 } from "@/lib/memory-graph";
 import { memorySpaceHomeHref } from "@/lib/memory-platform";
 import type { ChatStats } from "@/lib/types";
-
-function isStoredGraph(value: unknown, memorySpaceId: string): value is MemoryGraph {
-  if (!value || typeof value !== "object") return false;
-  const graph = value as Partial<MemoryGraph>;
-  return graph.schemaVersion === 1 && graph.memorySpaceId === memorySpaceId && Array.isArray(graph.nodes);
-}
 
 export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId: string; stats: ChatStats }) {
   const initialCandidates = useMemo(
@@ -27,27 +22,34 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
   );
   const [candidates, setCandidates] = useState<MemoryCandidate[]>(initialCandidates);
   const [graph, setGraph] = useState<MemoryGraph>(() => createEmptyMemoryGraph(memorySpaceId));
+  const [graphLoaded, setGraphLoaded] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
         const stored = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
-        if (!stored) return;
-        const parsed: unknown = JSON.parse(stored);
-        if (!isStoredGraph(parsed, memorySpaceId)) return;
-        setGraph(parsed);
-        const approvedIds = new Set(parsed.nodes.map((node) => node.sourceCandidateId).filter(Boolean));
-        setCandidates((current) => current.map((candidate) =>
-          approvedIds.has(candidate.id) ? { ...candidate, status: "APPROVED" as const } : candidate,
-        ));
+        if (stored) {
+          const parsed: unknown = JSON.parse(stored);
+          if (isMemoryGraph(parsed, memorySpaceId)) {
+            setGraph(parsed);
+            const approvedIds = new Set(parsed.nodes.map((node) => node.sourceCandidateId).filter(Boolean));
+            setCandidates((current) => current.map((candidate) =>
+              approvedIds.has(candidate.id) ? { ...candidate, status: "APPROVED" as const } : candidate,
+            ));
+          } else {
+            window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
+          }
+        }
       } catch {
         window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
       }
+      setGraphLoaded(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [memorySpaceId]);
 
   function keep(candidate: MemoryCandidate) {
+    if (!graphLoaded) return;
     const approvedCandidates = decideMemoryCandidate(candidates, candidate.id, "APPROVED");
     const approved = approvedCandidates.find((item) => item.id === candidate.id);
     if (!approved) return;
@@ -61,7 +63,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
     setCandidates((current) => decideMemoryCandidate(current, candidate.id, "REJECTED"));
   }
 
-  const approvedCount = graph.nodes.length;
+  const approvedCount = graphLoaded ? graph.nodes.length : 0;
   const pending = candidates.filter((candidate) => candidate.status === "PENDING");
 
   return (
@@ -73,7 +75,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
       </div>
 
       <div className="notice" role="status">
-        {approvedCount} kept in this browser · {pending.length} still to review
+        {graphLoaded ? `${approvedCount} kept in this browser · ${pending.length} still to review` : "Opening your saved MemorySpace…"}
       </div>
 
       <div className="chapter-grid">
@@ -85,7 +87,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
             <div className="controls">
               {candidate.status === "PENDING" ? (
                 <>
-                  <button className="btn btn-primary" type="button" onClick={() => keep(candidate)}>Keep</button>
+                  <button className="btn btn-primary" type="button" onClick={() => keep(candidate)} disabled={!graphLoaded}>Keep</button>
                   <button className="btn btn-soft" type="button" onClick={() => skip(candidate)}>Skip</button>
                 </>
               ) : (

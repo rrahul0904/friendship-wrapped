@@ -5,6 +5,7 @@ import {
   buildConversationMemoryCandidates,
   createEmptyMemoryGraph,
   decideMemoryCandidate,
+  isMemoryGraph,
 } from "../../src/lib/memory-graph";
 import type { ChatMessage } from "../../src/lib/types";
 
@@ -57,5 +58,17 @@ describe("memory graph approval boundary", () => {
     const otherGraph = createEmptyMemoryGraph("space-2");
 
     expect(() => approveCandidateIntoGraph(otherGraph, approved)).toThrow("different MemorySpace");
+  });
+
+  it("validates stored graph nodes, facts, timestamps, and space ownership", () => {
+    const candidates = buildConversationMemoryCandidates("space-1", analyzeChat(messages));
+    const approved = decideMemoryCandidate(candidates, candidates[0].id, "APPROVED")[0];
+    const graph = approveCandidateIntoGraph(createEmptyMemoryGraph("space-1"), approved);
+
+    expect(isMemoryGraph(graph, "space-1")).toBe(true);
+    expect(isMemoryGraph(graph, "space-2")).toBe(false);
+    expect(isMemoryGraph({ ...graph, nodes: [{ ...graph.nodes[0], kind: "UNSUPPORTED" }] }, "space-1")).toBe(false);
+    expect(isMemoryGraph({ ...graph, nodes: [{ ...graph.nodes[0], facts: { unsafe: {} } }] }, "space-1")).toBe(false);
+    expect(isMemoryGraph({ ...graph, updatedAt: "not-a-date" }, "space-1")).toBe(false);
   });
 });

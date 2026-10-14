@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   createEmptyMemoryGraph,
+  isMemoryGraph,
   memoryGraphStorageKey,
+  legacyProductMemorySpaceId,
   type MemoryGraph,
 } from "@/lib/memory-graph";
 import {
@@ -38,8 +40,9 @@ function loadGraph(memorySpaceId: string) {
   try {
     const raw = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
     if (!raw) return createEmptyMemoryGraph(memorySpaceId);
-    const parsed = JSON.parse(raw) as Partial<MemoryGraph>;
-    if (parsed.schemaVersion === 1 && parsed.memorySpaceId === memorySpaceId && Array.isArray(parsed.nodes)) return parsed as MemoryGraph;
+    const parsed: unknown = JSON.parse(raw);
+    if (isMemoryGraph(parsed, memorySpaceId)) return parsed;
+    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
   } catch {
     window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
   }
@@ -59,6 +62,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
   const router = useRouter();
   const [manifest, setManifest] = useState<MemorySpaceManifest | null>(null);
   const [graph, setGraph] = useState<MemoryGraph | null>(null);
+  const [spaceChecked, setSpaceChecked] = useState(false);
   const [intent, setIntent] = useState<MemoryIntentKind>("MEMORY_LANE");
   const [dedication, setDedication] = useState("");
   const [active, setActive] = useState(0);
@@ -70,8 +74,9 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
         const raw = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
         if (raw) {
           const parsed: unknown = JSON.parse(raw);
-          if (isMemorySpaceManifest(parsed)) {
+          if (isMemorySpaceManifest(parsed) && parsed.id === memorySpaceId) {
             setManifest(parsed);
+            setGraph(loadGraph(memorySpaceId));
             if (parsed.relationshipType) {
               const first = recommendedIntents(parsed.relationshipType)[0];
               if (first) setIntent(first.kind);
@@ -81,7 +86,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
       } catch {
         window.localStorage.removeItem(memorySpaceStorageKey(memorySpaceId));
       }
-      setGraph(loadGraph(memorySpaceId));
+      setSpaceChecked(true);
     }, 0);
     return () => window.clearTimeout(timer);
   }, [memorySpaceId]);
@@ -133,7 +138,11 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
   }
 
   function deleteMemorySpace() {
-    if (!manifest || !window.confirm(`Delete “${manifest.name}” and its approved memories from this browser? This cannot be undone. Export an archive first if you want to keep a copy.`)) return;
+    const isPetLifeMirror = memorySpaceId === legacyProductMemorySpaceId("petlife");
+    const prompt = isPetLifeMirror
+      ? "Clear this PetLife Memory Graph mirror? The original PetLife timeline remains saved here and will rebuild the mirror when PetLife opens again. Delete the original timeline from PetLife if you want to remove it too."
+      : `Delete “${manifest?.name ?? "this MemorySpace"}” and its approved memories from this browser? This cannot be undone. Export an archive first if you want to keep a copy.`;
+    if (!manifest || !window.confirm(prompt)) return;
 
     window.localStorage.removeItem(memorySpaceStorageKey(memorySpaceId));
     window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
@@ -183,8 +192,12 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
     setMessage("Copied a share-safe story summary.");
   }
 
+  if (!spaceChecked) {
+    return <div className="notice">Opening your MemorySpace…</div>;
+  }
+
   if (!manifest || !graph) {
-    return <div className="notice">Opening your MemorySpace… If this browser has no local copy, create the MemorySpace here first.</div>;
+    return <div className="notice" role="status">This MemorySpace is not available in this browser. <Link href="/memory/new">Create a MemorySpace here</Link>.</div>;
   }
 
   const activeBeat = story?.beats[Math.min(active, Math.max(0, (story?.beats.length ?? 1) - 1))];
@@ -208,7 +221,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
           <div className="premium-actions">
             {productSlug ? <Link className="btn btn-soft" href={`/products/${productSlug}`}>Open {productSlug} product</Link> : null}
             <button className="btn btn-soft" type="button" onClick={exportArchive}>Export my memories</button>
-            <button className="btn btn-soft" type="button" onClick={deleteMemorySpace}>Delete this MemorySpace</button>
+            <button className="btn btn-soft" type="button" onClick={deleteMemorySpace}>{memorySpaceId === legacyProductMemorySpaceId("petlife") ? "Clear Memory Graph mirror" : "Delete this MemorySpace"}</button>
           </div>
         </div>
 
