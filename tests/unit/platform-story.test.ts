@@ -101,6 +101,7 @@ describe("story export", () => {
     expect(svg).toContain("A &lt; B &amp; C");
     expect(svg).toContain("&quot;quoted&quot; &apos;subtitle&apos;");
     expect(svg).toContain("support &lt;private&gt; &amp; safe");
+    expect(svg).not.toContain("<foreignObject");
     expect(svg).not.toContain("THREADTALES · PRIVATE BY DEFAULT");
   });
 });

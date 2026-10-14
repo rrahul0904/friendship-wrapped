@@ -100,13 +100,15 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
     return composeMemoryStory({ graph, manifest, intent, dedication, selectedNodeIds: selectedMemoryIds });
   }, [dedication, graph, intent, manifest, selectedMemoryIds]);
 
+  const safeActive = story?.beats.length ? Math.min(active, story.beats.length - 1) : 0;
+
   useEffect(() => {
     const timer = window.setTimeout(() => setActive(0), 0);
     return () => window.clearTimeout(timer);
   }, [intent]);
 
   async function exportActiveBeat() {
-    const beat = story?.beats[active];
+    const beat = story?.beats[safeActive];
     if (!beat || !story?.beats.some((item) => item.role === "MEMORY")) return;
     const chapter: StoryChapter = {
       id: beat.id,
@@ -235,7 +237,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
     return <div className="notice" role="status">This MemorySpace is not available in this browser. <Link href="/memory/new">Create a MemorySpace here</Link>.</div>;
   }
 
-  const activeBeat = story?.beats[Math.min(active, Math.max(0, (story?.beats.length ?? 1) - 1))];
+  const activeBeat = story?.beats[safeActive];
   const productSlug = PRODUCT_SLUGS[manifest.productTemplate];
   const intakeParams = new URLSearchParams({
     memorySpaceId: manifest.id,
@@ -303,9 +305,12 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
               <input
                 type="checkbox"
                 checked={selectedMemoryIds.includes(node.id)}
-                onChange={(event) => setSelectedMemoryIds((current) => event.target.checked
-                  ? [...current, node.id]
-                  : current.filter((id) => id !== node.id))}
+                onChange={(event) => {
+                  setActive(0);
+                  setSelectedMemoryIds((current) => event.target.checked
+                    ? [...current, node.id]
+                    : current.filter((id) => id !== node.id));
+                }}
               />
               <span><strong>{node.title}</strong><small>{node.summary}</small></span>
             </label>)}
@@ -320,9 +325,9 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
             <div className="chapter-privacy">Composed from approved memories only</div>
           </div>
           <div className="chapter-nav">
-            <button className="btn btn-soft" disabled={active === 0} onClick={() => setActive((value) => Math.max(0, value - 1))}>← Previous</button>
-            <div className="chapter-dots">{story.beats.map((beat, index) => <button key={beat.id} aria-label={`Open memory story chapter ${index + 1}`} className={index === active ? "active" : ""} onClick={() => setActive(index)} />)}</div>
-            <button className="btn btn-soft" disabled={active === story.beats.length - 1} onClick={() => setActive((value) => Math.min(story.beats.length - 1, value + 1))}>Next →</button>
+            <button className="btn btn-soft" disabled={safeActive === 0} onClick={() => setActive(Math.max(0, safeActive - 1))}>← Previous</button>
+            <div className="chapter-dots">{story.beats.map((beat, index) => <button key={beat.id} aria-label={`Open memory story chapter ${index + 1}`} className={index === safeActive ? "active" : ""} onClick={() => setActive(index)} />)}</div>
+            <button className="btn btn-soft" disabled={safeActive === story.beats.length - 1} onClick={() => setActive(Math.min(story.beats.length - 1, safeActive + 1))}>Next →</button>
           </div>
           <div className="premium-actions">
             <button className="btn btn-primary" type="button" onClick={() => void exportActiveBeat()}>Download 9:16 card</button>

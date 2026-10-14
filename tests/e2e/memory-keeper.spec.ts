@@ -111,15 +111,35 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   await page.getByRole("link", { name: /Open MemorySpace/i }).click();
   await expect(page.getByRole("heading", { name: "Anjali", level: 2 })).toBeVisible();
   await expect(page.getByText(/1 approved memory/i)).toBeVisible();
+
+  await page.getByRole("link", { name: "Manual memory" }).click();
+  await page.getByLabel("Memory title").fill("Our favorite picnic");
+  await page.getByLabel("Kind").selectOption("MANUAL_MEMORY");
+  await page.getByLabel("What do you want to remember?").fill("We brought peaches and stayed until sunset.");
+  await page.getByRole("button", { name: "Keep this memory" }).click();
+  await expect(page.getByText("Memory kept in this Memory Graph.")).toBeVisible();
+  await page.getByRole("link", { name: /Open memory home/i }).first().click();
+  await expect(page.getByText(/2 approved memories/i)).toBeVisible();
+
   await expect(page.getByText("Intent Composer")).toBeVisible();
   await page.getByLabel("Story intent").selectOption("ANNIVERSARY");
   await expect(page.locator("[data-story-intent='ANNIVERSARY']")).toBeVisible();
-  const memorySelector = page.locator(".memory-selection-list input[type='checkbox']").first();
+  const memorySelectors = page.locator(".memory-selection-list input[type='checkbox']");
+  await expect(memorySelectors).toHaveCount(2);
+  const memorySelector = memorySelectors.first();
   await expect(memorySelector).toBeChecked();
-  await expect(page.locator(".chapter-dots button")).toHaveCount(3);
+  await expect(page.locator(".chapter-dots button")).toHaveCount(4);
+  await page.getByRole("button", { name: "Open memory story chapter 4" }).click();
   await memorySelector.uncheck();
-  await expect(page.locator(".chapter-dots button")).toHaveCount(0);
-  await expect(page.getByText("Choose at least one approved memory to preview, download, or share this story.")).toBeVisible();
+  await expect(page.locator(".chapter-dots button")).toHaveCount(3);
+  await expect(page.locator(".chapter-dots button.active")).toHaveAttribute("aria-label", "Open memory story chapter 1");
+  await page.getByRole("button", { name: "Open memory story chapter 2" }).click();
+  await expect(page.locator("[data-story-intent='ANNIVERSARY']").getByRole("heading", { name: "Our favorite picnic" })).toBeVisible();
+  await expect(page.locator("[data-story-intent='ANNIVERSARY']")).not.toContainText("Where this thread begins");
+  const activeCard = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download 9:16 card" }).click();
+  expect((await activeCard).suggestedFilename()).toMatch(/-vertical\.png$/);
+  await expect(page.getByRole("status").filter({ hasText: "Downloaded the active 9:16 story card." })).toBeVisible();
   await expect(memorySelector).not.toBeChecked();
   await page.evaluate(() => {
     const indexKey = "threadtales:memory-space-index:v1";
