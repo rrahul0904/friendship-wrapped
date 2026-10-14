@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   createEmptyMemoryGraph,
@@ -8,12 +9,15 @@ import {
   type MemoryGraph,
 } from "@/lib/memory-graph";
 import {
+  MEMORY_SPACE_INDEX_KEY,
   isMemorySpaceManifest,
   memorySpaceStorageKey,
   type MemorySpaceManifest,
 } from "@/lib/memory-platform";
 import {
+  MEMORY_DRAFT_STORAGE_KEY,
   MEMORY_INTENTS,
+  isMemorySpaceDraft,
   recommendedIntents,
   type MemoryIntentKind,
 } from "@/lib/memory-space";
@@ -52,6 +56,7 @@ function downloadJson(filename: string, value: unknown) {
 }
 
 export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
+  const router = useRouter();
   const [manifest, setManifest] = useState<MemorySpaceManifest | null>(null);
   const [graph, setGraph] = useState<MemoryGraph | null>(null);
   const [intent, setIntent] = useState<MemoryIntentKind>("MEMORY_LANE");
@@ -127,6 +132,40 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
     setMessage("Downloaded your portable MemorySpace archive.");
   }
 
+  function deleteMemorySpace() {
+    if (!manifest || !window.confirm(`Delete “${manifest.name}” and its approved memories from this browser? This cannot be undone. Export an archive first if you want to keep a copy.`)) return;
+
+    window.localStorage.removeItem(memorySpaceStorageKey(memorySpaceId));
+    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
+
+    try {
+      const parsed: unknown = JSON.parse(window.localStorage.getItem(MEMORY_SPACE_INDEX_KEY) ?? "[]");
+      if (Array.isArray(parsed)) {
+        const remaining = parsed.filter((id): id is string => typeof id === "string" && id !== memorySpaceId);
+        if (remaining.length) window.localStorage.setItem(MEMORY_SPACE_INDEX_KEY, JSON.stringify(remaining));
+        else window.localStorage.removeItem(MEMORY_SPACE_INDEX_KEY);
+      } else {
+        window.localStorage.removeItem(MEMORY_SPACE_INDEX_KEY);
+      }
+    } catch {
+      window.localStorage.removeItem(MEMORY_SPACE_INDEX_KEY);
+    }
+
+    try {
+      const rawDraft = window.localStorage.getItem(MEMORY_DRAFT_STORAGE_KEY);
+      if (rawDraft) {
+        const parsed: unknown = JSON.parse(rawDraft);
+        if (isMemorySpaceDraft(parsed) && parsed.id === memorySpaceId) {
+          window.localStorage.removeItem(MEMORY_DRAFT_STORAGE_KEY);
+        }
+      }
+    } catch {
+      window.localStorage.removeItem(MEMORY_DRAFT_STORAGE_KEY);
+    }
+
+    router.replace("/memory/new");
+  }
+
   async function shareStoryText() {
     if (!story) return;
     const memoryLines = story.beats.filter((beat) => beat.role === "MEMORY").slice(0, 3).map((beat) => `• ${beat.title}`).join("\n");
@@ -169,6 +208,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
           <div className="premium-actions">
             {productSlug ? <Link className="btn btn-soft" href={`/products/${productSlug}`}>Open {productSlug} product</Link> : null}
             <button className="btn btn-soft" type="button" onClick={exportArchive}>Export my memories</button>
+            <button className="btn btn-soft" type="button" onClick={deleteMemorySpace}>Delete this MemorySpace</button>
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 # Current architecture (production baseline)
 
 **Baseline SHA:** `8859495cd9062eb2a6a842c80a75639453d61026` (main and production).  
-**Status:** verified source-first release; MemorySpace stack remains unmerged.
+**Status:** verified source-first production release; MemorySpace work is an open PR candidate, not deployed. PR #25's integrated head `7bda9e5` passed hosted CI run `38499976718`; its Vercel Preview check was rate-limited. A local MemorySpace delete follow-up is newer than that hosted run.
 
 ## Runtime map
 
@@ -56,7 +56,7 @@ Open PRs #25–#28 introduce a separate, not-yet-production branch of the archit
   -> /memory/[id] -> intent story / local studio (stacked PRs #27/#28)
 ```
 
-PR #25 currently fails because production's canonical source-first `/create` does not branch into `UploadAnalyzer` for `memorySpaceId`; the MemorySpace wizard therefore hands users to a route that cannot reach the candidate review. PR #25 also descends from an older reverse-engineering pilot base, so the stack needs compatibility/rebase assessment after this regression is fixed. Do not describe MemorySpace, Memory Graph, story composer, or Memory Studio as deployed features until a verified merge and production SHA prove them.
+The initial PR #25 candidate failed because canonical source-first `/create` did not branch into `UploadAnalyzer` for `memorySpaceId`. The integrated PR candidate now preserves main's metadata and bare source-first route while routing a valid MemorySpace query to local candidate review; hosted Chromium/WebKit CI is green. A follow-up adds confirmed local manifest/graph deletion and is awaiting CI. The Vercel check is rate-limited, so no current Preview exists. Do not describe MemorySpace, Memory Graph, story composer, or Memory Studio as deployed features until a fresh Preview, review, merge, and production SHA prove them.
 
 ## Service state
 

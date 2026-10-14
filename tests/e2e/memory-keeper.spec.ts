@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import path from "node:path";
 
 test("the default create route stays source-first while MemorySpace selects candidate intake", async ({ page }) => {
   await page.goto("/create");
@@ -23,9 +24,14 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   await page.getByRole("button", { name: /Conversation/i }).click();
 
   await expect(page).toHaveURL(/\/create\?memorySpaceId=/);
-  await page.getByRole("button", { name: "Use demo chat" }).click();
+  const outboundRequests: string[] = [];
+  page.on("request", (request) => outboundRequests.push(`${request.url()} ${request.postData() ?? ""}`));
+  await page.getByLabel(/Choose WhatsApp text export or Telegram JSON export/i).setInputFiles(
+    path.resolve(process.cwd(), "tests/fixtures/whatsapp/ios-mdy.txt"),
+  );
   await expect(page.getByRole("heading", { name: "We found moments worth reviewing." })).toBeVisible();
   await expect(page.locator(".story-hero")).toHaveCount(0);
+  expect(outboundRequests.join("\n")).not.toContain("made it home");
 
   const firstCandidate = page.locator("[data-memory-candidate]").first();
   await firstCandidate.getByRole("button", { name: "Keep" }).click();
@@ -40,6 +46,7 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   expect(parsed.nodes).toHaveLength(1);
   expect(graph).not.toContain("rawChat");
   expect(graph).not.toContain("chatMessages");
+  expect(graph).not.toContain("made it home");
 
   await page.getByRole("link", { name: /Open MemorySpace/i }).click();
   await expect(page.getByRole("heading", { name: "Anjali", level: 2 })).toBeVisible();
@@ -47,6 +54,30 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   await expect(page.getByText("Intent Composer")).toBeVisible();
   await page.getByLabel("Story intent").selectOption("ANNIVERSARY");
   await expect(page.locator("[data-story-intent='ANNIVERSARY']")).toBeVisible();
+  await page.evaluate(() => {
+    const indexKey = "threadtales:memory-space-index:v1";
+    const ids = JSON.parse(window.localStorage.getItem(indexKey) ?? "[]") as string[];
+    window.localStorage.setItem(indexKey, JSON.stringify([...ids, "untouched-space"]));
+    window.localStorage.setItem("threadtales:memory-space:v1:untouched-space", "keep-manifest");
+    window.localStorage.setItem("threadtales:memory-graph:v1:untouched-space", "keep-graph");
+  });
+
+  page.once("dialog", (dialog) => dialog.dismiss());
+  await page.getByRole("button", { name: "Delete this MemorySpace" }).click();
+  await expect(page.getByRole("heading", { name: "Anjali", level: 2 })).toBeVisible();
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Delete this MemorySpace" }).click();
+  await expect(page).toHaveURL(/\/memory\/new$/);
+  await expect(page.getByRole("heading", { name: "Who or what is this for?" })).toBeVisible();
+  const deletedState = await page.evaluate(() => ({
+    manifestKeys: Object.keys(window.localStorage).filter((key) => key.startsWith("threadtales:memory-space:v1:")),
+    graphKeys: Object.keys(window.localStorage).filter((key) => key.startsWith("threadtales:memory-graph:v1:")),
+    spaceIndex: window.localStorage.getItem("threadtales:memory-space-index:v1"),
+  }));
+  expect(deletedState.manifestKeys).toEqual(["threadtales:memory-space:v1:untouched-space"]);
+  expect(deletedState.graphKeys).toEqual(["threadtales:memory-graph:v1:untouched-space"]);
+  expect(deletedState.spaceIndex).toBe(JSON.stringify(["untouched-space"]));
 });
 
 test("manual child memory becomes reusable graph data", async ({ page }) => {

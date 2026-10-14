@@ -1,6 +1,6 @@
 # ThreadTales implementation tracker
 
-**Last reconciled:** 2026-10-13 22:10 EDT.  
+**Last reconciled:** 2026-10-13 22:23 EDT.
 **Canonical production SHA:** `8859495cd9062eb2a6a842c80a75639453d61026`.
 
 Statuses are deliberately distinct: `RESEARCHED`, `SPECIFIED`, `IMPLEMENTING`, `IMPLEMENTED`, `VERIFIED`, `DEPLOYED`, `CERTIFIED`.
@@ -18,20 +18,24 @@ Statuses are deliberately distinct: `RESEARCHED`, `SPECIFIED`, `IMPLEMENTING`, `
 | TT-009 | Supabase cloud persistence/security | 7/9 | P1 | IMPLEMENTED_NOT_VERIFIED | Persistence/security owner | Migrations and route code | Remote integration tests unavailable | Production health/RLS unknown | Restore DNS/account access; inspect remote history before applying changes; test ownership/deletion. |
 | TT-010 | Content-blind production telemetry | 12 | P1 | IMPLEMENTED_NOT_VERIFIED | Operations owner | `/api/telemetry`, integration status | Delivery not verified | Production flags report Supabase sink | Prove allowlisted event delivery and diagnose route/provider failures without content. |
 | TT-011 | Exact-SHA release certification | 11/13 | P0 | DEPLOYED_NOT_CERTIFIED | Release manager + independent verifier | `CURRENT_TRUTH.md` evidence TT-P0-001–009 | Main CI green; integrated PR candidate has local checks; UAT and provider gates remain | Prod currently `8859495` | Refresh exact-SHA receipt after merge/deploy; close product/provider gates individually. |
+| TT-012 | Delete a local MemorySpace and approved graph | 3 | P0 | IMPLEMENTED locally; hosted verification pending | PR #25 + this implementation | Phase 3 exit requirement; old PR stack had export but no delete control | MemorySpace home asks for explicit confirmation, removes only that manifest/graph/index entry and matching unfinished draft, then returns to creation. Focused regression passes cancel behavior and preserves a second space in Chromium and WebKit/iPhone. | Not deployed; this slice is local only | Run full hosted checks on the updated candidate; review local media cleanup semantics before phase completion. |
 
 ## Active execution order
 
-1. Push the integrated TT-003 candidate `a48aad1` to PR #25 and verify exact-head CI; Vercel Preview currently reports a 24-hour rate limit.
-2. Re-run full Chromium and WebKit/iPhone gates in hosted CI; local integrated runs passed 49/49 and 7/7.
-3. Resolve PR #25 lineage/review issues and handle PR #26's dirty stacked base; do not treat downstream checks as independent proof.
-4. Review graph runtime validation and export/delete behavior before marking TT-002/004 verified.
+1. Push the delete slice and rerun exact-head hosted CI; candidate `7bda9e5` passed all GitHub checks, including 49 Chromium and 7 WebKit/iPhone tests, before this addition.
+2. Obtain a new exact-head Preview after Vercel's reported rate limit lifts; do not use baseline Preview `7029009666` as current proof.
+3. Resolve PR #25 independent review and handle PR #26's dirty stacked base; do not treat downstream checks as independent proof.
+4. Review graph runtime validation and local media cleanup before marking TT-002/004 or Phase 3 complete.
 5. Run product UAT in parallel with the next code slice when human participants and devices are available.
-6. Reconcile dated release records to canonical production `8859495` without rewriting historical provider evidence.
+6. Keep provider status and production certification gates open until direct provider evidence is available.
 
 ## Integrated verification receipt — 2026-10-13
 
 - Candidate: PR #25 branch integrated with canonical main `8859495`; source SHA `a48aad1d268baad634741dafc886d43a06dcfc28`.
 - Passed locally on the integrated tree: lint (0 errors; 17 existing warnings), typecheck, 186 unit tests, 3 performance tests, optimized production build, 49 Chromium browser tests, 7 WebKit/iPhone browser tests, reverse-engineering process gate, credential-like scan, and `git diff --check`.
 - The new route regression and full Memory Keeper Keep→graph→story path passed in Chromium.
-- Pending: push of the integration merge, exact-head GitHub CI, fresh Preview, independent review, and provider/human UAT gates.
+- Hosted CI run `38499976718` passed on `7bda9e57d8a8ded220b04421a3317b0ba686698e`, including Chromium and WebKit/iPhone. The deletion addition is newer and still needs a new run.
+- The deletion update passed the full local static/unit/performance checks and production build; all four Memory Keeper tests pass in Chromium and WebKit/iPhone, and the combined WebKit profile passes 11/11. The full 49-test Chromium suite passed on the immediately preceding candidate; updated full hosted Chromium is pending.
+- Vercel check on that head failed: “Deployment rate limited — retry in 24 hours.” No fresh Preview deployment exists.
+- Pending: hosted CI for deletion, fresh Preview, independent review, and provider/human UAT gates.
 - No production deploy, provider write, or payment was performed.
