@@ -1,46 +1,40 @@
 import { expect, test } from "@playwright/test";
 
-const modes = [
-  ["friends", "Best friends"], ["couple", "Couple"], ["siblings", "Siblings"], ["family", "Family"], ["group", "Group chat"], ["birthday", "Birthday"], ["anniversary", "Anniversary"], ["long-distance", "Long distance"], ["graduation", "Graduation / group"], ["year-together", "Year together"],
-] as const;
-
 const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64");
 
 test.describe("reverse-engineering parity browser matrix", () => {
-  for (const [mode, label] of modes) {
-    test(`${mode} story mode renders its deterministic chapter deck`, async ({ page }) => {
-      await page.goto(`/create?mode=${mode}&demo=1`);
-      await expect(page.locator("#results")).toBeVisible();
-      const deck = page.getByRole("region", { name: new RegExp(`${label} story chapters`, "i") });
-      await expect(deck).toBeVisible();
-      await expect(deck.locator(".chapter-preview h3")).toBeVisible();
-      await expect(deck.getByRole("button", { name: "Download PNG" })).toBeVisible();
-    });
-  }
+  test("legacy occasion query parameters cannot reintroduce the old dashboard shell", async ({ page }) => {
+    await page.goto("/create?mode=anniversary&demo=1");
+    await expect(page.getByRole("heading", { name: "Your chats already contain a story." })).toBeVisible();
+    await expect(page.locator("#results")).toHaveCount(0);
+    await expect(page.locator(".mc-story-deck")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Choose a chat export" })).toBeVisible();
+  });
 
-  test("Telegram single-chat JSON imports locally and produces lore without changing the share boundary", async ({ page }) => {
+  test("Telegram single-chat JSON imports locally into the same 12-chapter story", async ({ page }) => {
     await page.goto("/create");
     const messages = Array.from({ length: 6 }, (_, index) => ({ type: "message", date: `2026-08-0${index + 1}T12:00:00`, from: index % 2 ? "Telegram A" : "Telegram B", text: index < 3 ? `tiny dragon club forever ${index}` : `ordinary local message ${index}` }));
     await page.getByLabel(/Choose WhatsApp text export or Telegram JSON export/i).setInputFiles({ name: "result.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ messages })) });
-    await expect(page.locator("#results")).toBeVisible();
-    await expect(page.locator(".story-hero")).toContainText("6 messages");
-    await expect(page.getByRole("region", { name: "Local-only chat lore" })).toBeVisible();
-    const shareUrl = await page.locator(".share-panel .share-input[readonly]").inputValue();
-    expect(shareUrl).not.toContain("tiny dragon club forever");
+    await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
+    const card = page.getByTestId("threadtales-story-card");
+    await expect(card).toContainText("Telegram A");
+    await expect(card).not.toContainText("tiny dragon club forever");
+    await page.keyboard.press("ArrowRight");
+    await expect(card).toHaveAttribute("data-kind", "beginning");
+    await page.keyboard.press("ArrowRight");
+    await expect(card).toHaveAttribute("data-kind", "scale");
+    await expect(card).toContainText("active days");
   });
 
-  test("story parity controls expose 4:5, themes, premium story set and accessible cinematic playback", async ({ page }) => {
-    await page.goto("/create?demo=1");
-    const deck = page.getByRole("region", { name: /story chapters/i });
-    await expect(deck.getByLabel("Export")).toContainText("4:5 portrait");
-    await expect(deck.getByLabel("Theme")).toContainText("Midnight");
-    await expect(deck.getByLabel("Theme")).toContainText("Sunset");
-    await expect(deck.getByRole("button", { name: "Share card" })).toBeVisible();
-    await expect(deck.getByRole("button", { name: "Premium full story set" })).toBeVisible();
-    const player = page.getByRole("region", { name: "Cinematic story playback" });
-    await expect(player.getByRole("button", { name: "Play", exact: true })).toBeVisible();
-    await expect(player.getByRole("button", { name: "Replay", exact: true })).toBeVisible();
-    await expect(player.getByRole("button", { name: "Full screen", exact: true })).toBeVisible();
+  test("source-first artifact controls replace theme and cinematic workbench controls", async ({ page }) => {
+    await page.goto("/create");
+    await page.getByRole("button", { name: "See a demo first →" }).click();
+    await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Save card" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Next chapter" })).toBeVisible();
+    await expect(page.getByLabel("Theme")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Cinematic story playback" })).toHaveCount(0);
   });
 
   test("MyYear photo bytes remain session-local while previews enrich the experience", async ({ page }) => {

@@ -21,12 +21,12 @@ test.describe("Memory Cinema UI", () => {
     await expect(page.getByRole("link", { name: /Make yours/i })).toBeVisible();
   });
 
-  test("create workspace keeps privacy reassurance close to the uploader", async ({ page }) => {
+  test("create keeps concise privacy reassurance beside the one primary action", async ({ page }) => {
     await page.goto("/create");
-    await expect(page.getByRole("heading", { name: /Open the time capsule/i })).toBeVisible();
-    await expect(page.getByText("Raw messages stay in this browser")).toBeVisible();
-    await expect(page.getByText("No account required")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Choose chat export" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your chats already contain a story." })).toBeVisible();
+    await expect(page.getByText("Processed on this device")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Choose a chat export" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "See a demo first →" })).toBeVisible();
   });
 
   test("product universe exposes ten live products", async ({ page }) => {
@@ -55,65 +55,41 @@ test.describe("Memory Cinema UI", () => {
     }
   });
 
-  test("story controls stay usable on phone and iPad layouts", async ({ page }) => {
+  test("source-first story controls stay usable on phone and iPad layouts", async ({ page }) => {
     for (const viewport of [{ width: 390, height: 844 }, { width: 820, height: 1180 }]) {
       await page.setViewportSize(viewport);
-      await page.goto("/create?demo=1");
-      await expect(page.locator("#results")).toBeVisible();
-      const deck = page.getByRole("region", { name: /story chapters/i });
-      await expect(deck.getByRole("radiogroup", { name: "Story theme selector" })).toBeVisible();
-      await expect(deck.getByRole("radio", { name: "Midnight Free" })).toBeVisible();
-      await expect(deck.getByLabel("Export", { exact: true })).toBeVisible();
-      await expect(deck.getByRole("button", { name: "9:16 Story" })).toBeVisible();
-      await expect(deck.getByRole("button", { name: "4:5 Portrait" })).toBeVisible();
-      await expect(deck.getByRole("button", { name: "1:1 Square" })).toBeVisible();
+      await page.goto("/create");
+      await page.getByRole("button", { name: "See a demo first →" }).click();
+      await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
+      const card = page.getByTestId("threadtales-story-card");
+      const box = await card.boundingBox();
+      expect(box).not.toBeNull();
+      expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(9 / 16, 1);
+      await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Save card" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Next chapter" })).toBeVisible();
       const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
       expect(overflow, `story workspace overflow at ${viewport.width}px`).toBeLessThanOrEqual(1);
     }
   });
 
-  test("desktop reveal uses the full story canvas and keeps Relive composition connected", async ({ page }) => {
+  test("desktop reveal preserves a centered vertical story instead of expanding into a dashboard", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.goto("/create?demo=1");
-    const results = page.locator("#results");
-    await expect(results).toBeVisible();
+    await page.goto("/create");
+    await page.getByRole("button", { name: "See a demo first →" }).click();
+    await expect(page.getByLabel("Chapter 1 of 12")).toBeVisible();
 
-    const hero = results.locator(".story-hero");
-    const deck = results.locator(".mc-story-deck");
-    const workbench = deck.locator(".mc-story-workbench");
-    const canvas = workbench.locator(".mc-story-canvas");
-    const themes = workbench.locator(".mc-theme-selector");
-    const cinematic = results.locator(".mc-cinematic");
-    const cinematicHead = cinematic.locator(".mc-cinematic-head");
-    const cinematicStage = cinematic.locator(".mc-cinematic-stage");
+    const card = page.getByTestId("threadtales-story-card");
+    const box = await card.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeLessThanOrEqual(570);
+    expect(box!.width / box!.height).toBeCloseTo(9 / 16, 1);
+    expect(box!.x).toBeGreaterThan(400);
+    expect(box!.x + box!.width).toBeLessThan(1040);
 
-    await expect(hero).toBeVisible();
-    await expect(deck).toBeVisible();
-    await expect(cinematic).toBeVisible();
-
-    const heroBox = await hero.boundingBox();
-    const deckBox = await deck.boundingBox();
-    const canvasBox = await canvas.boundingBox();
-    const themesBox = await themes.boundingBox();
-    const cinematicBox = await cinematic.boundingBox();
-    const cinematicHeadBox = await cinematicHead.boundingBox();
-    const cinematicStageBox = await cinematicStage.boundingBox();
-
-    expect(heroBox).not.toBeNull();
-    expect(deckBox).not.toBeNull();
-    expect(canvasBox).not.toBeNull();
-    expect(themesBox).not.toBeNull();
-    expect(cinematicBox).not.toBeNull();
-    expect(cinematicHeadBox).not.toBeNull();
-    expect(cinematicStageBox).not.toBeNull();
-
-    expect(heroBox!.width).toBeGreaterThan(1000);
-    expect(deckBox!.width).toBeGreaterThan(1000);
-    expect(themesBox!.x).toBeGreaterThan(canvasBox!.x + 450);
-    expect(cinematicBox!.width).toBeGreaterThan(1000);
-    expect(cinematicStageBox!.x).toBeGreaterThan(cinematicHeadBox!.x + 300);
-    expect(cinematicStageBox!.height).toBeGreaterThan(650);
-
+    await expect(page.locator(".story-hero")).toHaveCount(0);
+    await expect(page.locator(".mc-story-deck")).toHaveCount(0);
+    await expect(page.locator(".mc-cinematic")).toHaveCount(0);
     const overflow = await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - window.innerWidth));
     expect(overflow).toBeLessThanOrEqual(1);
   });

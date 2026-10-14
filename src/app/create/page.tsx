@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { ProductFlowStepper } from "@/components/MemoryCinemaLanding";
 import { SourceFirstThreadTales } from "@/components/SourceFirstThreadTales";
 import { UploadAnalyzer } from "@/components/UploadAnalyzer";
+
+export const metadata: Metadata = {
+  title: "ThreadTales — your chats, turned into a story",
+  description: "Turn one private conversation into a local-first, swipeable keepsake story."
+};
 
 type CreatePageProps = {
   searchParams: Promise<{ memorySpaceId?: string | string[] }>;

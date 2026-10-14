@@ -92,28 +92,39 @@ ThreadTales implication:
 
 ## 4. Current rebuild gap matrix
 
-| Capability | Source lesson | Rebuild status | Decision |
+The source-first candidate now owns the primary `/create` journey. `/rebuild` remains an alias for historical Preview/review links.
+
+| Capability | Source lesson | Candidate status | Decision |
 |---|---|---|---|
-| One clear promise | Origin | Present | KEEP |
+| One clear promise | Origin | Present on `/create` | KEEP |
 | Local chat parsing | Competitor/source-neutral | Present | KEEP |
-| No raw-chat API transmission | Competitor/source-neutral | Automated test present | KEEP |
+| No raw-chat API transmission | Competitor/source-neutral | Automated browser assertion present | KEEP |
+| Intentional processing interlude | Wrapped pacing | Present; short four-beat local sequence | KEEP / HUMAN VERIFY |
 | Sequential story | Wrapped / direct competitors | Present | KEEP |
-| Complete 12-beat recap | WeSayWhat + current product spec | Partial | CLOSE NOW |
-| Pair/group editorial divergence | Direct competitors | Present but incomplete | STRENGTHEN |
-| One idea per reveal | Wrapped | Present | KEEP |
+| Complete 12-beat recap | WeSayWhat + product spec | Present for pair and group | KEEP |
+| Pair/group editorial divergence | Direct competitors | Present with different middle-story grammar | KEEP / HUMAN VERIFY |
+| One idea per reveal | Wrapped | Present with chapter-specific visual hierarchy | KEEP / HUMAN VERIFY |
+| Tap/swipe/keyboard progression | Wrapped interaction pattern | Present | KEEP |
 | Share per reveal | Direct competitors | Present | KEEP |
-| 9:16 keepsake | Direct competitors / social sharing | Present as SVG, needs visual UAT | VERIFY |
-| Personal final keepsake | Origin | Basic | STRENGTHEN AFTER CORE |
-| Photos/song/personal note | Origin | Not present | POST-STORY OPTIONAL, NOT FIRST BLOCKER |
-| Dashboard before story | Old implementation | Removed in rebuild | REMOVE |
-| Premium/cloud/AI panels | Old implementation | Removed in rebuild | REMOVE |
-| Product-world cross-sells | Old implementation | Removed in rebuild | REMOVE |
+| 9:16 keepsake | Direct competitors / social sharing | 1080×1920 PNG export/share implemented and browser-tested | REAL-DEVICE VERIFY |
+| Personal final keepsake | Origin | Dedicated closing poster with summary facts and save/share CTA | HUMAN VERIFY |
+| Photos/song/personal note | Origin | Not in the first-session chat recap | POST-STORY OPTIONAL, NOT CORE BLOCKER |
+| Dashboard before story | Old implementation | Removed from primary `/create` path | REMOVE |
+| Premium/cloud/AI panels | Old implementation | Removed from first-session path | REMOVE |
+| Product-world cross-sells | Old implementation | Removed from first-session path | REMOVE |
 | Human first-session evidence | Product gate | Missing | REQUIRED BEFORE PROMOTION |
 
 ## 5. Product gate
 
-Do not merge because CI is green. The candidate must first demonstrate:
-- 4/5 first-time users complete the story without instruction.
-- 4/5 can name a reveal they would actually send to the other person/group.
-- No participant interprets a measured pattern as an unsupported psychological claim.
-- Mobile visual pacing is acceptable on a real phone.
+Automated correctness is necessary but does not certify emotional quality. Do not merge or promote because CI and Preview are green.
+
+The remaining release evidence is deliberately external to implementation:
+- 5 first-time users who did not build the product;
+- at least 4/5 complete without instruction;
+- at least 4/5 identify a reveal they would genuinely send to the other person/group;
+- zero reports of an unsupported psychological claim presented as fact;
+- real-device native visual sharing on at least one iPhone-class device plus a non-iOS/fallback path;
+- no critical phone navigation/export failure;
+- product-owner review of the exact deployed head.
+
+Any failure discovered in that gate is a product defect to fix, not documentation to explain away.
