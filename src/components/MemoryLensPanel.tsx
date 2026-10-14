@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isMemoryGraph, memoryGraphStorageKey, type MemoryGraph, type MemoryNode } from "@/lib/memory-graph";
 import {
   MEMORY_SPACE_INDEX_KEY,
-  isMemorySpaceManifest,
+  isMemorySpaceManifestForId,
   memorySpaceHomeHref,
   memorySpaceStorageKey,
   type MemoryLens,
@@ -26,7 +26,7 @@ function loadSpaces(): LoadedSpace[] {
       if (!rawManifest || !rawGraph) continue;
       const manifestValue: unknown = JSON.parse(rawManifest);
       const graphValue: unknown = JSON.parse(rawGraph);
-      if (!isMemorySpaceManifest(manifestValue)) continue;
+      if (!isMemorySpaceManifestForId(manifestValue, id)) continue;
       if (!isMemoryGraph(graphValue, id)) continue;
       spaces.push({ manifest: manifestValue, graph: graphValue });
     }

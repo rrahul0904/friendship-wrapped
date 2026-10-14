@@ -116,6 +116,22 @@ export function isMemoryGraph(value: unknown, memorySpaceId: string): value is M
     isTimestamp(graph.updatedAt);
 }
 
+export interface StoredMemoryGraphResult {
+  graph: MemoryGraph | null;
+  recoveryData: string | null;
+}
+
+export function readStoredMemoryGraph(raw: string | null, memorySpaceId: string): StoredMemoryGraphResult {
+  if (raw === null) return { graph: createEmptyMemoryGraph(memorySpaceId), recoveryData: null };
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (isMemoryGraph(parsed, memorySpaceId)) return { graph: parsed, recoveryData: null };
+  } catch {
+    // Keep the original bytes available for an explicit recovery download.
+  }
+  return { graph: null, recoveryData: raw };
+}
+
 export interface DirectMemoryNodeInput {
   id: string;
   memorySpaceId: string;

@@ -5,31 +5,21 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   createDirectMemoryNode,
-  createEmptyMemoryGraph,
-  isMemoryGraph,
   memoryGraphStorageKey,
+  readStoredMemoryGraph,
   upsertMemoryNode,
   type MemoryGraph,
   type MemoryNodeKind,
 } from "@/lib/memory-graph";
 import {
-  isMemorySpaceManifest,
+  isMemorySpaceManifestForId,
   memorySpaceHomeHref,
   memorySpaceStorageKey,
   type MemorySpaceManifest,
 } from "@/lib/memory-platform";
 
-function loadGraph(memorySpaceId: string): MemoryGraph {
-  try {
-    const raw = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
-    if (!raw) return createEmptyMemoryGraph(memorySpaceId);
-    const parsed: unknown = JSON.parse(raw);
-    if (isMemoryGraph(parsed, memorySpaceId)) return parsed;
-    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
-  } catch {
-    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
-  }
-  return createEmptyMemoryGraph(memorySpaceId);
+function loadGraph(memorySpaceId: string): MemoryGraph | null {
+  return readStoredMemoryGraph(window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId)), memorySpaceId).graph;
 }
 
 function dateToTimestamp(date: string) {
@@ -62,7 +52,7 @@ export function MemoryIntakeClient({ source }: { source: "manual" | "photos-vide
         const rawManifest = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
         if (rawManifest) {
           const parsed: unknown = JSON.parse(rawManifest);
-          if (isMemorySpaceManifest(parsed) && parsed.id === memorySpaceId) {
+          if (isMemorySpaceManifestForId(parsed, memorySpaceId)) {
             setManifest(parsed);
             validManifest = true;
           }
@@ -144,6 +134,7 @@ export function MemoryIntakeClient({ source }: { source: "manual" | "photos-vide
   }
 
   if (!spaceChecked) return <div className="notice">Opening your local MemorySpace…</div>;
+  if (manifest && !graph) return <div className="notice" role="status">Your saved Memory Graph could not be read, and its original data has been left untouched. <Link href={homeHref}>Open the MemorySpace recovery screen</Link> before adding memories.</div>;
   if (!manifest || !graph) return <div className="notice" role="status">This MemorySpace is not available in this browser. Nothing was saved. <Link href="/memory/new">Create a MemorySpace here</Link>.</div>;
 
   return (

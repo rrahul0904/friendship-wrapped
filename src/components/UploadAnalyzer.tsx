@@ -9,7 +9,7 @@ import { isStoryMode, STORY_MODES } from "@/platform/story/modes";
 import { trackProductEvent } from "@/platform/telemetry/client";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { buildThreadTalesLocalLore, type ThreadTalesLocalLore } from "@/platform/threadtales/lore";
-import { isMemorySpaceManifest, memorySpaceStorageKey } from "@/lib/memory-platform";
+import { isMemorySpaceManifestForId, memorySpaceStorageKey } from "@/lib/memory-platform";
 import Link from "next/link";
 import { LocalLorePanel } from "./LocalLorePanel";
 import { MemoryCandidateReview } from "./MemoryCandidateReview";
@@ -41,7 +41,7 @@ export function UploadAnalyzer() {
       try {
         const raw = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
         const parsed: unknown = raw ? JSON.parse(raw) : null;
-        setMemorySpaceAccess({ id: memorySpaceId, status: isMemorySpaceManifest(parsed) && parsed.id === memorySpaceId ? "valid" : "invalid" });
+        setMemorySpaceAccess({ id: memorySpaceId, status: isMemorySpaceManifestForId(parsed, memorySpaceId) ? "valid" : "invalid" });
       } catch {
         setMemorySpaceAccess({ id: memorySpaceId, status: "invalid" });
       }

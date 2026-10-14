@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   createEmptyMemoryGraph,
-  isMemoryGraph,
   memoryGraphStorageKey,
   legacyProductMemorySpaceId,
+  readStoredMemoryGraph,
   type MemoryGraph,
 } from "@/lib/memory-graph";
 import {
   MEMORY_SPACE_INDEX_KEY,
-  isMemorySpaceManifest,
+  isMemorySpaceManifestForId,
   memorySpaceStorageKey,
   type MemorySpaceManifest,
 } from "@/lib/memory-platform";
@@ -37,16 +37,7 @@ const PRODUCT_SLUGS: Record<string, string> = {
 };
 
 function loadGraph(memorySpaceId: string) {
-  try {
-    const raw = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
-    if (!raw) return createEmptyMemoryGraph(memorySpaceId);
-    const parsed: unknown = JSON.parse(raw);
-    if (isMemoryGraph(parsed, memorySpaceId)) return parsed;
-    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
-  } catch {
-    window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
-  }
-  return createEmptyMemoryGraph(memorySpaceId);
+  return readStoredMemoryGraph(window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId)), memorySpaceId);
 }
 
 function downloadJson(filename: string, value: unknown) {
@@ -62,6 +53,8 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
   const router = useRouter();
   const [manifest, setManifest] = useState<MemorySpaceManifest | null>(null);
   const [graph, setGraph] = useState<MemoryGraph | null>(null);
+  const [recoveryData, setRecoveryData] = useState<string | null>(null);
+  const [recoveryDownloaded, setRecoveryDownloaded] = useState(false);
   const [spaceChecked, setSpaceChecked] = useState(false);
   const [intent, setIntent] = useState<MemoryIntentKind>("MEMORY_LANE");
   const [dedication, setDedication] = useState("");
@@ -74,9 +67,11 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
         const raw = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
         if (raw) {
           const parsed: unknown = JSON.parse(raw);
-          if (isMemorySpaceManifest(parsed) && parsed.id === memorySpaceId) {
+          if (isMemorySpaceManifestForId(parsed, memorySpaceId)) {
             setManifest(parsed);
-            setGraph(loadGraph(memorySpaceId));
+            const storedGraph = loadGraph(memorySpaceId);
+            setGraph(storedGraph.graph);
+            setRecoveryData(storedGraph.recoveryData);
             if (parsed.relationshipType) {
               const first = recommendedIntents(parsed.relationshipType)[0];
               if (first) setIntent(first.kind);
@@ -175,6 +170,27 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
     router.replace("/memory/new");
   }
 
+  function downloadRecoveryCopy() {
+    if (recoveryData === null) return;
+    downloadJson(`${memorySpaceId}-memory-graph-recovery.json`, {
+      schemaVersion: 1,
+      memorySpaceId,
+      recoveryData,
+      note: "Original local graph data preserved before explicit recovery.",
+    });
+    setRecoveryDownloaded(true);
+  }
+
+  function replaceDamagedGraph() {
+    if (!manifest || recoveryData === null || !recoveryDownloaded) return;
+    if (!window.confirm("Replace this unreadable Memory Graph with an empty graph? The original graph remains available in the recovery file you downloaded.")) return;
+    const emptyGraph = createEmptyMemoryGraph(memorySpaceId);
+    window.localStorage.setItem(memoryGraphStorageKey(memorySpaceId), JSON.stringify(emptyGraph));
+    setGraph(emptyGraph);
+    setRecoveryData(null);
+    setMessage("Started a new Memory Graph. Your recovery file remains in Downloads.");
+  }
+
   async function shareStoryText() {
     if (!story) return;
     const memoryLines = story.beats.filter((beat) => beat.role === "MEMORY").slice(0, 3).map((beat) => `• ${beat.title}`).join("\n");
@@ -194,6 +210,22 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
 
   if (!spaceChecked) {
     return <div className="notice">Opening your MemorySpace…</div>;
+  }
+
+  if (manifest && recoveryData !== null) {
+    return <section className="story product-workspace" aria-labelledby="memory-recovery-title">
+      <div className="chapter-head"><div>
+        <span className="story-summary-kicker">MemorySpace recovery</span>
+        <h2 id="memory-recovery-title">Your saved memories need attention.</h2>
+        <p>The saved graph could not be read. Its original data is still preserved in this browser, and no new memories can be written until you choose how to continue.</p>
+      </div></div>
+      <div className="notice" role="status">Download a recovery copy first. Replacing the graph starts this MemorySpace with no approved memories; your download keeps the unreadable original data.</div>
+      <div className="premium-actions">
+        <button className="btn btn-primary" type="button" onClick={downloadRecoveryCopy}>Download recovery copy</button>
+        <button className="btn btn-soft" type="button" onClick={replaceDamagedGraph} disabled={!recoveryDownloaded}>Replace with an empty graph</button>
+        <Link className="btn btn-soft" href="/memory/new">Return to MemorySpaces</Link>
+      </div>
+    </section>;
   }
 
   if (!manifest || !graph) {

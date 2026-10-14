@@ -6,6 +6,7 @@ import {
   createEmptyMemoryGraph,
   decideMemoryCandidate,
   isMemoryGraph,
+  readStoredMemoryGraph,
 } from "../../src/lib/memory-graph";
 import type { ChatMessage } from "../../src/lib/types";
 
@@ -70,5 +71,14 @@ describe("memory graph approval boundary", () => {
     expect(isMemoryGraph({ ...graph, nodes: [{ ...graph.nodes[0], kind: "UNSUPPORTED" }] }, "space-1")).toBe(false);
     expect(isMemoryGraph({ ...graph, nodes: [{ ...graph.nodes[0], facts: { unsafe: {} } }] }, "space-1")).toBe(false);
     expect(isMemoryGraph({ ...graph, updatedAt: "not-a-date" }, "space-1")).toBe(false);
+  });
+
+  it("preserves malformed stored graph bytes for user-directed recovery", () => {
+    const raw = JSON.stringify({ schemaVersion: 1, memorySpaceId: "space-1", nodes: [{ kind: "BROKEN" }] });
+    const result = readStoredMemoryGraph(raw, "space-1");
+
+    expect(result.graph).toBeNull();
+    expect(result.recoveryData).toBe(raw);
+    expect(readStoredMemoryGraph(null, "space-1").graph?.nodes).toEqual([]);
   });
 });

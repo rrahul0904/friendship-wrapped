@@ -31,6 +31,33 @@ test("the default create route stays source-first while MemorySpace selects cand
   await page.goto("/memory/missing-space");
   await expect(page.getByText(/This MemorySpace is not available in this browser/i)).toBeVisible();
   expect(await page.evaluate(() => Object.keys(window.localStorage).filter((key) => key.startsWith("threadtales:memory-graph:v1:")))).toHaveLength(0);
+
+  const corruptGraph = JSON.stringify({ schemaVersion: 1, memorySpaceId: "corrupt-space", nodes: [{ kind: "BROKEN" }] });
+  await page.evaluate((rawGraph) => {
+    const now = new Date().toISOString();
+    window.localStorage.setItem("threadtales:memory-space:v1:corrupt-space", JSON.stringify({
+      schemaVersion: 1,
+      id: "corrupt-space",
+      name: "Corrupt space",
+      subjectType: "RELATIONSHIP",
+      productTemplate: "RELATIONSHIP",
+      relationshipType: "PARTNER",
+      createdAt: now,
+      updatedAt: now,
+    }));
+    window.localStorage.setItem("threadtales:memory-graph:v1:corrupt-space", rawGraph);
+  }, corruptGraph);
+  await page.goto("/memory/corrupt-space");
+  await expect(page.getByRole("heading", { name: "Your saved memories need attention." })).toBeVisible();
+  expect(await page.evaluate(() => window.localStorage.getItem("threadtales:memory-graph:v1:corrupt-space"))).toBe(corruptGraph);
+  const recoveryDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download recovery copy" }).click();
+  expect((await recoveryDownload).suggestedFilename()).toContain("memory-graph-recovery.json");
+  await page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Replace with an empty graph" }).click();
+  await expect(page.getByText("Started a new Memory Graph. Your recovery file remains in Downloads.")).toBeVisible();
+  const resetGraph = await page.evaluate(() => JSON.parse(window.localStorage.getItem("threadtales:memory-graph:v1:corrupt-space") ?? "{}"));
+  expect(resetGraph.nodes).toEqual([]);
 });
 
 test("Memory Keeper creates a relationship-intent space, approves chat memories, and composes a story", async ({ page }) => {

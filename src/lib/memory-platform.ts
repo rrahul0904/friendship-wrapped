@@ -193,6 +193,10 @@ export function isMemorySpaceManifest(value: unknown): value is MemorySpaceManif
   );
 }
 
+export function isMemorySpaceManifestForId(value: unknown, memorySpaceId: string): value is MemorySpaceManifest {
+  return isMemorySpaceManifest(value) && value.id === memorySpaceId;
+}
+
 export function memorySpaceStorageKey(memorySpaceId: string) {
   return `${MEMORY_SPACE_STORAGE_PREFIX}${memorySpaceId}`;
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createMemorySpaceManifest,
   isMemorySpaceManifest,
+  isMemorySpaceManifestForId,
   memoryProfileForSlug,
   productTemplateForRelationship,
   subjectTypeForRelationship,
@@ -52,6 +53,8 @@ describe("ThreadTales memory platform", () => {
       createdAt: "2026-10-06T12:00:00.000Z",
     });
     expect(isMemorySpaceManifest(manifest)).toBe(true);
+    expect(isMemorySpaceManifestForId(manifest, "daughter-1")).toBe(true);
+    expect(isMemorySpaceManifestForId(manifest, "different-index-id")).toBe(false);
   });
 
   it("rejects malformed manifests instead of treating arbitrary local data as a MemorySpace", () => {

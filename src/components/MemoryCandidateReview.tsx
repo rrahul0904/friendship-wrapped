@@ -7,8 +7,8 @@ import {
   buildConversationMemoryCandidates,
   createEmptyMemoryGraph,
   decideMemoryCandidate,
-  isMemoryGraph,
   memoryGraphStorageKey,
+  readStoredMemoryGraph,
   type MemoryCandidate,
   type MemoryGraph,
 } from "@/lib/memory-graph";
@@ -23,25 +23,24 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
   const [candidates, setCandidates] = useState<MemoryCandidate[]>(initialCandidates);
   const [graph, setGraph] = useState<MemoryGraph>(() => createEmptyMemoryGraph(memorySpaceId));
   const [graphLoaded, setGraphLoaded] = useState(false);
+  const [graphNeedsRecovery, setGraphNeedsRecovery] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       try {
         const stored = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
-        if (stored) {
-          const parsed: unknown = JSON.parse(stored);
-          if (isMemoryGraph(parsed, memorySpaceId)) {
-            setGraph(parsed);
-            const approvedIds = new Set(parsed.nodes.map((node) => node.sourceCandidateId).filter(Boolean));
+        const result = readStoredMemoryGraph(stored, memorySpaceId);
+        if (result.graph) {
+          setGraph(result.graph);
+          const approvedIds = new Set(result.graph.nodes.map((node) => node.sourceCandidateId).filter(Boolean));
             setCandidates((current) => current.map((candidate) =>
               approvedIds.has(candidate.id) ? { ...candidate, status: "APPROVED" as const } : candidate,
             ));
-          } else {
-            window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
-          }
+        } else {
+          setGraphNeedsRecovery(true);
         }
       } catch {
-        window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId));
+        setGraphNeedsRecovery(true);
       }
       setGraphLoaded(true);
     }, 0);
@@ -49,7 +48,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
   }, [memorySpaceId]);
 
   function keep(candidate: MemoryCandidate) {
-    if (!graphLoaded) return;
+    if (!graphLoaded || graphNeedsRecovery) return;
     const approvedCandidates = decideMemoryCandidate(candidates, candidate.id, "APPROVED");
     const approved = approvedCandidates.find((item) => item.id === candidate.id);
     if (!approved) return;
@@ -75,7 +74,9 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
       </div>
 
       <div className="notice" role="status">
-        {graphLoaded ? `${approvedCount} kept in this browser · ${pending.length} still to review` : "Opening your saved MemorySpace…"}
+        {graphNeedsRecovery
+          ? <>Your saved Memory Graph could not be read. The original data is still in this browser; open the <Link href={memorySpaceHomeHref(memorySpaceId)}>MemorySpace recovery screen</Link> before adding memories.</>
+          : graphLoaded ? `${approvedCount} kept in this browser · ${pending.length} still to review` : "Opening your saved MemorySpace…"}
       </div>
 
       <div className="chapter-grid">
@@ -87,7 +88,7 @@ export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId:
             <div className="controls">
               {candidate.status === "PENDING" ? (
                 <>
-                  <button className="btn btn-primary" type="button" onClick={() => keep(candidate)} disabled={!graphLoaded}>Keep</button>
+                  <button className="btn btn-primary" type="button" onClick={() => keep(candidate)} disabled={!graphLoaded || graphNeedsRecovery}>Keep</button>
                   <button className="btn btn-soft" type="button" onClick={() => skip(candidate)}>Skip</button>
                 </>
               ) : (
