@@ -1,14 +1,14 @@
 # Deployment Readiness
 
-## Current release checkpoint — 2026-10-02
+## Current release checkpoint — 2026-10-13
 
-PR #17 is merged. Before PR #19, production `/api/version` returned `067c3d635e45413514850fb7fcab4504822ee216`. PR #19's implementation candidate `1474d7d` plus evidence-only docs child `b1101482b476df7cba045e3c795ed4f3d90b35f9` passed hosted CI; the exact docs-child Preview returned its SHA and passed all 19 public and 16 protected route checks. Privacy disclosure and synthetic demo browser spot checks also passed on that Preview. See [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for run and deployment identifiers. Recheck the current PR head and hosted evidence before marking it ready or merging.
+Canonical `main` and production `/api/version` match `8859495cd9062eb2a6a842c80a75639453d61026`; main CI [38119383860](https://github.com/rrahul0904/friendship-wrapped/actions/runs/38119383860) passed. Production deployment `6992138130` is ready/successful. PR #25–#28 are an open stacked MemorySpace implementation; the baseline PR #25 Preview is deployed for `f76176e`. CI [38339878303](https://github.com/rrahul0904/friendship-wrapped/actions/runs/38339878303) found a route handoff regression, which is fixed locally and awaits updated hosted CI/Preview. See [CURRENT_TRUTH.md](CURRENT_TRUTH.md) for baseline lineage and [IMPLEMENTATION_TRACKER.md](IMPLEMENTATION_TRACKER.md) for the current work receipt.
 
-The source candidate passed production build and 49/49 Chromium E2E tests; hosted CI passed again on its docs-only evidence child. Exact Preview route verification passed all 19 public and 16 protected routes, and privacy/demo browser spot checks passed. A TEST Checkout Session exists from an earlier verifier run; no payment or entitlement was verified. Strict Preview certification remains incomplete: AI is disabled, telemetry delivery failed, and Supabase health/migrations/RLS/storage, Stripe payment/webhook/entitlement, and authenticated cloud flows remain uncertified. Vercel dashboard authentication is needed for project settings and logs. Do not treat historical PR #6/#7 gates below as open PRs.
+Production status is **DEPLOYED_NOT_CERTIFIED**. Stripe and AI are disabled in production. Supabase flags are present but health, migrations, RLS, and storage remain unverified; telemetry delivery is unverified. The source-first product has browser coverage but required human product UAT is absent. Updated PR #25 CI/Preview is the immediate code gate; provider gates remain separate certification blockers.
 
 ## Deployment model
 
-Historical PR #6 deployment model (PR #6/#7/#13/#17 status is in the current release checkpoint above):
+Historical PR #6 deployment model (PR #6/#7/#13/#17/#19 status is in the dated release records above):
 
 ```text
 production-all-phases

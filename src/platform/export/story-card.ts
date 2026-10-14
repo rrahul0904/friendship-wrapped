@@ -37,7 +37,11 @@ export function renderStoryCardSvg(chapter: StoryChapter, preset: StoryCardPrese
   const title = titleLines.map((line, index) => `<text x="${width / 2}" y="${titleStart + index * (titleSize + 16)}" text-anchor="middle" font-size="${titleSize}" font-weight="700" fill="${theme.foreground}">${escapeXml(line)}</text>`).join("");
   const metric = chapter.metric !== undefined ? `<text x="${width / 2}" y="${metricY}" text-anchor="middle" font-size="${metricSize}" font-weight="800" fill="${theme.foreground}">${escapeXml(String(chapter.metric))}</text>` : "";
   const subtitle = chapter.subtitle ? `<text x="${width / 2}" y="${subtitleY}" text-anchor="middle" font-size="38" fill="${theme.muted}">${escapeXml(chapter.subtitle)}</text>` : "";
-  const supporting = chapter.supportingText ? `<foreignObject x="${Math.round(width * 0.12)}" y="${subtitleY + 70}" width="${Math.round(width * 0.76)}" height="320"><div xmlns="http://www.w3.org/1999/xhtml" style="font: 34px/1.4 system-ui, sans-serif;color:${theme.muted};text-align:center;">${escapeXml(chapter.supportingText)}</div></foreignObject>` : "";
+  const supporting = chapter.supportingText
+    ? lines(chapter.supportingText, preset === "vertical" ? 38 : 44)
+      .map((line, index) => `<text x="${width / 2}" y="${subtitleY + 120 + index * 52}" text-anchor="middle" font-size="34" fill="${theme.muted}">${escapeXml(line)}</text>`)
+      .join("")
+    : "";
   const brand = attribution ? `<text x="${width / 2}" y="${height - 70}" text-anchor="middle" font-size="28" letter-spacing="4" fill="${theme.muted}">THREADTALES · PRIVATE BY DEFAULT</text>` : "";
   const [start, middle, end] = theme.background;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${start}"/><stop offset="0.52" stop-color="${middle}"/><stop offset="1" stop-color="${end}"/></linearGradient><radialGradient id="glow"><stop offset="0" stop-color="${theme.accent}" stop-opacity=".22"/><stop offset="1" stop-color="${theme.accent}" stop-opacity="0"/></radialGradient></defs><rect width="100%" height="100%" rx="42" fill="url(#bg)"/><circle cx="${Math.round(width * 0.82)}" cy="${Math.round(height * 0.17)}" r="${Math.round(width * 0.45)}" fill="url(#glow)"/><text x="${width / 2}" y="100" text-anchor="middle" font-size="26" letter-spacing="6" fill="${theme.muted}">${escapeXml(chapter.type.toUpperCase())}</text>${title}${metric}${subtitle}${supporting}${brand}</svg>`;

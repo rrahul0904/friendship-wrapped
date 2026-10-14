@@ -1,6 +1,6 @@
 # ThreadTales / Story Platform — All Phases Status
 
-This document describes source implementation originally developed on `production-all-phases`; it is historical implementation tracking. PR #17 is merged into `main`. Current verification and integration state is in `PRODUCTION_ACTIVATION_STATUS.md`; this table does not certify live integrations.
+This document records historical source implementation developed on `production-all-phases`; its phase labels are not current product certification. The deployed primary `/create` experience is now the source-first 12-chapter journey on main `8859495`. MemorySpace/MemoryGraph and story-studio code is still in open PRs #25–#28 and is not deployed. Current truth, architecture, gaps, and live gates are in [CURRENT_TRUTH.md](CURRENT_TRUTH.md), [ARCHITECTURE_CURRENT.md](ARCHITECTURE_CURRENT.md), and [RELEASE_GATES.md](RELEASE_GATES.md). Historical “COMPLETE” labels below mean source code was present at that earlier checkpoint only; they do not mean live provider or full-product certification.
 
 | Phase | Status | Implemented scope |
 | --- | --- | --- |

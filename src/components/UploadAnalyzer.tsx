@@ -9,12 +9,16 @@ import { isStoryMode, STORY_MODES } from "@/platform/story/modes";
 import { trackProductEvent } from "@/platform/telemetry/client";
 import { analyzeThreadTaleInput } from "@/platform/threadtales/worker-client";
 import { buildThreadTalesLocalLore, type ThreadTalesLocalLore } from "@/platform/threadtales/lore";
+import { isMemorySpaceManifestForId, memorySpaceStorageKey } from "@/lib/memory-platform";
+import Link from "next/link";
 import { LocalLorePanel } from "./LocalLorePanel";
+import { MemoryCandidateReview } from "./MemoryCandidateReview";
 import { ProcessingReveal } from "./ProcessingReveal";
 import { WrappedStory } from "./WrappedStory";
 
 export function UploadAnalyzer() {
   const [stats, setStats] = useState<ChatStats | null>(null);
+  const [memoryImportSourceId, setMemoryImportSourceId] = useState("source-1");
   const [lore, setLore] = useState<ThreadTalesLocalLore | null>(null);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
@@ -26,6 +30,29 @@ export function UploadAnalyzer() {
   const abortRef = useRef<AbortController | null>(null);
   const requestRef = useRef(0);
   const search = useSearchParams();
+  const memorySpaceId = search.get("memorySpaceId");
+  const [memorySpaceAccess, setMemorySpaceAccess] = useState<{ id: string | null; status: "checking" | "valid" | "invalid" }>(() => ({
+    id: memorySpaceId,
+    status: memorySpaceId ? "checking" : "valid",
+  }));
+
+  useEffect(() => {
+    if (!memorySpaceId) return;
+    const timer = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(memorySpaceStorageKey(memorySpaceId));
+        const parsed: unknown = raw ? JSON.parse(raw) : null;
+        setMemorySpaceAccess({ id: memorySpaceId, status: isMemorySpaceManifestForId(parsed, memorySpaceId) ? "valid" : "invalid" });
+      } catch {
+        setMemorySpaceAccess({ id: memorySpaceId, status: "invalid" });
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [memorySpaceId]);
+
+  const memorySpaceStatus = memorySpaceAccess.id === memorySpaceId
+    ? memorySpaceAccess.status
+    : memorySpaceId ? "checking" : "valid";
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
@@ -34,6 +61,7 @@ export function UploadAnalyzer() {
     const controller = new AbortController();
     abortRef.current = controller;
     const requestId = ++requestRef.current;
+    const sourceId = crypto.randomUUID();
     setBusy(true); setError(""); setWarning(""); setStats(null); setLore(null);
     trackProductEvent("analysis_started", "threadtales");
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
@@ -42,6 +70,7 @@ export function UploadAnalyzer() {
       if (requestId !== requestRef.current || controller.signal.aborted) return;
       if (parsed.messages.length < MIN_CHAT_MESSAGES) throw new Error(tooFewMessagesError(parsed.messages.length));
       setStats(parsed.stats);
+      setMemoryImportSourceId(sourceId);
       setLore(buildThreadTalesLocalLore(parsed.messages));
       setWarning(parsed.warnings[0] ?? "");
       trackProductEvent("analysis_completed", "threadtales");
@@ -75,7 +104,15 @@ export function UploadAnalyzer() {
   }
 
   function cancelAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setBusy(false); setStats(null); setLore(null); setWarning(""); setError("Analysis cancelled. You can choose another export whenever you're ready."); }
-  function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; fileRef.current?.focus(); }
+  function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setMemoryImportSourceId("source-1"); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; fileRef.current?.focus(); }
+
+  if (memorySpaceId && memorySpaceStatus !== "valid") {
+    return <div className="notice" role="status">
+      {memorySpaceStatus === "checking"
+        ? "Opening your local MemorySpace…"
+        : <>This MemorySpace is not available in this browser. No conversation was analyzed or saved. <Link href="/memory/new">Create a MemorySpace here</Link>.</>}
+    </div>;
+  }
 
   return <>
     <section className="uploader mc-uploader" aria-busy={busy}>
@@ -90,7 +127,7 @@ export function UploadAnalyzer() {
       </div>
 
       {busy ? <><ProcessingReveal/><div className="mc-cancel-row"><button className="btn btn-soft" onClick={cancelAnalysis}>Cancel analysis</button></div></> : <div className="controls mc-create-controls">
-        <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label>
+        {!memorySpaceId ? <label><span>Story type</span><select className="select" value={storyMode} onChange={(event) => setStoryMode(event.target.value as StoryMode)}>{Object.values(STORY_MODES).map((mode) => <option key={mode.id} value={mode.id}>{mode.label}</option>)}</select></label> : null}
         <label><span>Date interpretation</span><select className="select" value={dateOrder} onChange={(event) => setDateOrder(event.target.value as DateOrder)}><option value="auto">Auto / US-first</option><option value="mdy">MM/DD/YYYY</option><option value="dmy">DD/MM/YYYY</option></select></label>
         <button className="btn btn-soft" onClick={() => void analyzeText(makeSampleChat())}>Use demo chat</button>
       </div>}
@@ -100,6 +137,6 @@ export function UploadAnalyzer() {
       {error ? <div className="error" role="alert" aria-live="polite">{error}</div> : null}
     </section>
 
-    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>Your private analysis is ready.</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</section> : null}
+    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>{memorySpaceId ? "Your private memory candidates are ready." : "Your private analysis is ready."}</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div>{memorySpaceId ? <MemoryCandidateReview memorySpaceId={memorySpaceId} stats={stats} sourceId={memoryImportSourceId}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}</section> : null}
   </>;
 }

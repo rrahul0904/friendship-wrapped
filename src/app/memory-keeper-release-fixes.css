@@ -1,0 +1,97 @@
+/* Memory Keeper release fixes.
+ * The shared Memory Graph migration notice is an extra direct child of
+ * product-workspace. Keep it full-width and preserve the intended desktop
+ * foundation/editor two-column layout without depending on div ordinals.
+ */
+.memory-selection {
+  min-width: 0;
+  margin: 20px 0 28px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.memory-selection legend {
+  padding: 0 8px;
+  font-weight: 700;
+}
+
+.memory-selection > p {
+  margin: 0 0 14px;
+  color: #a8aaba;
+  font-size: 13px;
+}
+
+.memory-selection-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+
+.memory-selection-list > label {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+}
+
+.memory-selection-list input {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #d6bddb;
+}
+
+.memory-selection-list span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.memory-selection-list strong {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+
+.memory-selection-list small {
+  color: #a8aaba;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 960px) {
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice {
+    grid-column: 1 / -1;
+  }
+
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice + .builder-card {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice + .builder-card .builder-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .product-builder:not([data-product="myyear"]):not([data-product="petlife"]) .product-workspace > .chapter-head + .notice + .builder-card + .builder-card {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
+
+@media (max-width: 480px) {
+  .memory-selection {
+    padding: 13px;
+  }
+
+  .memory-selection-list {
+    grid-template-columns: 1fr;
+  }
+}

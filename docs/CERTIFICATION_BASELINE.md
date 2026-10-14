@@ -2,6 +2,8 @@
 
 Evidence collected 2026-10-01. This is a baseline assessment, not a production certification.
 
+This snapshot is historical and superseded for current main, production, and open-PR status by [CURRENT_TRUTH.md](CURRENT_TRUTH.md). Its references to `067c3d6` describe the repository as observed on 2026-10-01.
+
 - Canonical repository: `rrahul0904/friendship-wrapped`; clean `main` fetched and fast-forward checked at `067c3d635e45413514850fb7fcab4504822ee216`.
 - Working branch: `codex/threadtales-production-certification`.
 - Production `GET /api/version`: same SHA, environment `production`.

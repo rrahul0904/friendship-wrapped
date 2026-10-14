@@ -67,4 +67,20 @@ test.describe("reverse-engineering parity browser matrix", () => {
     await page.getByLabel(/Memorial mode/i).check();
     await expect(page.getByRole("heading", { name: "Remembering Milo Photo Test" }).first()).toBeVisible();
   });
+
+  test("PetLife reports when a corrupt shared graph blocks sync and deletion", async ({ page }) => {
+    await page.goto("/products/petlife");
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.localStorage.setItem("threadtales:memory-graph:v1:product:petlife:local", JSON.stringify({ schemaVersion: 1, memorySpaceId: "product:petlife:local", nodes: [{ kind: "BROKEN" }] }));
+    });
+    await page.reload();
+    await page.getByLabel("Pet name").fill("Mochi");
+    await page.getByRole("button", { name: "Create pet" }).click();
+    await expect(page.locator("[data-petlife-graph-bridge]")).toContainText("The shared Memory Graph needs recovery");
+    await page.getByRole("button", { name: "Delete local PetLife data" }).click();
+    await expect(page.getByText("The shared Memory Graph needs recovery; its saved data was preserved.")).toBeVisible();
+    const graph = await page.evaluate(() => window.localStorage.getItem("threadtales:memory-graph:v1:product:petlife:local"));
+    expect(graph).toContain("BROKEN");
+  });
 });
