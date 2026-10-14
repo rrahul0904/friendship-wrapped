@@ -46,7 +46,14 @@ export function MemoryLensPanel({ lens }: { lens: MemoryLens }) {
   const [year, setYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setSpaces(loadSpaces()), 0);
+    const timer = window.setTimeout(() => {
+      const loaded = loadSpaces();
+      const loadedYears = [...new Set(loaded.flatMap(({ graph }) => graph.nodes
+        .map(yearForNode)
+        .filter((value): value is number => value !== null)))].sort((a, b) => b - a);
+      setSpaces(loaded);
+      setYear((current) => loadedYears.length && !loadedYears.includes(current) ? loadedYears[0] : current);
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
