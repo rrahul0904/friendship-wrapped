@@ -62,6 +62,20 @@ describe("Memory intent composer", () => {
     expect(withDedication.beats.at(-1)?.body).toBe("I am sorry for what I did.");
   });
 
+  it("includes only approved memories explicitly selected for this story", () => {
+    const graph = graphWithMemories();
+    const story = composeMemoryStory({
+      graph,
+      manifest,
+      intent: "MEMORY_LANE",
+      selectedNodeIds: ["wedding", "unknown-node"],
+    });
+    expect(story.beats.filter((beat) => beat.role === "MEMORY").map((beat) => beat.nodeId)).toEqual(["wedding"]);
+
+    const empty = composeMemoryStory({ graph, manifest, intent: "MEMORY_LANE", selectedNodeIds: [] });
+    expect(empty.beats.map((beat) => beat.role)).toEqual(["OPENING", "CLOSING"]);
+  });
+
   it("rejects graph/space cross-writes", () => {
     expect(() => composeMemoryStory({
       graph: createEmptyMemoryGraph("someone-else"),

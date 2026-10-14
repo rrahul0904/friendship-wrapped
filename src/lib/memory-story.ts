@@ -105,16 +105,22 @@ export function composeMemoryStory({
   manifest,
   intent,
   dedication,
+  selectedNodeIds,
   now = new Date(),
 }: {
   graph: MemoryGraph;
   manifest: MemorySpaceManifest;
   intent: MemoryIntentKind;
   dedication?: string;
+  selectedNodeIds?: readonly string[];
   now?: Date;
 }): MemoryStory {
   if (graph.memorySpaceId !== manifest.id) throw new Error("Memory Graph and MemorySpace do not match.");
-  const selected = uniqueNodes(prioritize(graph.nodes, intent)).slice(0, maxMemoryBeats(intent));
+  const includedIds = selectedNodeIds === undefined ? null : new Set(selectedNodeIds);
+  const selected = uniqueNodes(prioritize(
+    includedIds === null ? graph.nodes : graph.nodes.filter((node) => includedIds.has(node.id)),
+    intent,
+  )).slice(0, maxMemoryBeats(intent));
   const generatedAt = now.toISOString();
   const memoryBeats: MemoryStoryBeat[] = selected.map((node, index) => ({
     id: `memory-${index + 1}-${node.id}`,

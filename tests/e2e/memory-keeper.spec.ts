@@ -114,6 +114,13 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   await expect(page.getByText("Intent Composer")).toBeVisible();
   await page.getByLabel("Story intent").selectOption("ANNIVERSARY");
   await expect(page.locator("[data-story-intent='ANNIVERSARY']")).toBeVisible();
+  const memorySelector = page.locator(".memory-selection-list input[type='checkbox']").first();
+  await expect(memorySelector).toBeChecked();
+  await expect(page.locator(".chapter-dots button")).toHaveCount(3);
+  await memorySelector.uncheck();
+  await expect(page.locator(".chapter-dots button")).toHaveCount(0);
+  await expect(page.getByText("Choose at least one approved memory to preview, download, or share this story.")).toBeVisible();
+  await expect(memorySelector).not.toBeChecked();
   await page.evaluate(() => {
     const indexKey = "threadtales:memory-space-index:v1";
     const ids = JSON.parse(window.localStorage.getItem(indexKey) ?? "[]") as string[];
@@ -160,7 +167,7 @@ test("manual child memory becomes reusable graph data", async ({ page }) => {
   await expect(page.getByText("Memory kept in this Memory Graph.")).toBeVisible();
   await page.getByRole("link", { name: /Open memory home/i }).first().click();
   await expect(page.getByRole("heading", { name: "My daughter" }).first()).toBeVisible();
-  await expect(page.getByText("First day of school")).toBeVisible();
+  await expect(page.locator(".timeline-list").getByText("First day of school")).toBeVisible();
 });
 
 test("existing relationship product keeps its identity and offers MemorySpace creation", async ({ page }) => {

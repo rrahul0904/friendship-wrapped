@@ -58,6 +58,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
   const [spaceChecked, setSpaceChecked] = useState(false);
   const [intent, setIntent] = useState<MemoryIntentKind>("MEMORY_LANE");
   const [dedication, setDedication] = useState("");
+  const [selectedMemoryIds, setSelectedMemoryIds] = useState<string[]>([]);
   const [active, setActive] = useState(0);
   const [message, setMessage] = useState("");
 
@@ -71,6 +72,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
             setManifest(parsed);
             const storedGraph = loadGraph(memorySpaceId);
             setGraph(storedGraph.graph);
+            setSelectedMemoryIds(storedGraph.graph?.nodes.map((node) => node.id) ?? []);
             setRecoveryData(storedGraph.recoveryData);
             if (parsed.relationshipType) {
               const first = recommendedIntents(parsed.relationshipType)[0];
@@ -95,8 +97,8 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
 
   const story = useMemo(() => {
     if (!manifest || !graph) return null;
-    return composeMemoryStory({ graph, manifest, intent, dedication });
-  }, [dedication, graph, intent, manifest]);
+    return composeMemoryStory({ graph, manifest, intent, dedication, selectedNodeIds: selectedMemoryIds });
+  }, [dedication, graph, intent, manifest, selectedMemoryIds]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setActive(0), 0);
@@ -105,7 +107,7 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
 
   async function exportActiveBeat() {
     const beat = story?.beats[active];
-    if (!beat) return;
+    if (!beat || !story?.beats.some((item) => item.role === "MEMORY")) return;
     const chapter: StoryChapter = {
       id: beat.id,
       type: beat.role === "MEMORY" ? "timeline" : "closing",
@@ -187,12 +189,13 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
     const emptyGraph = createEmptyMemoryGraph(memorySpaceId);
     window.localStorage.setItem(memoryGraphStorageKey(memorySpaceId), JSON.stringify(emptyGraph));
     setGraph(emptyGraph);
+    setSelectedMemoryIds([]);
     setRecoveryData(null);
     setMessage("Started a new Memory Graph. Your recovery file remains in Downloads.");
   }
 
   async function shareStoryText() {
-    if (!story) return;
+    if (!story || !story.beats.some((beat) => beat.role === "MEMORY")) return;
     const memoryLines = story.beats.filter((beat) => beat.role === "MEMORY").slice(0, 3).map((beat) => `• ${beat.title}`).join("\n");
     const text = `${story.title} — ${story.subtitle}\n${memoryLines}`;
     if (navigator.share) {
@@ -292,7 +295,24 @@ export function MemoryHomeClient({ memorySpaceId }: { memorySpaceId: string }) {
           <label>Story intent<select className="select" value={intent} onChange={(event) => setIntent(event.target.value as MemoryIntentKind)}>{intents.map((item) => <option key={item.kind} value={item.kind}>{item.label}</option>)}</select></label>
           <label>Your final words<input className="share-input" value={dedication} maxLength={320} onChange={(event) => setDedication(event.target.value)} placeholder={intent === "APOLOGY" ? "Write the apology in your own words…" : "Optional dedication"} /></label>
         </div>
-        {story && activeBeat ? <>
+        {graph.nodes.length ? <fieldset className="memory-selection">
+          <legend>Choose the memories for this story</legend>
+          <p>Only the approved moments you check will appear. You can change this for every story.</p>
+          <div className="memory-selection-list">
+            {graph.nodes.map((node) => <label key={node.id}>
+              <input
+                type="checkbox"
+                checked={selectedMemoryIds.includes(node.id)}
+                onChange={(event) => setSelectedMemoryIds((current) => event.target.checked
+                  ? [...current, node.id]
+                  : current.filter((id) => id !== node.id))}
+              />
+              <span><strong>{node.title}</strong><small>{node.summary}</small></span>
+            </label>)}
+          </div>
+        </fieldset> : null}
+        {story && !story.beats.some((beat) => beat.role === "MEMORY") ? <div className="notice" role="status">Choose at least one approved memory to preview, download, or share this story.</div> : null}
+        {story && activeBeat && story.beats.some((beat) => beat.role === "MEMORY") ? <>
           <div className="chapter-preview theme-rose" data-story-intent={intent}>
             <small>{storyIntentTitle(intent)}</small>
             <h3>{activeBeat.title}</h3>
