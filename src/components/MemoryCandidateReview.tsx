@@ -15,10 +15,10 @@ import {
 import { memorySpaceHomeHref } from "@/lib/memory-platform";
 import type { ChatStats } from "@/lib/types";
 
-export function MemoryCandidateReview({ memorySpaceId, stats }: { memorySpaceId: string; stats: ChatStats }) {
+export function MemoryCandidateReview({ memorySpaceId, stats, sourceId }: { memorySpaceId: string; stats: ChatStats; sourceId: string }) {
   const initialCandidates = useMemo(
-    () => buildConversationMemoryCandidates(memorySpaceId, stats),
-    [memorySpaceId, stats],
+    () => buildConversationMemoryCandidates(memorySpaceId, stats, sourceId),
+    [memorySpaceId, sourceId, stats],
   );
   const [candidates, setCandidates] = useState<MemoryCandidate[]>(initialCandidates);
   const [graph, setGraph] = useState<MemoryGraph>(() => createEmptyMemoryGraph(memorySpaceId));

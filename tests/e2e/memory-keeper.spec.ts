@@ -141,7 +141,27 @@ test("Memory Keeper creates a relationship-intent space, approves chat memories,
   expect((await activeCard).suggestedFilename()).toMatch(/-vertical\.png$/);
   await expect(page.getByRole("status").filter({ hasText: "Downloaded the active 9:16 story card." })).toBeVisible();
   await expect(memorySelector).not.toBeChecked();
+
   await page.evaluate(() => {
+    Object.defineProperty(navigator, "share", {
+      configurable: true,
+      value: async (payload: ShareData) => window.localStorage.setItem("e2e:shared-story-text", payload.text ?? ""),
+    });
+  });
+  await page.getByRole("button", { name: "Share safe summary" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Opened your device share sheet." })).toBeVisible();
+  const sharedText = await page.evaluate(() => window.localStorage.getItem("e2e:shared-story-text"));
+  expect(sharedText).toContain("Our favorite picnic");
+  expect(sharedText).not.toContain("Where this thread begins");
+
+  await memorySelectors.nth(1).uncheck();
+  await expect(page.getByRole("status").filter({ hasText: "Choose at least one approved memory to preview, download, or share this story." })).toBeVisible();
+  await expect(page.locator("[data-story-intent='ANNIVERSARY']")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Download 9:16 card" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Share safe summary" })).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.localStorage.removeItem("e2e:shared-story-text");
     const indexKey = "threadtales:memory-space-index:v1";
     const ids = JSON.parse(window.localStorage.getItem(indexKey) ?? "[]") as string[];
     window.localStorage.setItem(indexKey, JSON.stringify([...ids, "untouched-space"]));
@@ -197,4 +217,50 @@ test("existing relationship product keeps its identity and offers MemorySpace cr
   await expect(page).toHaveURL(/\/memory\/new\?template=relationship/);
   await expect(page.getByRole("heading", { name: "What are you trying to create?" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Anniversary/i })).toBeVisible();
+});
+
+test("deleting a legacy relationship world preserves other approved MemorySpace memories", async ({ page }) => {
+  await page.addInitScript(() => {
+    const id = "product:relationship:local";
+    const now = "2026-10-14T12:00:00.000Z";
+    window.localStorage.setItem("story-platform:world:relationship:v1", JSON.stringify({
+      title: "Our shared world",
+      anchorDate: "2026-01-01",
+      events: [{ id: "event-1", date: "2026-02-01", title: "A legacy milestone", kind: "Milestone" }],
+    }));
+    window.localStorage.setItem(`threadtales:memory-space:v1:${id}`, JSON.stringify({
+      schemaVersion: 1,
+      id,
+      name: "Our shared world",
+      subjectType: "RELATIONSHIP",
+      productTemplate: "RELATIONSHIP",
+      relationshipType: "PARTNER",
+      createdAt: now,
+      updatedAt: now,
+    }));
+    window.localStorage.setItem(`threadtales:memory-graph:v1:${id}`, JSON.stringify({
+      schemaVersion: 1,
+      memorySpaceId: id,
+      updatedAt: now,
+      nodes: [
+        { schemaVersion: 1, id: "manual-kept", memorySpaceId: id, kind: "MANUAL_MEMORY", title: "A separately approved memory", summary: "Added directly to MemorySpace.", occurredAt: null, source: "MANUAL", facts: {}, approvedAt: now },
+        { schemaVersion: 1, id: `${id}:legacy:event-1`, memorySpaceId: id, kind: "MILESTONE", title: "A legacy milestone", summary: "A milestone added in relationship.", occurredAt: null, source: "LEGACY_PRODUCT", productTemplate: "RELATIONSHIP", facts: {}, approvedAt: now },
+      ],
+    }));
+  });
+  await page.goto("/products/relationship");
+  await expect(page.getByRole("button", { name: "Delete world" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => {
+    const graph = JSON.parse(window.localStorage.getItem("threadtales:memory-graph:v1:product:relationship:local") ?? "{}");
+    return graph.nodes?.length;
+  })).toBe(2);
+
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "Delete world" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Other approved memories in the shared MemorySpace remain available." })).toBeVisible();
+  const remainingNodes = await page.evaluate(() => {
+    const graph = JSON.parse(window.localStorage.getItem("threadtales:memory-graph:v1:product:relationship:local") ?? "{}");
+    return graph.nodes?.map((node: { id: string }) => node.id);
+  });
+  expect(remainingNodes).toEqual(["manual-kept"]);
 });

@@ -8,6 +8,8 @@ import {
   legacyProductMemorySpaceId,
   legacyWorldEventToMemoryNode,
   memoryGraphStorageKey,
+  readStoredMemoryGraph,
+  replaceLegacyMemoryNodes,
   type MemoryGraph,
 } from "@/lib/memory-graph";
 import {
@@ -60,12 +62,9 @@ function parseIcs(text: string): WorldEvent[] {
 }
 
 function readGraph(memorySpaceId: string): MemoryGraph {
-  try {
-    const raw = window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId));
-    if (!raw) return createEmptyMemoryGraph(memorySpaceId);
-    const parsed = JSON.parse(raw) as Partial<MemoryGraph>;
-    if (parsed.schemaVersion === 1 && parsed.memorySpaceId === memorySpaceId && Array.isArray(parsed.nodes)) return parsed as MemoryGraph;
-  } catch { window.localStorage.removeItem(memoryGraphStorageKey(memorySpaceId)); }
+  const result = readStoredMemoryGraph(window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId)), memorySpaceId);
+  if (result.graph) return result.graph;
+  if (result.recoveryData !== null) throw new Error("The saved Memory Graph needs recovery before it can be updated.");
   return createEmptyMemoryGraph(memorySpaceId);
 }
 
@@ -82,9 +81,8 @@ function syncConsumerWorldToGraph({ slug, state, template, relationshipType, tit
   const memorySpaceId = legacyProductMemorySpaceId(slug);
   const current = readGraph(memorySpaceId);
   const legacyPrefix = `${memorySpaceId}:legacy:`;
-  const preservedNodes = current.nodes.filter((node) => !node.id.startsWith(legacyPrefix));
   const migratedNodes = state.events.map((event) => legacyWorldEventToMemoryNode({ memorySpaceId, productTemplate: template, event }));
-  const nextGraph: MemoryGraph = { ...current, nodes: [...preservedNodes, ...migratedNodes], updatedAt: new Date().toISOString() };
+  const nextGraph: MemoryGraph = replaceLegacyMemoryNodes(current, legacyPrefix, migratedNodes);
   window.localStorage.setItem(memoryGraphStorageKey(memorySpaceId), JSON.stringify(nextGraph));
 
   let manifest: MemorySpaceManifest | null = null;
@@ -110,7 +108,7 @@ export function WorldBuilder({ slug }: { slug: WorldSlug }) {
   const [draft, setDraft] = useState<Omit<WorldEvent, "id">>(() => blankEvent(blueprint.kinds[0]));
   const [editing, setEditing] = useState<string | null>(null); const [message, setMessage] = useState(""); const [shareFields, setShareFields] = useState<ShareFields>({ title: false, places: false }); const fileRef = useRef<HTMLInputElement>(null);
   useEffect(() => { try { const saved = window.localStorage.getItem(storageKey); if (!saved) return; const parsed = JSON.parse(saved) as WorldState; if (typeof parsed.title === "string" && Array.isArray(parsed.events)) setState({ title: parsed.title, anchorDate: parsed.anchorDate ?? "", events: parsed.events.filter((event) => event && typeof event.title === "string").slice(0, 500) }); } catch { window.localStorage.removeItem(storageKey); } }, [storageKey]);
-  useEffect(() => { window.localStorage.setItem(storageKey, JSON.stringify(state)); if (memoryTemplate && memoryRelationshipType) syncConsumerWorldToGraph({ slug, state, template: memoryTemplate, relationshipType: memoryRelationshipType, titlePlaceholder: blueprint.titlePlaceholder }); }, [blueprint.titlePlaceholder, memoryRelationshipType, memoryTemplate, slug, state, storageKey]);
+  useEffect(() => { window.localStorage.setItem(storageKey, JSON.stringify(state)); if (memoryTemplate && memoryRelationshipType) { try { syncConsumerWorldToGraph({ slug, state, template: memoryTemplate, relationshipType: memoryRelationshipType, titlePlaceholder: blueprint.titlePlaceholder }); } catch { setMessage("Your shared Memory Graph needs recovery before this timeline can be updated. Its saved data remains untouched."); } } }, [blueprint.titlePlaceholder, memoryRelationshipType, memoryTemplate, slug, state, storageKey]);
   const sorted = useMemo(() => [...state.events].sort((a, b) => a.date.localeCompare(b.date)), [state.events]);
   const places = useMemo(() => [...new Set(state.events.map((event) => event.place).filter(Boolean))] as string[], [state.events]);
   const chapter = useMemo<StoryChapter>(() => ({ id: `${slug}-world`, type: "timeline", title: state.title || blueprint.titlePlaceholder, subtitle: state.events.length ? `${state.events.length} chosen moments · ${places.length} places` : "Add a first memory to begin", metric: state.events.length || undefined, supportingText: blueprint.visualCopy, privacyLevel: "safe", renderVariant: "timeline" }), [blueprint, places.length, slug, state.events.length, state.title]);
@@ -120,7 +118,7 @@ export function WorldBuilder({ slug }: { slug: WorldSlug }) {
   async function importFile(file: File | undefined) { if (!file) return; if (file.size > 2_000_000) { setMessage("Choose a file under 2 MB; imports stay local in this browser."); return; } try { const text = await file.text(); const incoming = file.name.toLowerCase().endsWith(".ics") ? parseIcs(text) : file.name.toLowerCase().endsWith(".csv") ? parseCsv(text) : unfoldJson(JSON.parse(text)); if (!incoming.length) { setMessage("No supported entries were found. Use JSON records or a CSV with title and date columns."); return; } setState((current) => ({ ...current, events: [...current.events, ...incoming].slice(0, 500) })); setMessage(`Imported ${incoming.length} local ${incoming.length === 1 ? "entry" : "entries"}. Review each one before sharing.`); } catch { setMessage("That file could not be read. Use valid JSON, CSV, or an exported .ics calendar."); } }
   function downloadBackup() { const backup = { version: 1, product: slug, title: state.title || blueprint.titlePlaceholder, anchorDate: state.anchorDate || undefined, events: sorted }; const href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" })); const anchor = document.createElement("a"); anchor.href = href; anchor.download = `${slug}-local-backup.json`; anchor.click(); window.setTimeout(() => URL.revokeObjectURL(href), 500); trackProductEvent("story_exported", slug); }
   async function copySelectedSafeSummary() { const summary = { version: 1, product: slug, eventCount: state.events.length, ...(shareFields.title ? { title: state.title || blueprint.titlePlaceholder } : {}), ...(shareFields.places ? { places: places.slice(0, 8) } : {}), dateRange: sorted.length ? { start: sorted[0].date, end: sorted.at(-1)?.date } : undefined, kinds: [...new Set(state.events.map((event) => event.kind))] }; await navigator.clipboard.writeText(JSON.stringify(summary)); setMessage("Copied a selected share summary. Notes, people labels, raw files, titles and places stay out unless you opt in."); trackProductEvent("share_created", slug); }
-  function reset() { if (!window.confirm(`Delete this local ${blueprint.titleLabel.toLowerCase()} and its ${state.events.length} memories from this browser?`)) return; window.localStorage.removeItem(storageKey); if (sharedMemorySpaceId) { window.localStorage.removeItem(memoryGraphStorageKey(sharedMemorySpaceId)); window.localStorage.removeItem(memorySpaceStorageKey(sharedMemorySpaceId)); } setState({ title: "", anchorDate: "", events: [] }); setEditing(null); setDraft(blankEvent(blueprint.kinds[0])); setMessage("The local world was deleted from this browser."); }
+  function reset() { if (!window.confirm(`Delete this local ${blueprint.titleLabel.toLowerCase()} and its ${state.events.length} timeline memories from this browser? Other approved memories in the shared MemorySpace will be kept.`)) return; window.localStorage.removeItem(storageKey); setState({ title: "", anchorDate: "", events: [] }); setEditing(null); setDraft(blankEvent(blueprint.kinds[0])); setMessage("The local world was deleted. Other approved memories in the shared MemorySpace remain available."); }
   return <div className="product-builder" id={`${slug}-builder`} data-product={slug}>
     <section className="story product-workspace">
       <div className="chapter-head"><div><span className="story-summary-kicker">{blueprint.eyebrow}</span><h2>{blueprint.visualTitle}</h2><p>{blueprint.visualCopy}</p></div>{sharedMemorySpaceId ? <Link className="btn btn-soft" href={memorySpaceHomeHref(sharedMemorySpaceId)}>Open shared MemorySpace →</Link> : null}</div>

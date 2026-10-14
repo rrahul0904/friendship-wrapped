@@ -7,6 +7,10 @@ import {
   decideMemoryCandidate,
   isMemoryGraph,
   readStoredMemoryGraph,
+  replaceLegacyMemoryNodes,
+  legacyProductMemorySpaceId,
+  legacyWorldEventToMemoryNode,
+  createDirectMemoryNode,
 } from "../../src/lib/memory-graph";
 import type { ChatMessage } from "../../src/lib/types";
 
@@ -31,6 +35,40 @@ describe("memory graph approval boundary", () => {
     expect(candidates.every((candidate) => candidate.source === "CONVERSATION_DERIVED")).toBe(true);
     expect(candidates.find((candidate) => candidate.kind === "BEGINNING")?.occurredAt).toBe(messages[0].timestamp);
     expect(candidates.find((candidate) => candidate.kind === "SHARED_LANGUAGE")?.summary).toContain("coffee");
+  });
+
+  it("assigns a distinct candidate identity to each conversation import", () => {
+    const stats = analyzeChat(messages);
+    const firstImport = buildConversationMemoryCandidates("space-1", stats, "import-a");
+    const secondImport = buildConversationMemoryCandidates("space-1", stats, "import-b");
+
+    expect(firstImport.map((candidate) => candidate.id)).not.toEqual(secondImport.map((candidate) => candidate.id));
+    expect(new Set(secondImport.map((candidate) => candidate.id)).size).toBe(secondImport.length);
+  });
+
+  it("replaces legacy timeline nodes without dropping approved memories from other sources", () => {
+    const memorySpaceId = legacyProductMemorySpaceId("relationship");
+    const graph = createEmptyMemoryGraph(memorySpaceId);
+    const userMemory = createDirectMemoryNode({
+      id: "manual-memory-1",
+      memorySpaceId,
+      kind: "MANUAL_MEMORY",
+      title: "A separately approved memory",
+      source: "MANUAL",
+    });
+    const oldLegacy = legacyWorldEventToMemoryNode({
+      memorySpaceId,
+      productTemplate: "RELATIONSHIP",
+      event: { id: "old-event", date: "2026-01-01", title: "Old event", kind: "Milestone" },
+    });
+    const replacement = legacyWorldEventToMemoryNode({
+      memorySpaceId,
+      productTemplate: "RELATIONSHIP",
+      event: { id: "new-event", date: "2026-02-01", title: "New event", kind: "Milestone" },
+    });
+    const next = replaceLegacyMemoryNodes({ ...graph, nodes: [userMemory, oldLegacy] }, `${memorySpaceId}:legacy:`, [replacement]);
+
+    expect(next.nodes.map((node) => node.id)).toEqual([userMemory.id, replacement.id]);
   });
 
   it("refuses to persist a candidate that the user did not approve", () => {

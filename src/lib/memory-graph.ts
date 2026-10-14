@@ -160,8 +160,8 @@ export interface LegacyWorldMemoryInput {
 
 export const MEMORY_GRAPH_STORAGE_PREFIX = "threadtales:memory-graph:v1:";
 
-function candidateId(memorySpaceId: string, kind: MemoryCandidateKind) {
-  return `${memorySpaceId}:${kind.toLowerCase()}`;
+function candidateId(memorySpaceId: string, kind: MemoryCandidateKind, sourceId: string) {
+  return `${memorySpaceId}:${sourceId}:${kind.toLowerCase()}`;
 }
 
 function formatDate(timestamp: number) {
@@ -190,6 +190,7 @@ function kindFromLegacy(kind: string): MemoryNodeKind {
 export function buildConversationMemoryCandidates(
   memorySpaceId: string,
   stats: ChatStats,
+  sourceId = "source-1",
 ): MemoryCandidate[] {
   const candidates: MemoryCandidate[] = [];
   const push = (
@@ -201,7 +202,7 @@ export function buildConversationMemoryCandidates(
   ) => {
     candidates.push({
       schemaVersion: 1,
-      id: candidateId(memorySpaceId, kind),
+      id: candidateId(memorySpaceId, kind, sourceId),
       memorySpaceId,
       kind,
       title,
@@ -370,6 +371,33 @@ export function upsertMemoryNode(graph: MemoryGraph, node: MemoryNode, now = new
 
 export function removeMemoryNode(graph: MemoryGraph, nodeId: string, now = new Date()): MemoryGraph {
   return { ...graph, nodes: graph.nodes.filter((node) => node.id !== nodeId), updatedAt: now.toISOString() };
+}
+
+export function replaceLegacyMemoryNodes(
+  graph: MemoryGraph,
+  legacyPrefix: string,
+  replacements: readonly MemoryNode[],
+  now = new Date(),
+): MemoryGraph {
+  if (replacements.some((node) => node.memorySpaceId !== graph.memorySpaceId || !node.id.startsWith(legacyPrefix))) {
+    throw new Error("Replacement nodes must be legacy memories from this MemorySpace.");
+  }
+  const preservedNodes = graph.nodes.filter((node) => !node.id.startsWith(legacyPrefix));
+  const replacementIds = new Set(replacements.map((node) => node.id));
+  if (replacementIds.size !== replacements.length) throw new Error("Replacement legacy memory IDs must be unique.");
+  return {
+    ...graph,
+    nodes: [...preservedNodes, ...replacements],
+    updatedAt: now.toISOString(),
+  };
+}
+
+export function removeLegacyMemoryNodes(graph: MemoryGraph, legacyPrefix: string, now = new Date()): MemoryGraph {
+  return {
+    ...graph,
+    nodes: graph.nodes.filter((node) => !node.id.startsWith(legacyPrefix)),
+    updatedAt: now.toISOString(),
+  };
 }
 
 export function legacyWorldEventToMemoryNode({

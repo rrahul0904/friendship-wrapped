@@ -3,6 +3,9 @@ import {
   createEmptyMemoryGraph,
   legacyProductMemorySpaceId,
   memoryGraphStorageKey,
+  readStoredMemoryGraph,
+  replaceLegacyMemoryNodes,
+  removeLegacyMemoryNodes,
   type MemoryGraph,
 } from "./memory-graph";
 import {
@@ -41,8 +44,11 @@ export function syncPetLifeMemoryGraph(profile: PetProfile | null, memories: rea
     productTemplate: "PETLIFE",
     now,
   });
-  const graph: MemoryGraph = createEmptyMemoryGraph(memorySpaceId, now);
-  graph.nodes = memories.map((memory) => createDirectMemoryNode({
+  const stored = readStoredMemoryGraph(window.localStorage.getItem(memoryGraphStorageKey(memorySpaceId)), memorySpaceId);
+  if (!stored.graph) return;
+  const current = stored.graph ?? createEmptyMemoryGraph(memorySpaceId, now);
+  const legacyPrefix = `${memorySpaceId}:legacy:`;
+  const replacements = memories.map((memory) => createDirectMemoryNode({
     id: `${memorySpaceId}:legacy:${memory.id}`,
     memorySpaceId,
     kind: memory.type === "milestone" ? "MILESTONE" : "MANUAL_MEMORY",
@@ -60,7 +66,7 @@ export function syncPetLifeMemoryGraph(profile: PetProfile | null, memories: rea
     },
     extra: profile.species,
   }, now));
-  graph.updatedAt = now.toISOString();
+  const graph: MemoryGraph = replaceLegacyMemoryNodes(current, legacyPrefix, replacements, now);
 
   window.localStorage.setItem(memorySpaceStorageKey(memorySpaceId), JSON.stringify(manifest));
   window.localStorage.setItem(memoryGraphStorageKey(memorySpaceId), JSON.stringify(graph));
@@ -69,8 +75,17 @@ export function syncPetLifeMemoryGraph(profile: PetProfile | null, memories: rea
 
 export function clearPetLifeMemoryGraph() {
   if (typeof window === "undefined") return;
+  const graphKey = memoryGraphStorageKey(PETLIFE_SHARED_MEMORY_SPACE_ID);
+  const stored = readStoredMemoryGraph(window.localStorage.getItem(graphKey), PETLIFE_SHARED_MEMORY_SPACE_ID);
+  if (!stored.graph) return;
+  const legacyPrefix = `${PETLIFE_SHARED_MEMORY_SPACE_ID}:legacy:`;
+  const graph = removeLegacyMemoryNodes(stored.graph, legacyPrefix);
+  if (graph.nodes.length) {
+    window.localStorage.setItem(graphKey, JSON.stringify(graph));
+    return;
+  }
   window.localStorage.removeItem(memorySpaceStorageKey(PETLIFE_SHARED_MEMORY_SPACE_ID));
-  window.localStorage.removeItem(memoryGraphStorageKey(PETLIFE_SHARED_MEMORY_SPACE_ID));
+  window.localStorage.removeItem(graphKey);
   try {
     const raw = window.localStorage.getItem(MEMORY_SPACE_INDEX_KEY);
     const parsed: unknown = raw ? JSON.parse(raw) : [];

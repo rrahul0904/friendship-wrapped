@@ -18,6 +18,7 @@ import { WrappedStory } from "./WrappedStory";
 
 export function UploadAnalyzer() {
   const [stats, setStats] = useState<ChatStats | null>(null);
+  const [memoryImportSourceId, setMemoryImportSourceId] = useState("source-1");
   const [lore, setLore] = useState<ThreadTalesLocalLore | null>(null);
   const [error, setError] = useState("");
   const [warning, setWarning] = useState("");
@@ -60,6 +61,7 @@ export function UploadAnalyzer() {
     const controller = new AbortController();
     abortRef.current = controller;
     const requestId = ++requestRef.current;
+    const sourceId = crypto.randomUUID();
     setBusy(true); setError(""); setWarning(""); setStats(null); setLore(null);
     trackProductEvent("analysis_started", "threadtales");
     await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
@@ -68,6 +70,7 @@ export function UploadAnalyzer() {
       if (requestId !== requestRef.current || controller.signal.aborted) return;
       if (parsed.messages.length < MIN_CHAT_MESSAGES) throw new Error(tooFewMessagesError(parsed.messages.length));
       setStats(parsed.stats);
+      setMemoryImportSourceId(sourceId);
       setLore(buildThreadTalesLocalLore(parsed.messages));
       setWarning(parsed.warnings[0] ?? "");
       trackProductEvent("analysis_completed", "threadtales");
@@ -101,7 +104,7 @@ export function UploadAnalyzer() {
   }
 
   function cancelAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setBusy(false); setStats(null); setLore(null); setWarning(""); setError("Analysis cancelled. You can choose another export whenever you're ready."); }
-  function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; fileRef.current?.focus(); }
+  function resetAnalysis() { requestRef.current += 1; abortRef.current?.abort(); abortRef.current = null; setStats(null); setMemoryImportSourceId("source-1"); setLore(null); setError(""); setWarning(""); setDragging(false); setBusy(false); if (fileRef.current) fileRef.current.value = ""; fileRef.current?.focus(); }
 
   if (memorySpaceId && memorySpaceStatus !== "valid") {
     return <div className="notice" role="status">
@@ -134,6 +137,6 @@ export function UploadAnalyzer() {
       {error ? <div className="error" role="alert" aria-live="polite">{error}</div> : null}
     </section>
 
-    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>{memorySpaceId ? "Your private memory candidates are ready." : "Your private analysis is ready."}</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div>{memorySpaceId ? <MemoryCandidateReview memorySpaceId={memorySpaceId} stats={stats}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}</section> : null}
+    {stats ? <section id="results" className="results mc-results" aria-live="polite"><div className="story controls mc-ready-bar"><div><span className="mc-ready-dot"/>{memorySpaceId ? "Your private memory candidates are ready." : "Your private analysis is ready."}</div><button className="btn btn-soft" onClick={resetAnalysis}>Analyze another chat</button></div>{memorySpaceId ? <MemoryCandidateReview memorySpaceId={memorySpaceId} stats={stats} sourceId={memoryImportSourceId}/> : <><WrappedStory stats={stats} mode={storyMode}/>{lore ? <LocalLorePanel lore={lore}/> : null}</>}</section> : null}
   </>;
 }
