@@ -1,5 +1,14 @@
 import { expect, test } from "@playwright/test";
 
+test("the default create route stays source-first while MemorySpace selects candidate intake", async ({ page }) => {
+  await page.goto("/create");
+  await expect(page.getByRole("heading", { name: "Your chats already contain a story." })).toBeVisible();
+
+  await page.goto("/create?memorySpaceId=memory-space-test");
+  await expect(page.getByRole("heading", { name: /Add a conversation to your memory home/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Use demo chat" })).toBeVisible();
+});
+
 test("Memory Keeper creates a relationship-intent space, approves chat memories, and composes a story", async ({ page }) => {
   await page.goto("/memory/new");
 

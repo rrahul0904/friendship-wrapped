@@ -1,6 +1,16 @@
 # ThreadTales production certification evidence
 
-Pre-merge evidence snapshot refreshed 2026-10-02. Provider-account checks were last attempted 2026-10-01; candidate CI, Preview, route, and browser evidence refreshed 2026-10-02. This ledger tracks PR #19 and distinguishes code merge readiness from provider-backed production certification. Production `/api/version` returned `067c3d635e45413514850fb7fcab4504822ee216` on 2026-10-02 before merge.
+## Current status — 2026-10-13
+
+**Release classification: `DEPLOYED_NOT_CERTIFIED`.** Canonical `main` and production `/api/version` both report `8859495cd9062eb2a6a842c80a75639453d61026`; main CI run [38119383860](https://github.com/rrahul0904/friendship-wrapped/actions/runs/38119383860) passed. Production deployment `6992138130` is successful. The MemorySpace implementation is not merged: PR #25 baseline head `f76176e0ad0c9e90871bde56ac6c064d03f742e4` has Preview deployment `7029009666`; exact-head CI run [38339878303](https://github.com/rrahul0904/friendship-wrapped/actions/runs/38339878303) failed one Chromium Memory Keeper flow. A local route fix passes focused flow tests and awaits updated exact-head CI/Preview. PRs #26–#28 are stacked on that implementation. See [CURRENT_TRUTH.md](CURRENT_TRUTH.md) for baseline lineage and [IMPLEMENTATION_TRACKER.md](IMPLEMENTATION_TRACKER.md) for current work evidence.
+
+Production currently reports Stripe checkout/webhook/subscriptions disabled; Supabase configuration flags true but provider health/schema/RLS/storage are unverified; AI disabled; telemetry configured to Supabase but delivery is unverified. The dedicated Supabase hostname did not resolve during this audit. Vercel settings/logs, Stripe account state, and provider environment-key inventory are inaccessible here. No live payment, telemetry write, provider migration, or deployment was initiated for this baseline.
+
+Human product UAT remains open: no five-person first-session result or exact-production-head real-device sharing evidence exists. Product/architecture gates in `RELEASE_GATES.md` remain open. Do not describe the product as monetization-verified or certified.
+
+## Historical PR #19 evidence — pre-merge snapshot, 2026-10-02
+
+The table below is retained as evidence of the PR #19 verification at that time. Its old SHA and “open/draft” statements are historical; they do not describe current main, production, or open PR state. Production `/api/version` returned `067c3d635e45413514850fb7fcab4504822ee216` before PR #19 merged.
 
 | Area | Result | Exact evidence | SHA / deployment | Remaining issue |
 | --- | --- | --- | --- | --- |

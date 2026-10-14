@@ -1,22 +1,22 @@
 # Production Activation Status
 
-Evidence refreshed 2026-10-02 against PR #19 Preview and production endpoints. This update does not claim authenticated provider certification.
+Evidence refreshed 2026-10-13 against canonical GitHub state, production, and the current MemorySpace Preview. This file does not claim provider-backed certification.
 
-## Current certification checkpoint (updated 2026-10-02)
+## Current certification checkpoint (updated 2026-10-13)
 
-The pre-merge production SHA is `067c3d635e45413514850fb7fcab4504822ee216`, returned by production `/api/version` on 2026-10-02. GitHub confirms PR #7, #13, and #17 have merged. PR #19's implementation candidate `1474d7d` and evidence-only docs child `b1101482b476df7cba045e3c795ed4f3d90b35f9` passed exact-head hosted CI; the docs child Preview returned its exact SHA, and 19 public/16 protected routes plus the privacy/demo browser spot checks passed. Independent read-only code review found no merge-blocking issue. The candidate limits browser and provider AI payloads to chapter-type labels and updates the public privacy disclosure. Recheck the current head, CI, and Preview before merging.
+Production `/api/version` returned `8859495cd9062eb2a6a842c80a75639453d61026`, the current canonical main SHA. Main CI run [38119383860](https://github.com/rrahul0904/friendship-wrapped/actions/runs/38119383860) passed and Vercel deployment `6992138130` is successful. PR #19 merged on 2026-10-02 as `f5711507dd51c65799a8197504fe90a0f128694c`; PR #22 later merged the source-first experience, moving main and production to `8859495`.
 
-Production `/api/integrations/status` reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage variables present with telemetry configured for Supabase. These flags prove environment presence only. They do not establish project identity, database health, migration state, RLS, storage access, or telemetry delivery. The dedicated Supabase ref `pkmkynhkgitdslhadupj` failed DNS resolution during the current audit; its health and database state need connected provider access to verify.
+The latest production integration-status response reports Stripe checkout/webhook/subscriptions disabled, AI disabled, and Supabase public/server/auth/storage configured with telemetry set to Supabase. These flags prove configuration presence only. The dedicated Supabase host failed DNS resolution; health, remote schema, migration state, RLS, storage, and telemetry delivery remain unknown. Current release and service evidence is in [CURRENT_TRUTH.md](CURRENT_TRUTH.md) and [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md).
 
-The implementation candidate passed dependency audit (0 vulnerabilities), lint (0 errors; 17 warnings), typecheck, 182 unit tests, and the performance budget; its optimized Next.js build and all 49 Chromium E2E tests passed. These code checks were repeated by hosted CI on the evidence-only docs child. Separately, production `/create?demo=1` previously rendered at desktop (1440px) and mobile (390px); current exact-Preview browser spot checks covered the privacy disclosure and synthetic demo flow. Public production route verification found `/admin` redirects to `/app?admin=denied`; the verifier follows protected internal redirects and requires eventual login/denial.
+The MemorySpace implementation is staged in PRs #25–#28. PR #25's baseline head `f76176e` has a successful Preview, but CI run [38339878303](https://github.com/rrahul0904/friendship-wrapped/actions/runs/38339878303) exposed a conversation handoff failure. A local fix now routes valid `memorySpaceId` requests to candidate review while preserving source-first bare `/create`; focused local flow passes. The fix has not yet been pushed or verified by hosted CI/Preview. PR #26 is marked dirty against its stacked base; green checks on PRs #26–#28 do not prove independent mergeability against current main.
 
-GitHub access is available. Historical PR #19 head `ef7a94b5df4cdd460485f0f36c8b5bc483e13e1e` passed its exact-head CI and Preview checks. Current evidence is recorded in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md). The Vercel dashboard, CLI auth, and project context are unavailable, so project settings and build/runtime logs cannot be inspected from this session.
+The source-first main journey is locally processed and browser-tested, but human product UAT is missing. The required five-first-time-user review and real-device share tests have not been performed. Vercel settings/runtime logs and provider account resources could not be inspected; no current paid transaction was run.
 
-The strict Preview verifier at implementation SHA `67b8777e32a6265cf3d2094f3db1d1e7f781fa37` created a Stripe TEST Checkout Session but did not establish a completed integration: AI was disabled and the allowlisted telemetry event was not delivered. No test payment/webhook, authenticated Supabase/RLS/storage path, or provider certification has been completed. PR #19 contains the server-side AI chapter projection, bounded request body, privacy disclosure, and regression coverage; hosted verification passed as recorded in the certification ledger. Production deployment and merge state must be refreshed after the merge action.
+### Historical PR #19 checkpoint (2026-10-02)
 
-See [CERTIFICATION_BASELINE.md](CERTIFICATION_BASELINE.md) for the evidence matrix and [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md) for remaining gates.
+The detailed historical PR #19 provider attempt and implementation evidence are retained below this paragraph and in the historical section of [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md). Do not use those pre-merge SHA/status claims as current release evidence.
 
-Historical checkpoint for the `production-integrations-live` activation wave. PR #7 merged on 2026-09-01. The statements below that checkpoint describe what was observed on 2026-09-01; they are not current account truth. The 2026-10-02 evidence at the top of this document supersedes historical project-slot, Vercel-link, secret, and PR status claims.
+Historical checkpoint for the `production-integrations-live` activation wave. PR #7 merged on 2026-09-01. The statements below that checkpoint describe what was observed on 2026-09-01; they are not current account truth. The 2026-10-13 evidence at the top of this document supersedes historical project-slot, Vercel-link, secret, and PR status claims.
 
 ## Repository baseline
 
@@ -293,4 +293,4 @@ create dedicated Supabase project
 
 ## Current release classification
 
-Code merge readiness is based on the pushed PR candidate's exact-head CI, independent review, and repository-required checks. Provider access and UAT gates are tracked separately and still block full production certification. The latest audit found no branch protection configured on `main`, but the candidate still requires its new hosted run and review. Production `/api/version` last returned `067c3d635e45413514850fb7fcab4504822ee216`. Current results and owner actions are in [PRODUCTION_CERTIFICATION.md](PRODUCTION_CERTIFICATION.md); certification remains **NOT COMPLETE**.
+This paragraph is retained as a historical release snapshot and is superseded by the current status at the top of this document and [CURRENT_TRUTH.md](CURRENT_TRUTH.md). It described the candidate and production state at the time it was written; do not use its SHA or review status as current. Certification remains **NOT COMPLETE**.

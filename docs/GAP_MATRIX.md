@@ -1,0 +1,25 @@
+# ThreadTales phase-0 gap matrix
+
+**Baseline:** canonical main/production `8859495cd9062eb2a6a842c80a75639453d61026` on 2026-10-13. Status labels: `RESEARCHED`, `SPECIFIED`, `IMPLEMENTING`, `IMPLEMENTED`, `VERIFIED`, `DEPLOYED`, `CERTIFIED`.
+
+| Priority | Capability | Main status | Evidence / gap | Decision | Next action |
+| --- | --- | --- | --- | --- | --- |
+| P0 | Production SHA/deployment lineage | DEPLOYED | Production `/api/version` matches main `8859495`; CI run `38119383860` passed. | MATCH | Keep exact-SHA receipt current after every release. |
+| P0 | First-session ThreadTales create | VERIFIED + DEPLOYED | Source-first local analysis/reveal on `/create`; CI and route proof exist. Human emotional UAT is missing. | IMPROVE | Run first-time-user UAT and real iPhone/native-share plus non-iOS fallback. |
+| P0 | Existing product route compatibility | VERIFIED on main | Routes and source-first regression tests cover product identities. Migration into shared graph remains open. | MATCH | Add compatibility tests with each shared-graph adapter. |
+| P0 | MemorySpace conversation handoff | IMPLEMENTED locally; hosted verification pending | PR #25 starts at `/memory/new`, then `memorySpaceId` links to `/create`; this branch now routes valid MemorySpace queries to candidate review and keeps bare `/create` source-first. Focused local flow passes. | IMPROVE | Push to PR #25; require exact merge-ref CI, updated Preview, and full Chromium regression before marking verified. |
+| P0 | Candidate approval/privacy boundary | IMPLEMENTING on PR #25/#26 | Candidate and graph contracts plus Keep/Skip exist in the stack; only one flow verified and it currently cannot complete end-to-end. | MATCH | Verify raw chat never persists or leaves browser; prove pending candidates cannot write; test cross-space rejection. |
+| P1 | Reusable MemoryGraph | IMPLEMENTING on PR #25 | Local versioned graph and namespaced localStorage implementation in open PR, not production. | MATCH | Review runtime validation, delete/archive semantics, idempotence, schema migration, and multi-space reuse. |
+| P1 | Intent-specific composer | IMPLEMENTING on stacked PR #27 | Code and CI on stacked head; depends on PR #25/#26. Independent current-main compatibility unverified. | IMPROVE | Validate distinct structures per canonical intent using same approved graph and sparse-data fallback. |
+| P1 | Personalization/export/media studio | IMPLEMENTING on stacked PR #28 | Local IndexedDB/media references and output code in open PR; no durable uploads/MP4/music rights. | IMPROVE | Complete browser/mobile behavior and test export/share; describe media storage honestly. |
+| P1 | Five-user product UAT | RESEARCHED/SPECIFIED | Checklist exists; no results artifact, no real-device proof for the deployed head. | NEW | Run structured first-time-user study and owner review of exact deployed SHA. |
+| P1 | Monetization | IMPLEMENTED_NOT_VERIFIED | Stripe source exists; production checkout/webhook/subscription flags false; no current account resources or payment/webhook evidence. | IMPROVE | Obtain safe TEST credentials, validate signed webhook/idempotent entitlement and premium unlock. No real-card automated tests. |
+| P1 | Cloud persistence and security | IMPLEMENTED_NOT_VERIFIED | Supabase flags true but host DNS fails; remote schema, migrations, RLS, storage, account deletion/recovery unverified. | IMPROVE | Restore provider access; audit remote state before migration; exercise owner/member/unrelated-user access and deletion. |
+| P1 | Privacy-safe telemetry | IMPLEMENTED_NOT_VERIFIED | App reports enabled Supabase sink; actual delivery/row not verified. | IMPROVE | Prove allowlisted, content-free event delivery in authorized test environment. |
+| P1 | Private hosted share / durable media | NOT IMPLEMENTED | PR #25–28 explicitly exclude recipient-hosted links and durable upload. | OMIT for local V1; NEW later if validated | Do not imply local share is private hosted sharing or media is cloud-backed. |
+| P2 | Licensed video/MP4 | NOT IMPLEMENTED | No verified renderer/music rights path in active PRs. | OMIT now | Build only with rights, output validation, and clear consumer value. |
+| P0 | Current docs and release tracker | IMPLEMENTED locally; hosted review pending | Phase-0 docs are canonical; older current-state claims are date-labeled and point to the current baseline. | IMPROVE | Include the reconciled docs in the implementation change and keep provider gaps open pending evidence. |
+
+## Donor decisions
+
+The current evidence supports the user-specified MATCH/IMPROVE/NEW/OMIT product mapping in `ARCHITECTURE_TARGET.md`. No donor implementation or copyrighted asset is imported. Existing ThreadTales code and user-authored product requirements are the source of the MemorySpace work; inspiration research must be recorded with evidence/provenance before any donor-specific capability is implemented.
