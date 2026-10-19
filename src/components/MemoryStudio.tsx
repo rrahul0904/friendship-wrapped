@@ -256,6 +256,7 @@ export function MemoryStudio({ memorySpaceId, intent }: { memorySpaceId: string;
           </div>
 
           <div className={styles.nav}>
+            <Link href={`/memory/burst?memorySpaceId=${encodeURIComponent(memorySpaceId)}&intent=${encodeURIComponent(intent)}`} className={styles.softButton}>Play as burst ↗</Link>
             <button type="button" onClick={() => setSlideIndex((value) => Math.max(0, value - 1))} disabled={slideIndex === 0}>← Previous</button>
             <button type="button" onClick={() => setSlideIndex((value) => Math.min(Math.max(0, slides.length - 1), value + 1))} disabled={slideIndex >= slides.length - 1}>Next →</button>
           </div>
