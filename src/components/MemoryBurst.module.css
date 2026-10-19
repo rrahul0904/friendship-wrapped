@@ -24,4 +24,4 @@
 .privacy{display:grid;gap:.45rem;text-align:center;padding:1.25rem .25rem 0;font-size:.75rem;color:#b7b1c2;line-height:1.45}
 .privacy strong{color:#f2d1d7}
 @media(max-width:470px){.controls button{padding:.7rem .6rem;font-size:.77rem}.stage{margin-top:1rem}.frame{max-height:64vh}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important}}
+@media(prefers-reduced-motion:reduce){.page *, .page *::before, .page *::after{scroll-behavior:auto!important;animation:none!important}}
